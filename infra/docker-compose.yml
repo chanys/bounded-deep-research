@@ -1,0 +1,45 @@
+services:
+  # container that 'docker compose up' starts
+  postgres:
+    image: postgres:16
+    container_name: bdr-postgres
+    environment:                  # Postgres image reads below vars on first startup
+      POSTGRES_USER: bdr          # superuser name
+      POSTGRES_PASSWORD: bdr_dev  # superuser password
+      POSTGRES_DB: bdr            # initial database
+    ports:
+      - "5432:5432"               # HOST:CONTAINER port mapping
+    volumes:
+      - postgres_data:/var/lib/postgresql/data         # a named volume persists data across restarts
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bdr -d bdr"]  # updates container's health status
+      interval: 5s                                     # every 5 seconds. Why are we doing this health check?
+      timeout: 5s                                      # so that when we do `make up` -> `docker compose up --wait`
+      retries: 10                                      # which blocks the shell until every service reports healthy
+
+  # container that 'docker compose up' starts
+  opensearch:  # a search/analytics engine; indexes texts to enable query via BM25 / vector similarity
+    image: opensearchproject/opensearch:2
+    container_name: bdr-opensearch
+    environment:
+      - discovery.type=single-node          # tells OpenSearch not to try to form a cluster with siblings
+      - DISABLE_SECURITY_PLUGIN=true        # turns off auth and TLS. Fine locally, never in production
+      - DISABLE_INSTALL_DEMO_CONFIG=true    # skips demo certs/users installer (don't need since security is off)
+      - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g  # OpenSearch is a Java app; caps JVM heap at 1GB (min and max)
+    ulimits:
+      memlock: { soft: -1, hard: -1 }       # unlimited locked memory
+      nofile:  { soft: 65536, hard: 65536 } # file descriptor limit
+    ports:
+      - "9200:9200"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    healthcheck:
+      # Healthcheck hits `/_cluster/health` , an OpenSearch endpoint that reports whether the cluster is green/yellow/red
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+volumes:           # formally declares the named volumes
+  postgres_data:
+  opensearch_data:

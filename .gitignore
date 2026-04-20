@@ -1,0 +1,27 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node
+node_modules/
+.next/
+.turbo/
+
+# IDE
+.idea/
+.vscode/
+
+# Env
+.env
+.env.local
+
+# Data
+/data/*
+!/data/.gitkeep
+
+# OS
+.DS_Store
