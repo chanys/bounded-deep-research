@@ -26,8 +26,8 @@ MAPPING = {
         "properties": {
             "video_id": {"type": "keyword"},
             "title":    {"type": "text", "analyzer": "standard"},
-            "start_ts": {"type": "float"},
-            "end_ts":   {"type": "float"},
+            "start_ts": {"type": "integer"},
+            "end_ts":   {"type": "integer"},
             "text":     {"type": "text", "analyzer": "standard"},
         }
     }

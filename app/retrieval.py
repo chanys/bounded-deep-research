@@ -1,6 +1,8 @@
 """BM25 search over indexed transcript chunks."""
 from opensearchpy import OpenSearch
 
+from app.config import settings
+
 _client = OpenSearch(
     hosts=[{"host": "localhost", "port": 9200}],
     use_ssl=False,
@@ -8,7 +10,24 @@ _client = OpenSearch(
 )
 
 
-def search(query: str, k: int = 10, index: str = "chunks") -> list[dict]:
+def chunk_exists(video_id: str, start_ts: int) -> bool:
+    """Check whether a chunk with exact (video_id, start_ts) exists."""
+    body = {
+        "size": 1,
+        "query": {
+            "bool": {
+                "filter": [
+                    {"term": {"video_id": video_id}},
+                    {"term": {"start_ts": start_ts}},
+                ]
+            }
+        },
+    }
+    res = _client.search(index="chunks", body=body)
+    return res["hits"]["total"]["value"] > 0
+
+
+def search(query: str, k: int = 10, index: str = settings.opensearch_index) -> list[dict]:
     """BM25 search. Returns list of {video_id, title, start_ts, end_ts, text, score}.
 
     Each hit is OpenSearch's wrapper around one matching document. Shape:

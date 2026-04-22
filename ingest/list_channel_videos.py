@@ -1,13 +1,11 @@
 """List all code4AI videos -> data/channel_manifests/code4AI.jsonl"""
 import json
-import os
 import re
 from pathlib import Path
 
 from googleapiclient.discovery import build
 
-from dotenv import load_dotenv
-load_dotenv()
+from app.config import settings
 
 HANDLE = "@code4AI"
 OUT = Path("data/channel_manifests/code4AI.jsonl")
@@ -21,7 +19,7 @@ def parse_duration(iso: str) -> int:
 
 
 def main():
-    yt = build("youtube", "v3", developerKey=os.environ["YOUTUBE_API_KEY"])
+    yt = build("youtube", "v3", developerKey=settings.youtube_api_key)
 
     # YouTube automatically maintains one "uploads" playlist per channel — you never see it in the UI, but it exists,
     # and it's the canonical way to enumerate a channel's videos via the API.

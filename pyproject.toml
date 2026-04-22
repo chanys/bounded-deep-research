@@ -9,6 +9,7 @@ dependencies = [
     "fastapi>=0.136.0",
     "google-api-python-client>=2.194.0",
     "langfuse>=4.3.1",
+    "openai>=2.32.0",
     "opensearch-py>=3.1.0",
     "psycopg[binary]>=3.3.3",
     "pydantic-settings>=2.14.0",

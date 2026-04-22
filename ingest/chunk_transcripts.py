@@ -60,8 +60,8 @@ def main():
                 chunk = {
                     "video_id": video_id,
                     "title": meta["title"],
-                    "start_ts": round(start, 2),
-                    "end_ts": round(end, 2),
+                    "start_ts": int(start),
+                    "end_ts": int(end),
                     "text": text,
                 }
                 f.write(json.dumps(chunk, ensure_ascii=False) + "\n")
