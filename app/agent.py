@@ -50,17 +50,13 @@ def _finalize(submitted: SubmittedAnswer, steps_used: int, budget_exhausted: boo
     )
     langfuse = get_client()
     langfuse.update_current_span(
-        output={
-            "answer": result.answer,
-            "citation_count": len(result.citations),
-        },
         metadata={"steps_used": steps_used, "budget_exhausted": budget_exhausted},
     )
     return result
 
 
 @observe(name="run_agent")
-def run_agent(query: str) -> AgentResult:
+def run_agent(query: str, event_sink=None) -> AgentResult:
     """Run the ReAct loop for a single query.
 
     Returns AgentResult on success. Raises RuntimeError if the agent
@@ -80,8 +76,15 @@ def run_agent(query: str) -> AgentResult:
         {"role": "user",   "content": query},
     ]
 
+    # Monotonic search_id counter, spans the whole run.
+    # See planning_docs/day-4-sse-contract.md for why.
+    search_id_counter = 0
+
+    def emit(event: dict) -> None:
+        if event_sink is not None:  # If someone gave me an event sink, send the event there.
+            event_sink(event)       # Example of `event`: <some_list>.append ; so this appends `event` dict to the list
+
     for step in range(settings.agent_max_steps):
-        # import json
         # print(f"--- turn {step + 1} input_items ---")
         # for i, it in enumerate(input_items):
         #     print(i, json.dumps(it, indent=2, default=str))
@@ -98,10 +101,41 @@ def run_agent(query: str) -> AgentResult:
         for item in response.output:
             if item.type == "function_call":
                 any_function_call = True
-                result = dispatch(to_input_item(item))
+                call_item = to_input_item(item)
+
+                # Emit search_start before dispatch (only for search_transcripts).
+                this_search_id = None
+                if call_item["name"] == "search_transcripts":
+                    this_search_id = search_id_counter
+                    search_id_counter += 1
+                    args = json.loads(call_item.get("arguments", "{}"))
+                    emit({
+                        "type": "search_start",
+                        "search_id": this_search_id,
+                        "query": args.get("query", ""),
+                    })
+
+                result = dispatch(call_item)
                 input_items.append(result.output_item)
+
+                # Emit search_complete after dispatch.
+                if this_search_id is not None:
+                    parsed = json.loads(result.output_item["output"])
+                    result_count = len(parsed.get("hits", [])) if "hits" in parsed else 0
+                    emit({
+                        "type": "search_complete",
+                        "search_id": this_search_id,
+                        "result_count": result_count,
+                    })
+
                 if result.terminal:
                     terminal = result
+                    # Stop dispatching: any function_calls after submit_answer in the
+                    # same response.output are left without matching output_items in
+                    # input_items. This is safe only because we return immediately after
+                    # this turn — input_items is not read again. If you ever defer the
+                    # return or log input_items on exit, revisit this.
+                    break
 
         # 3. Exit on successful submit_answer.
         if terminal is not None:

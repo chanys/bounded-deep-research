@@ -7,9 +7,11 @@ from googleapiclient.discovery import build
 
 from app.config import settings
 
-HANDLE = "@code4AI"
-OUT = Path("data/channel_manifests/code4AI.jsonl")
+# HANDLE = "@code4AI"
+# OUT = Path("data/channel_manifests/code4AI.jsonl")
 
+HANDLE = "@DwarkeshPatel"
+OUT = Path("data/channel_manifests/DwarkeshPatel.jsonl")
 
 def parse_duration(iso: str) -> int:
     """PT1H2M3S -> seconds"""
@@ -63,6 +65,8 @@ def main():
         }
         for v in batch:
             v.update(details.get(v["id"], {}))
+
+    videos = [v for v in videos if v.get("duration_seconds", 0) > 180]  # filter out shorts
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     with OUT.open("w") as f:
