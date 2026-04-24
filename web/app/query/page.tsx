@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 
 // Mirrors the SSE event contract in planning_docs/day-4-sse-contract.md.
 type SearchStart = { type: "search_start"; search_id: number; query: string };
@@ -148,20 +149,24 @@ export default function QueryPage() {
           <h2 className="text-sm font-semibold text-zinc-600 mt-6 mb-2">
             Citations
           </h2>
-          <ul className="space-y-1 text-sm font-mono">
-              {answer.citations.map((c, i) => (
-                <li key={i}>
-                  <a
-                    href={`https://www.youtube.com/watch?v=${c.video_id}&t=${c.start_ts}s`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline"
-                  >
+
+          <div className="space-y-2">
+            {answer.citations.map((c, i) => (
+              <a
+                key={i}
+                href={`https://www.youtube.com/watch?v=${c.video_id}&t=${c.start_ts}s`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block"
+              >
+                <Card className="hover:bg-zinc-50 transition-colors">
+                  <CardContent className="p-3 font-mono text-sm">
                     {c.video_id} @ {c.start_ts}–{c.end_ts}
-                  </a>
-                </li>
-              ))}
-            </ul>
+                  </CardContent>
+                </Card>
+              </a>
+            ))}
+          </div>
 
         </div>
       )}
