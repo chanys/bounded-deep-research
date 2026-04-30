@@ -56,7 +56,7 @@ def _finalize(submitted: SubmittedAnswer, steps_used: int, budget_exhausted: boo
 
 
 @observe(name="run_agent")
-def run_agent(query: str, event_sink=None) -> AgentResult:
+def run_agent(query: str, channel: str, event_sink=None) -> AgentResult:
     """Run the ReAct loop for a single query.
 
     Returns AgentResult on success. Raises RuntimeError if the agent
@@ -65,10 +65,11 @@ def run_agent(query: str, event_sink=None) -> AgentResult:
     """
     langfuse = get_client()
     langfuse.update_current_span(
-        input={"query": query},
+        input={"query": query, "channel": channel},
         metadata={"agent_model": settings.agent_model,
                   "reasoning_effort": settings.reasoning_effort,
-                  "max_steps": settings.agent_max_steps},
+                  "max_steps": settings.agent_max_steps,
+                  "channel": channel},
     )
 
     input_items: list[dict] = [
@@ -115,7 +116,7 @@ def run_agent(query: str, event_sink=None) -> AgentResult:
                         "query": args.get("query", ""),
                     })
 
-                result = dispatch(call_item)
+                result = dispatch(call_item, channel=channel)
                 input_items.append(result.output_item)
 
                 # Emit search_complete after dispatch.
@@ -166,7 +167,7 @@ def run_agent(query: str, event_sink=None) -> AgentResult:
         input_items.append(to_input_item(item))
     for item in response.output:
         if item.type == "function_call":
-            result = dispatch(to_input_item(item))
+            result = dispatch(to_input_item(item), channel=channel)
             input_items.append(result.output_item)
             if result.terminal:
                 return _finalize(result.submitted, settings.agent_max_steps, True)

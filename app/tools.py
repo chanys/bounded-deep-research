@@ -140,7 +140,7 @@ class DispatchResult(BaseModel):
 # ---------------------------------------------------------------------------
 
 @observe(name="dispatch_tool")
-def dispatch(function_call_item: dict) -> DispatchResult:
+def dispatch(function_call_item: dict, channel: str) -> DispatchResult:
     """Execute a function_call item from response.output.
 
     Returns a DispatchResult containing the function_call_output item to
@@ -160,20 +160,20 @@ def dispatch(function_call_item: dict) -> DispatchResult:
         return _error_output(call_id, f"Invalid JSON in tool arguments: {e}")
 
     if name == "search_transcripts":
-        return _handle_search(call_id, args)
+        return _handle_search(call_id, args, channel)
     if name == "submit_answer":
-        return _handle_submit(call_id, args)
+        return _handle_submit(call_id, args, channel)
     return _error_output(call_id, f"Unknown tool: {name}")
 
 
-def _handle_search(call_id: str, args: dict[str, Any]) -> DispatchResult:
+def _handle_search(call_id: str, args: dict[str, Any], channel: str) -> DispatchResult:
     query = args.get("query")
     if not query or not isinstance(query, str):
         return _error_output(call_id, "search_transcripts requires a non-empty 'query' string.")
 
     k = args.get("k", settings.retrieval_k)
     try:
-        hits = search(query, k=k)
+        hits = search(query, channel=channel, k=k)
     except Exception as e:
         return _error_output(call_id, f"search failed: {e}")
 
@@ -200,7 +200,7 @@ def _handle_search(call_id: str, args: dict[str, Any]) -> DispatchResult:
     return DispatchResult(output_item=output, terminal=False)
 
 
-def _handle_submit(call_id: str, args: dict[str, Any]) -> DispatchResult:
+def _handle_submit(call_id: str, args: dict[str, Any], channel: str) -> DispatchResult:
     try:
         submitted = SubmittedAnswer(**args)
     except ValidationError as e:
@@ -209,7 +209,7 @@ def _handle_submit(call_id: str, args: dict[str, Any]) -> DispatchResult:
     # Validate each citation exists in the index by exact (video_id, start_ts).
     invalid: list[str] = []
     for i, c in enumerate(submitted.citations):
-        if not _citation_exists(c):
+        if not _citation_exists(c, channel):
             invalid.append(
                 f"citation {i}: no chunk found for video_id={c.video_id} "
                 f"start_ts={c.start_ts}"
@@ -247,6 +247,6 @@ def _snippet(text: str, max_chars: int = 500) -> str:
     return text[: max_chars - 1].rstrip() + "…"
 
 
-def _citation_exists(c: Citation) -> bool:
+def _citation_exists(c: Citation, channel: str) -> bool:
     from app.retrieval import chunk_exists
-    return chunk_exists(video_id=c.video_id, start_ts=c.start_ts)
+    return chunk_exists(video_id=c.video_id, start_ts=c.start_ts, channel=channel)

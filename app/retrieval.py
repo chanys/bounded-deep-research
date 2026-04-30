@@ -10,7 +10,11 @@ _client = OpenSearch(
 )
 
 
-def chunk_exists(video_id: str, start_ts: int) -> bool:
+def _index_for(channel: str) -> str:
+    return f"{settings.opensearch_index_prefix}_{channel}".lower()
+
+
+def chunk_exists(video_id: str, start_ts: int, channel: str) -> bool:
     """Check whether a chunk with exact (video_id, start_ts) exists."""
     body = {
         "size": 1,
@@ -23,11 +27,11 @@ def chunk_exists(video_id: str, start_ts: int) -> bool:
             }
         },
     }
-    res = _client.search(index="chunks", body=body)
+    res = _client.search(index=_index_for(channel), body=body)
     return res["hits"]["total"]["value"] > 0
 
 
-def search(query: str, k: int = 10, index: str = settings.opensearch_index) -> list[dict]:
+def search(query: str, channel: str, k: int = 10) -> list[dict]:
     """BM25 search. Returns list of {video_id, title, start_ts, end_ts, text, score}.
 
     Each hit is OpenSearch's wrapper around one matching document. Shape:
@@ -67,7 +71,7 @@ def search(query: str, k: int = 10, index: str = settings.opensearch_index) -> l
     ```
     """
     resp = _client.search(
-        index=index,
+        index=_index_for(channel),
         body={
             "size": k,
             "query": {"match": {"text": query}},

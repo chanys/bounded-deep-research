@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     # Retrieval
     retrieval_k: int = 10
     opensearch_url: str = "http://localhost:9200"
-    opensearch_index: str = "chunks"
+    opensearch_index_prefix: str = "chunks"
 
     # Ingestion
     youtube_api_key: str
@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     langfuse_public_key: str | None = None
     langfuse_secret_key: str | None = None
     langfuse_base_url: str | None = None
+
+    # Database
+    database_url: str = "postgresql://bdr:bdr_dev@localhost:5432/bdr"
 
 
 settings = Settings()

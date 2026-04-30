@@ -1,8 +1,8 @@
 """Fetch transcripts for videos in a channel manifest, optionally filtered by month.
 
 Usage:
-  uv run python -m ingest.fetch_transcripts code4AI
-  uv run python -m ingest.fetch_transcripts code4AI --month 2026-04
+  uv run python -m ingest.fetch_transcripts --channel code4AI
+  uv run python -m ingest.fetch_transcripts --channel code4AI --month 2026-04
 """
 import random
 import argparse
@@ -16,7 +16,7 @@ from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFoun
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("channel", help="channel slug, e.g. code4AI")
+    p.add_argument("--channel", help="channel slug, e.g. code4AI")
     p.add_argument("--month", help="filter by YYYY-MM prefix on publishedAt")
     p.add_argument("--lang", default="en")
     p.add_argument("--delay", type=float, default=90)
@@ -24,7 +24,7 @@ def main():
     args = p.parse_args()
 
     manifest = Path(f"data/channel_manifests/{args.channel}.jsonl")
-    out_dir = Path("data/transcripts")
+    out_dir = Path(f"data/transcripts/{args.channel}")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     videos = [json.loads(line) for line in manifest.read_text().splitlines()]

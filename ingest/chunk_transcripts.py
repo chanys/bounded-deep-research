@@ -1,54 +1,63 @@
-"""Chunk transcripts into fixed 30s windows.
+"""Chunk cleaned transcripts into fixed 30s windows. Postgres-driven.
 
-Reads data/transcripts/*.jsonl, writes data/chunks/{video_id}.jsonl.
-Skips videos already chunked.
+Usage:
+  uv run python -m ingest.chunk_transcripts --channel code4AI --window 30
 """
 import argparse
 import json
 from pathlib import Path
 
-TRANSCRIPTS_DIR = Path("data/transcripts")
-CHUNKS_DIR = Path("data/chunks")
+from app.db import transaction
 
 
 def chunk_segments(segments, window_seconds):
     """Group segments into fixed-duration windows. Yields (start, end, text)."""
     if not segments:
         return
-
     chunk_start = segments[0]["start"]
     chunk_end = chunk_start + window_seconds
     buf = []
-
     for seg in segments:
         if seg["start"] >= chunk_end and buf:
             yield chunk_start, chunk_end, " ".join(buf)
             chunk_start = chunk_end
             chunk_end = chunk_start + window_seconds
             buf = []
-            # If there's a gap larger than window, advance chunk_start to seg
             while seg["start"] >= chunk_end:
                 chunk_start = chunk_end
                 chunk_end = chunk_start + window_seconds
         buf.append(seg["text"])
-
     if buf:
         yield chunk_start, chunk_end, " ".join(buf)
 
 
 def main():
     p = argparse.ArgumentParser()
+    p.add_argument("--channel", required=True, help="channel slug, e.g. code4AI")
     p.add_argument("--window", type=int, default=30, help="chunk window in seconds")
     args = p.parse_args()
 
+    TRANSCRIPTS_DIR = Path(f"data/transcripts_clean/{args.channel}")
+    CHUNKS_DIR = Path(f"data/chunks/{args.channel}")
     CHUNKS_DIR.mkdir(parents=True, exist_ok=True)
 
-    for transcript_path in sorted(TRANSCRIPTS_DIR.glob("*.jsonl")):
-        video_id = transcript_path.stem
+    # Drive from Postgres: chunk cleaned-but-not-yet-chunked videos.
+    # If --source raw, fall back to fetched-but-not-chunked.
+    with transaction() as conn:
+        rows = conn.execute("""
+            SELECT video_id FROM videos
+            WHERE channel = %s AND cleaned_at IS NOT NULL AND chunked_at IS NULL
+            ORDER BY published_at
+        """, (args.channel,)).fetchall()
+
+    if not rows:
+        print("nothing to chunk")
+        return
+
+    for row in rows:
+        video_id = row["video_id"]
+        transcript_path = TRANSCRIPTS_DIR / f"{video_id}.jsonl"
         out_path = CHUNKS_DIR / f"{video_id}.jsonl"
-        if out_path.exists():
-            print(f"  skip {video_id}")
-            continue
 
         lines = transcript_path.read_text().splitlines()
         meta = json.loads(lines[0])["_meta"]
@@ -66,6 +75,15 @@ def main():
                 }
                 f.write(json.dumps(chunk, ensure_ascii=False) + "\n")
                 n += 1
+
+        with transaction() as conn:
+            conn.execute("""
+                UPDATE videos SET
+                  chunked_at = NOW(),
+                  chunk_window_s = %s,
+                  n_chunks = %s
+                WHERE video_id = %s
+            """, (args.window, n, video_id))
 
         print(f"  ok   {video_id} ({n} chunks)")
 
