@@ -37,8 +37,7 @@ from pydantic import BaseModel, ValidationError
 from langfuse import observe
 
 from app.config import settings
-from app.retrieval import search
-
+from app.retrieval import search, Mode
 
 # ---------------------------------------------------------------------------
 # Tool schemas (Responses API flat shape)
@@ -140,7 +139,7 @@ class DispatchResult(BaseModel):
 # ---------------------------------------------------------------------------
 
 @observe(name="dispatch_tool")
-def dispatch(function_call_item: dict, channel: str) -> DispatchResult:
+def dispatch(function_call_item: dict, channel: str, mode: Mode) -> DispatchResult:
     """Execute a function_call item from response.output.
 
     Returns a DispatchResult containing the function_call_output item to
@@ -160,20 +159,20 @@ def dispatch(function_call_item: dict, channel: str) -> DispatchResult:
         return _error_output(call_id, f"Invalid JSON in tool arguments: {e}")
 
     if name == "search_transcripts":
-        return _handle_search(call_id, args, channel)
+        return _handle_search(call_id, args, channel, mode)
     if name == "submit_answer":
         return _handle_submit(call_id, args, channel)
     return _error_output(call_id, f"Unknown tool: {name}")
 
 
-def _handle_search(call_id: str, args: dict[str, Any], channel: str) -> DispatchResult:
+def _handle_search(call_id: str, args: dict[str, Any], channel: str, mode: Mode) -> DispatchResult:
     query = args.get("query")
     if not query or not isinstance(query, str):
         return _error_output(call_id, "search_transcripts requires a non-empty 'query' string.")
 
     k = args.get("k", settings.retrieval_k)
     try:
-        hits = search(query, channel=channel, k=k)
+        hits = search(query, channel=channel, k=k, mode=mode)
     except Exception as e:
         return _error_output(call_id, f"search failed: {e}")
 

@@ -4,6 +4,7 @@ from langfuse import observe, get_client
 
 from app.config import settings
 from app.llm import respond, to_input_item
+from app.retrieval import Mode
 from app.tools import TOOLS, dispatch, SubmittedAnswer
 
 
@@ -56,7 +57,7 @@ def _finalize(submitted: SubmittedAnswer, steps_used: int, budget_exhausted: boo
 
 
 @observe(name="run_agent")
-def run_agent(query: str, channel: str, event_sink=None) -> AgentResult:
+def run_agent(query: str, channel: str, mode: Mode, event_sink=None) -> AgentResult:
     """Run the ReAct loop for a single query.
 
     Returns AgentResult on success. Raises RuntimeError if the agent
@@ -69,7 +70,8 @@ def run_agent(query: str, channel: str, event_sink=None) -> AgentResult:
         metadata={"agent_model": settings.agent_model,
                   "reasoning_effort": settings.reasoning_effort,
                   "max_steps": settings.agent_max_steps,
-                  "channel": channel},
+                  "channel": channel,
+                  "mode": mode},
     )
 
     input_items: list[dict] = [
@@ -116,7 +118,7 @@ def run_agent(query: str, channel: str, event_sink=None) -> AgentResult:
                         "query": args.get("query", ""),
                     })
 
-                result = dispatch(call_item, channel=channel)
+                result = dispatch(call_item, channel=channel, mode=mode)
                 input_items.append(result.output_item)
 
                 # Emit search_complete after dispatch.
@@ -167,7 +169,7 @@ def run_agent(query: str, channel: str, event_sink=None) -> AgentResult:
         input_items.append(to_input_item(item))
     for item in response.output:
         if item.type == "function_call":
-            result = dispatch(to_input_item(item), channel=channel)
+            result = dispatch(to_input_item(item), channel=channel, mode=mode)
             input_items.append(result.output_item)
             if result.terminal:
                 return _finalize(result.submitted, settings.agent_max_steps, True)

@@ -1,3 +1,5 @@
+from typing import Literal
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
@@ -144,6 +146,7 @@ def health():
 class QueryRequest(BaseModel):
     query: str
     channel: str = "code4AI"  # default for Phase 1
+    mode: Literal["bm25", "dense", "hybrid"] = "hybrid"
 
 
 def sse(event: dict) -> str:
@@ -197,7 +200,7 @@ async def query(req: QueryRequest):  # FastAPI automatically turns incoming JSON
         which means: Run the blocking agent in a separate thread, while the async /query endpoint continues managing the stream.
         """
         try:
-            result = await asyncio.to_thread(run_agent, req.query, req.channel, event_sink)
+            result = await asyncio.to_thread(run_agent, req.query, req.channel, req.mode, event_sink)
             queue.put_nowait({
                 "type": "answer_complete",
                 "answer": result.answer,
