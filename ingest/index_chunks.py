@@ -15,6 +15,21 @@ from tqdm import tqdm
 from app.config import settings
 from app.db import transaction
 
+"""
+When you query, hits come back as documents: _id, _score, _source.
+- _source: the original JSON you indexed (the actual content)
+
+So when we retrieve from the index, e.g.:
+```
+hit["_source"]  # dict: {"video_id": ..., "title": ..., "text": ..., ...}
+
+hit["_source"]["title"]  # "GraphRAG: An Introduction"
+
+{**hit["_source"], "score": hit["_score"]}  # unpack dict, add score field
+```
+"""
+
+# A mapping is the schema for an index, which tells OpenSearch what to do with each field.
 # This mapping gives us:
 # - BM25 over `text` and `title`
 # - kNN over `embedding`
@@ -41,7 +56,7 @@ MAPPING = {
             "text":         {"type": "text", "analyzer": "standard"},  # full-text-searchable
             "embedding": {
                 "type": "knn_vector",
-                "dimension": 3072,
+                "dimension": settings.embedding_dimensions,
                 "method": {
                     "name": "hnsw",  # the standard ANN algo for vector search
                     "engine": "lucene",  # three engines exist (Lucene, nmslib, FAISS); Lucene is OpenSearch-native, lowest operational complexity
@@ -74,6 +89,7 @@ def fetch_docs(channel: str, index: str):
             ORDER BY c.video_id, c.start_s
         """, (channel,)).fetchall()
 
+    # storing these inside _source: chunk_id, video_id, title, channel, published_at, start_ts, end_ts, text, embedding
     for r in rows:
         yield {
             "_op_type": "index",

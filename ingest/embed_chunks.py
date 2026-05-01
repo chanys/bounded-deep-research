@@ -12,8 +12,8 @@ from tqdm import tqdm
 from app.config import settings
 from app.db import transaction
 
-EMBEDDING_MODEL = "text-embedding-3-large"
-EMBEDDING_DIMENSIONS = 3072
+EMBEDDING_MODEL = settings.embedding_model
+EMBEDDING_DIMENSIONS = settings.embedding_dimensions
 
 client = OpenAI(api_key=settings.openai_api_key)
 

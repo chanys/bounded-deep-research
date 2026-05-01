@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     retrieval_k: int = 10
     opensearch_url: str = "http://localhost:9200"
     opensearch_index_prefix: str = "chunks"
+    embedding_model: str = "text-embedding-3-large"
+    embedding_dimensions: int = 3072
 
     # Ingestion
     youtube_api_key: str
