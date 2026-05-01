@@ -1,7 +1,7 @@
 services:
   # container that 'docker compose up' starts
   postgres:
-    image: postgres:16
+    image: pgvector/pgvector:pg16
     container_name: bdr-postgres
     environment:                  # Postgres image reads below vars on first startup
       POSTGRES_USER: bdr          # superuser name
