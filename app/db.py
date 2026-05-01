@@ -1,9 +1,12 @@
 import psycopg
 from contextlib import contextmanager
+from pgvector.psycopg import register_vector
 from app.config import settings
 
 def get_conn():
-    return psycopg.connect(settings.database_url, row_factory=psycopg.rows.dict_row)
+    conn = psycopg.connect(settings.database_url, row_factory=psycopg.rows.dict_row)
+    register_vector(conn)
+    return conn
 
 @contextmanager
 def transaction():
