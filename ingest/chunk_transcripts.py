@@ -38,8 +38,6 @@ def main():
     args = p.parse_args()
 
     TRANSCRIPTS_DIR = Path(f"data/transcripts_clean/{args.channel}")
-    CHUNKS_DIR = Path(f"data/chunks/{args.channel}")
-    CHUNKS_DIR.mkdir(parents=True, exist_ok=True)
 
     # Drive from Postgres: chunk cleaned-but-not-yet-chunked videos.
     # If --source raw, fall back to fetched-but-not-chunked.
@@ -57,26 +55,30 @@ def main():
     for row in rows:
         video_id = row["video_id"]
         transcript_path = TRANSCRIPTS_DIR / f"{video_id}.jsonl"
-        out_path = CHUNKS_DIR / f"{video_id}.jsonl"
 
         lines = transcript_path.read_text().splitlines()
-        meta = json.loads(lines[0])["_meta"]
         segments = [json.loads(line) for line in lines[1:]]
 
-        n = 0
-        with out_path.open("w") as f:
-            for start, end, text in chunk_segments(segments, args.window):
-                chunk = {
-                    "video_id": video_id,
-                    "title": meta["title"],
-                    "start_ts": int(start),
-                    "end_ts": int(end),
-                    "text": text,
-                }
-                f.write(json.dumps(chunk, ensure_ascii=False) + "\n")
-                n += 1
+        chunks = [
+            (
+                f"{video_id}:{int(start):05d}",
+                video_id,
+                int(start),
+                int(end),
+                text,
+            )
+            for start, end, text in chunk_segments(segments, args.window)
+        ]
+        n = len(chunks)
 
         with transaction() as conn:
+            with conn.cursor() as cur:
+                cur.executemany("""
+                    INSERT INTO video_chunks (chunk_id, video_id, start_s, end_s, text)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (chunk_id) DO NOTHING
+                """, chunks)
+
             conn.execute("""
                 UPDATE videos SET
                   chunked_at = NOW(),
