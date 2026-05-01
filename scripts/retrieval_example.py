@@ -10,4 +10,5 @@ hybrid = search(q, ch, k=10, mode="hybrid")
 for label, hits in [("bm25", bm25), ("dense", dense), ("hybrid", hybrid)]:
     print(f"\n=== {label} ===")
     for h in hits[:5]:
-        print(f"  {h['score']:.4f}  {h['video_id']}  {h['title'][:50]}")
+        print(f"  {h['score']:.4f}  {h['chunk_id']}  {h['title'][:40]}")
+        print(f"    {h['text'][:200]}")
