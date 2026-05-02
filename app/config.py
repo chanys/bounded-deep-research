@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     opensearch_index_prefix: str = "chunks"
     embedding_model: str = "text-embedding-3-large"
     embedding_dimensions: int = 3072
+    title_boost: float = 1.0
 
     # Ingestion
     youtube_api_key: str

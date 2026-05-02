@@ -135,18 +135,39 @@ def _bm25_search(query: str, channel: str, k: int) -> list[dict]:
         "score":    hit["_score"],
     }
     ```
+
+    fields: ["title^2.0", "text"] — title^2.0 means "match against title with weight 2.0".
+            text (no ^) means weight 1.0.
+            So a document scoring 5.0 on title alone would beat a document scoring 9.0 on text alone (5.0 × 2.0 = 10.0 > 9.0).
+
+    type: "best_fields" -- when a query matches multiple fields, take the highest-scoring field's score (rather than summing across fields).
+                           Best when you expect the query to match one field strongly.
+          "most_fields" — sum across fields (rewards docs that match many fields a little)
     """
     resp = _client.search(
         index=_index_for(channel),
         body={
             "size": k,
-            "query": {"match": {"text": query}},
+            "query": {
+                "multi_match": {
+                    "query": query,
+                    "fields": [
+                        f"title^{settings.title_boost}",
+                        "text",
+                    ],
+                    "type": "most_fields",
+                }
+            },
         },
     )
     return [
         {**hit["_source"], "score": hit["_score"]}
         for hit in resp["hits"]["hits"]
     ]
+
+
+
+
 
 
 def _dense_search(query: str, channel: str, k: int) -> list[dict]:
