@@ -32,10 +32,14 @@ def respond(
     Returns the raw Response so the caller can iterate response.output
     to dispatch function_call items and read token usage.
     """
+    reasoning: dict = {"effort": settings.reasoning_effort}
+    if settings.reasoning_summary:
+        reasoning["summary"] = settings.reasoning_summary  # readable summary of the reasoning
+
     kwargs: dict = {
         "model": settings.agent_model,
         "input": input_items,
-        "reasoning": {"effort": settings.reasoning_effort},
+        "reasoning": reasoning,
         "store": False,  # tells the Responses API: don't persist this request/response server-side
         "include": ["reasoning.encrypted_content"],  # return the reasoning (encrypted) in the response
     }

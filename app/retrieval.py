@@ -57,6 +57,44 @@ def chunk_exists(video_id: str, start_ts: int, channel: str) -> bool:
     return res["hits"]["total"]["value"] > 0
 
 
+def read_video_segment(video_id: str, start_ts: int, channel: str) -> dict | None:
+    """Return the full chunk at (video_id, start_ts), or None if no match.
+    """
+    body = {
+        "size": 1,
+        "query": {
+            "bool": {
+                "filter": [
+                    {"term": {"video_id": video_id}},
+                    {"term": {"start_ts": start_ts}},
+                ]
+            }
+        },
+    }
+    res = _client.search(index=_index_for(channel), body=body)
+    hits = res["hits"]["hits"]
+    if not hits:
+        return None
+    source = hits[0]["_source"]
+
+    mode = settings.read_mode  # "raw" or "summarized"
+    if mode == "raw":
+        text = source["text"]
+    elif mode == "summarized":
+        raise NotImplementedError("Summarizer sub-agent lands in Phase 2")
+    else:
+        raise ValueError(f"Unknown read mode: {mode}")
+
+    return {
+        "video_id": source["video_id"],
+        "title": source["title"],
+        "start_ts": source["start_ts"],
+        "end_ts": source["end_ts"],
+        "text": text,
+        "mode": mode,
+    }
+
+
 def search(
     query: str,
     channel: str,
@@ -169,10 +207,6 @@ def _bm25_search(query: str, channel: str, k: int) -> list[dict]:
     ]
 
 
-
-
-
-
 def _dense_search(query: str, channel: str, k: int) -> list[dict]:
     """
     Worth understanding: the kNN query has two k values:
@@ -227,7 +261,7 @@ def _rrf_fuse(
     k: int,
     rrf_k: int = 60,
 ) -> list[dict]:
-    """Reciprocal Rank Fusion. score(doc) = sum over rankers of 1 / (rrf_k + rank).
+    r"""Reciprocal Rank Fusion. score(doc) = sum over rankers of 1 / (rrf_k + rank).
 
     RRFscore(d) = \sum_{r \in R} frac{1}{k + r(d)}
     where r(d) is the rank of document d in ranker r's list, and k=60 is a constant from the original 2009 paper.

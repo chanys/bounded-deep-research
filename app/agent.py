@@ -4,35 +4,12 @@ from langfuse import observe, get_client
 
 from app.config import settings
 from app.llm import respond, to_input_item
+from app.prompts import load_recipe
 from app.retrieval import Mode
 from app.tools import TOOLS, dispatch, SubmittedAnswer
 
 
-SYSTEM_PROMPT = """\
-You are a research agent answering questions about a corpus of video \
-transcripts. You have two tools:
-
-- search_transcripts(query, k): returns up to k transcript chunks \
-matching the query, with video_id, title, timestamps, and a snippet.
-- submit_answer(answer, citations): submits your final answer with \
-supporting citations.
-
-How to work:
-
-1. Start by searching with concise, specific queries. Run multiple \
-searches with different phrasings when the question has multiple \
-aspects or when initial results are thin — this corpus is bounded, \
-so a missed chunk is unrecoverable.
-2. Base your answer only on what you find in the transcripts. If the \
-corpus does not contain enough evidence to answer, say so in the \
-answer rather than guessing.
-3. Every factual claim in your answer should be supported by at least \
-one citation. Citations reference chunks by (video_id, start_ts, \
-end_ts) — you do not need to quote chunk text in the citation itself.
-4. Call submit_answer exactly once, when you have sufficient evidence. \
-Do not emit plain text as your final reply; always go through \
-submit_answer.
-"""
+_RECIPE_METADATA, SYSTEM_PROMPT = load_recipe()
 
 
 class AgentResult(SubmittedAnswer):
@@ -71,7 +48,8 @@ def run_agent(query: str, channel: str, mode: Mode, event_sink=None) -> AgentRes
                   "reasoning_effort": settings.reasoning_effort,
                   "max_steps": settings.agent_max_steps,
                   "channel": channel,
-                  "mode": mode},
+                  "mode": mode,
+                  "recipe_version": _RECIPE_METADATA.version},
     )
 
     input_items: list[dict] = [

@@ -37,7 +37,7 @@ from pydantic import BaseModel, ValidationError
 from langfuse import observe
 
 from app.config import settings
-from app.retrieval import search, Mode
+from app.retrieval import search, read_video_segment, Mode
 
 # ---------------------------------------------------------------------------
 # Tool schemas (Responses API flat shape)
@@ -47,10 +47,8 @@ SEARCH_TRANSCRIPTS_SCHEMA: dict = {
     "type": "function",
     "name": "search_transcripts",
     "description": (
-        "Search the video transcript corpus for chunks relevant to a query. "
-        "Returns up to k chunks with video_id, title, timestamps, and a snippet. "
-        "Use multiple searches with different phrasings to improve coverage; "
-        "bounded-corpus deep research has no redundancy — a miss is unrecoverable."
+        "Search the video transcript corpus. Returns up to k chunks, each "
+        "with video_id, title, start_ts, end_ts, and a snippet."
     ),
     "parameters": {
         "type": "object",
@@ -107,7 +105,26 @@ SUBMIT_ANSWER_SCHEMA: dict = {
     },
 }
 
-TOOLS: list[dict] = [SEARCH_TRANSCRIPTS_SCHEMA, SUBMIT_ANSWER_SCHEMA]
+READ_VIDEO_SEGMENT_SCHEMA: dict = {
+    "type": "function",
+    "name": "read_video_segment",
+    "description": (
+        "Return the full text of a 30-second chunk by (video_id, start_ts). "
+        "Call when a search snippet looks promising but doesn't contain the specific claim, "
+        "or before citing any chunk."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "video_id": {"type": "string"},
+            "start_ts": {"type": "integer"},
+        },
+        "required": ["video_id", "start_ts"],
+        "additionalProperties": False,
+    },
+}
+
+TOOLS: list[dict] = [SEARCH_TRANSCRIPTS_SCHEMA, SUBMIT_ANSWER_SCHEMA, READ_VIDEO_SEGMENT_SCHEMA]
 
 
 # ---------------------------------------------------------------------------
@@ -162,6 +179,8 @@ def dispatch(function_call_item: dict, channel: str, mode: Mode) -> DispatchResu
         return _handle_search(call_id, args, channel, mode)
     if name == "submit_answer":
         return _handle_submit(call_id, args, channel)
+    if name == "read_video_segment":
+        return _handle_read(call_id, args, channel)
     return _error_output(call_id, f"Unknown tool: {name}")
 
 
@@ -186,7 +205,7 @@ def _handle_search(call_id: str, args: dict[str, Any], channel: str, mode: Mode)
             "title": h["title"],
             "start_ts": h["start_ts"],
             "end_ts": h["end_ts"],
-            "snippet": _snippet(h["text"], max_chars=500),
+            "snippet": _snippet(h["text"], max_chars=250),
         }
         for h in hits
     ]
@@ -195,6 +214,32 @@ def _handle_search(call_id: str, args: dict[str, Any], channel: str, mode: Mode)
         "type": "function_call_output",
         "call_id": call_id,
         "output": json.dumps({"hits": results}),
+    }
+    return DispatchResult(output_item=output, terminal=False)
+
+
+def _handle_read(call_id: str, args: dict[str, Any], channel: str) -> DispatchResult:
+    video_id = args.get("video_id")
+    start_ts = args.get("start_ts")
+    if not video_id or not isinstance(video_id, str):
+        return _error_output(call_id, "read_video_segment requires a non-empty 'video_id' string.")
+    if not isinstance(start_ts, int):
+        return _error_output(call_id, "read_video_segment requires an integer 'start_ts'.")
+
+    try:
+        segment = read_video_segment(video_id=video_id, start_ts=start_ts, channel=channel)
+    except Exception as e:
+        return _error_output(call_id, f"read_video_segment failed: {e}")
+
+    if segment is None:
+        return _error_output(
+            call_id, f"no chunk found for video_id={video_id} start_ts={start_ts}"
+        )
+
+    output = {
+        "type": "function_call_output",
+        "call_id": call_id,
+        "output": json.dumps(segment),
     }
     return DispatchResult(output_item=output, terminal=False)
 
@@ -240,7 +285,7 @@ def _error_output(call_id: str, message: str) -> DispatchResult:
     return DispatchResult(output_item=output, terminal=False)
 
 
-def _snippet(text: str, max_chars: int = 500) -> str:
+def _snippet(text: str, max_chars: int = 250) -> str:
     if len(text) <= max_chars:
         return text
     return text[: max_chars - 1].rstrip() + "…"

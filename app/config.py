@@ -1,7 +1,15 @@
+from typing import Literal
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """
+    Precedence, highest to lowest:
+    - Arguments passed directly to Settings(...)
+    - Environment variables
+    - The .env file
+    - Field defaults
+    """
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -12,6 +20,9 @@ class Settings(BaseSettings):
     openai_api_key: str
     agent_model: str = "gpt-5.4-mini"
     reasoning_effort: str = "medium"
+    # Reasoning summary: "auto" | "concise" | "detailed", or None to disable.
+    # The API returns a summary of the reasoning, never the raw chain-of-thought.
+    reasoning_summary: str | None = "auto"
     agent_max_steps: int = 15
 
     # Retrieval
@@ -21,6 +32,7 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-large"
     embedding_dimensions: int = 3072
     title_boost: float = 1.0
+    read_mode: Literal["raw", "summarized"] = "raw"
 
     # Ingestion
     youtube_api_key: str
