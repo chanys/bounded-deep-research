@@ -66,6 +66,8 @@ def main():
         for v in batch:
             v.update(details.get(v["id"], {}))
 
+    # Each item in `videos` is now a dict containing keys: id, title, publishedAt, duration_seconds, description, tags
+
     videos = [v for v in videos if v.get("duration_seconds", 0) > 180]  # filter out shorts
 
     OUT.parent.mkdir(parents=True, exist_ok=True)

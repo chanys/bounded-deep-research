@@ -37,7 +37,7 @@ def respond(
         "input": input_items,
         "reasoning": {"effort": settings.reasoning_effort},
         "store": False,  # tells the Responses API: don't persist this request/response server-side
-        "include": ["reasoning.encrypted_content"],
+        "include": ["reasoning.encrypted_content"],  # return the reasoning (encrypted) in the response
     }
     if tools:
         kwargs["tools"] = tools
@@ -89,5 +89,5 @@ def to_input_item(item) -> dict:
     like `status` that the input schema rejects. Strip them before re-sending.
     """
     d = item.model_dump(exclude_none=True)
-    d.pop("status", None)
+    d.pop("status", None)  # Without a default `None`, a missing key raises KeyError
     return d

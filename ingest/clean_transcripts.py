@@ -71,6 +71,7 @@ async def clean_batch(
     user = "".join(parts)
 
     try:
+        # why isn't the following using llm.py call_structured_llm
         response = await client.responses.parse(
             model=MODEL,
             reasoning={"effort": REASONING_EFFORT},
@@ -147,10 +148,11 @@ async def clean_video(
     with out_path.open("w") as f:
         f.write(json.dumps({"_meta": meta}, ensure_ascii=False) + "\n")
         for seg, cleaned_text in zip(segments, cleaned_texts):
-            new_seg = {**seg, "text": cleaned_text}
+            new_seg = {**seg, "text": cleaned_text}  # will replace the original "text" value in seg
             f.write(json.dumps(new_seg, ensure_ascii=False) + "\n")
 
 
+# NOTE: the semaphore is a counter that caps how many coroutines can run within `async with sem` block at once
 async def process_one(row: dict, batch_size: int, neighbors: int, sem: asyncio.Semaphore):
     """Clean one video under the semaphore, then mark it cleaned in Postgres."""
     video_id = row["video_id"]

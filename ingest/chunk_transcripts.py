@@ -72,12 +72,15 @@ def main():
         n = len(chunks)
 
         with transaction() as conn:
+            # conn.executemany does not exist ; only cursor.executemany(...) does ; so you have to get the cursor
             with conn.cursor() as cur:
+                # `executemany` runs the same SQL statement N times, once per tuple in the list
                 cur.executemany("""
                     INSERT INTO video_chunks (chunk_id, video_id, start_s, end_s, text)
                     VALUES (%s, %s, %s, %s, %s)
                     ON CONFLICT (chunk_id) DO NOTHING
                 """, chunks)
+                # ON CONFLICT (chunk_id) DO NOTHING: if `chunk_id` already exists in the table, skip this row instead of raising an error
 
             conn.execute("""
                 UPDATE videos SET

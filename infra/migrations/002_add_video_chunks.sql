@@ -17,6 +17,13 @@ CREATE TABLE IF NOT EXISTS video_chunks (
 );
 
 CREATE INDEX IF NOT EXISTS idx_video_chunks_video_id ON video_chunks(video_id);
+
+-- Partial index that speeds up the embed job's "find the next batch of unembedded chunks" query.
+-- It only contains rows where embedded_at IS NULL, sorted by (video_id, start_s).
+-- When the embed job runs SELECT ... WHERE embedded_at IS NULL ORDER BY video_id, start_s LIMIT N,
+-- Postgres reads directly from this index — no full table scan, no separate sort.
+-- As each chunk gets embedded and its embedded_at is set, Postgres removes it from the index automatically,
+-- so the index shrinks as the job progresses and is empty once everything is embedded.
 CREATE INDEX IF NOT EXISTS idx_video_chunks_unembedded
     ON video_chunks(video_id, start_s)
     WHERE embedded_at IS NULL;

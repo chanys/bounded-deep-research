@@ -1,3 +1,4 @@
+name: bounded-deep-research
 services:
   # container that 'docker compose up' starts
   postgres:

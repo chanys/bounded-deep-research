@@ -18,6 +18,8 @@ EMBEDDING_DIMENSIONS = settings.embedding_dimensions
 client = OpenAI(api_key=settings.openai_api_key)
 
 
+# The exponential wait is: multiplier × 2^(attempt-1), clamped at [2, 30] seconds range
+# 2^(1-1)=2^0=2 (clamped at min=2) , 2^(2-1)=2^1=2 , 2^(3-1)=2^2=4 , 2^(4-1)=2^3=8 , 2^(5-1)=2^4=16
 @retry(
     stop=stop_after_attempt(5),
     wait=wait_exponential(multiplier=1, min=2, max=30),

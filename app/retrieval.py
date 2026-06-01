@@ -38,7 +38,10 @@ def _doc_key(hit: dict) -> str:
 
 
 def chunk_exists(video_id: str, start_ts: int, channel: str) -> bool:
-    """Check whether a chunk with exact (video_id, start_ts) exists."""
+    """Check whether a chunk with exact (video_id, start_ts) exists.
+    size: 1        # we only need to know whether any exists
+    bool + filter  # combine multiple conditions with AND
+    """
     body = {
         "size": 1,
         "query": {
@@ -172,11 +175,15 @@ def _bm25_search(query: str, channel: str, k: int) -> list[dict]:
 
 def _dense_search(query: str, channel: str, k: int) -> list[dict]:
     """
-    Worth understanding: the kNN query has two k values — outer size (how many docs to return)
-    and inner k (how many candidates the HNSW algorithm considers).
+    Worth understanding: the kNN query has two k values:
+    - outer size (how many docs to return)
+    - inner k (how many candidates the HNSW algorithm considers).
+
     Setting them equal is the simplest case.
-    In production tuning you'd often set inner k higher (e.g., 100) to give HNSW more candidates to choose from,
-    then return the top size. For Phase 1, equal is fine.
+    In production tuning you'd often set inner k higher (e.g., 100) to give HNSW more candidates to choose from, then return the top size.
+
+    The production pattern (inner 100, outer 10) means:
+    - "explore enough graph to be confident the true top-10 is in my candidate pool of 100, then return only the 10 best of those 100."
     """
     vec = _embed_query(query)
     resp = _client.search(
@@ -221,6 +228,9 @@ def _rrf_fuse(
     rrf_k: int = 60,
 ) -> list[dict]:
     """Reciprocal Rank Fusion. score(doc) = sum over rankers of 1 / (rrf_k + rank).
+
+    RRFscore(d) = \sum_{r \in R} frac{1}{k + r(d)}
+    where r(d) is the rank of document d in ranker r's list, and k=60 is a constant from the original 2009 paper.
 
     rrf_k=60 is the value from Cormack et al. 2009; default everywhere.
 
