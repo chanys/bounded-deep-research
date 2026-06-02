@@ -11,119 +11,38 @@ from app.agent import run_agent
 from app.retrieval import aclose
 
 """
-**Pattern for this main.py:**
-“I implemented an SSE-based streaming interface for a blocking agent by bridging a worker thread into an async FastAPI endpoint using an asyncio queue.”
+What this file does:
+The browser sends one question to POST /query. While the agent works, we want
+to show live progress (which searches it runs) and then the final answer. We do
+that by streaming events back to the browser as they happen (Server-Sent Events,
+SSE) instead of making the browser wait for one big response at the end.
 
-Browser / frontend
-        |
-        | POST /query
-        v
-FastAPI endpoint in main.py
-        |
-        | calls run_agent(...)
-        v
-Agent code
-        |
-        | emits progress events
-        v
-main.py turns events into SSE stream
-        |
-        v
-Browser receives progress + final answer
+The two helpers that make this work:
+1. run_agent is an async function. We start it as its own background task and
+   give it an event_sink callback. Every time the agent starts or finishes a
+   search, it calls event_sink with a small event dict.
+2. A generator task reads those events and sends each one to the browser.
 
-----------------------------------------------------
+These two tasks pass events to each other through an asyncio.Queue:
+   the agent puts events IN, the generator takes them OUT and streams them.
+The queue is just a hand-off buffer between "producing" events and "sending"
+them, so the agent can keep working while the browser is being fed.
 
-uvicorn is the server process
-FastAPI is the app
-`/query` is an async endpoint running inside uvicorn's event loop
+Both tasks run on the same event loop (no threads), so event_sink can put an
+event straight into the queue. When the agent is between searches (waiting on
+the network), the loop lets the generator run and flush events to the browser.
 
-In this code, we run `run_agent(...)` in a background thread so the 
-FastAPI `/query` endpoint can keep streaming events instead of freezing.
+Order of events the browser receives: one search_start + search_complete pair
+per search, then a single answer_complete with the final answer, then the
+stream closes.
 
------------------------------------------------------
-
-The Whole Flow:
-```
-Browser              FastAPI async endpoint          Agent thread
-   |                         |                            |
-   |--- POST /query -------->|                            |
-   |                         | create queue               |
-   |                         | get event loop             |
-   |                         | start generator            |
-   |                         | start run_agent in thread -|
-   |                         |                            |
-   |                         |<--- event_sink(event) -----|
-   |                         | put event into queue       |
-   |<-- SSE event -----------|                            |
-   |                         |                            |
-```
-
-Imagine a restaurant.
-- The agent thread is the kitchen.
-- The browser stream is the waiter serving the customer.
-- The queue is the pickup counter.
-- The event loop is the floor manager.
-
-But because the kitchen and waiter are working in different “threads,”
-the kitchen does not shove things directly into the waiter’s hands.
-It asks the floor manager to place it properly on the counter.
-
-------------------------------------
-
-The call chain is roughly:
-```
-Browser
-  → FastAPI /query
-    → StreamingResponse
-      → generator()
-        → run_and_signal()
-          → run_agent(...)
-```
-
-The event flow is:          
-```
-run_agent emits event
-      ↓
-event_sink receives event
-      ↓
-event goes into queue
-      ↓
-generator gets event from queue
-      ↓
-generator converts event to SSE format
-      ↓
-StreamingResponse sends it to browser
-```
-
-The whole flow in one sequence:
-```
-Browser                  FastAPI /query                 Agent thread
-   |                           |                              |
-   |--- POST /query ---------->|                              |
-   |                           | create queue                 |
-   |                           | return StreamingResponse     |
-   |                           |                              |
-   |                           | generator starts             |
-   |                           | create run_and_signal task   |
-   |                           |                              |
-   |                           | run_agent in thread -------->|
-   |                           |                              |
-   |                           |<--- event_sink(search_start)-|
-   |                           | put event in queue           |
-   |<-- SSE search_start ------|                              |
-   |                           |                              |
-   |                           |<--- event_sink(search_done)--|
-   |                           | put event in queue           |
-   |<-- SSE search_complete ---|                              |
-   |                           |                              |
-   |                           |<--- AgentResult -------------|
-   |                           | put answer_complete in queue |
-   |<-- SSE answer_complete ---|                              |
-   |                           | put None in queue            |
-   |                           | generator stops              |
-   |                           | stream closes                |
-```
-
+Call chain:
+    Browser
+      -> POST /query
+        -> StreamingResponse
+          -> generator()        (reads from queue, sends SSE to browser)
+            -> run_and_signal() (runs the agent, puts events in the queue)
+              -> run_agent(...)
 """
 
 app = FastAPI(title="bounded-deep-research")
@@ -178,33 +97,21 @@ async def query(req: QueryRequest):  # FastAPI automatically turns incoming JSON
     """
     queue: asyncio.Queue = asyncio.Queue()
 
-    # This grabs the current asyncio event loop.
-    # The event loop is the thing managing async tasks inside your FastAPI endpoint.
-    # So loop is a handle to the async world.
-    loop = asyncio.get_running_loop()
-
     def event_sink(event: dict) -> None:
-        # Called from the agent thread. Use call_soon_threadsafe to hop back to the event loop.
-        # This means: "Hey event loop, safely run queue.put_nowait(event) from your own thread."
-        # So the agent thread does not directly touch the queue. It asks the event loop to do it safely.
-        #
-        # `run_agent` is running in a background thread, while `queue` belongs to the asyncio event loop thread
-        # `call_soon_threadsafe` means: As soon as you can, safely put this event into the queue from the event loop thread.
-        # So the following line safely moves an event from the agent thread into the async streaming pipeline.
-        loop.call_soon_threadsafe(queue.put_nowait, event)
+        # run_agent is now awaited directly on this event loop (no worker thread),
+        # so emit() runs in the loop thread and can enqueue without the
+        # call_soon_threadsafe hop that the old threaded design required.
+        queue.put_nowait(event)
 
     async def run_and_signal():
-        """
-        Notice that the `/query` function is async
+        """Run the agent to completion, then push the final answer into the queue.
 
-        But the agent is normal blocking code: `run_agent(req.query, event_sink)`
-        `run_agent` may take 10–15 seconds.
-        If we called it directly: `result = run_agent(req.query, event_sink)`
-        then the endpoint would be stuck until the agent finishes.
-        The server could not stream intermediate events smoothly because the /query function is busy waiting for `run_agent` to return.
-
-        So instead we do: `result = await asyncio.to_thread(run_agent, req.query, event_sink)`
-        which means: Run the blocking agent in a separate thread, while the async /query endpoint continues managing the stream.
+        This runs as its own task so the agent and the streaming generator make
+        progress side by side. As the agent runs it calls event_sink, which drops
+        search_start / search_complete events into the queue for the generator to
+        send. When the agent finishes, we put one answer_complete event in the
+        queue. The finally always puts None, the sentinel that tells the generator
+        the stream is over (even if the agent raised).
         """
         try:
             result = await run_agent(req.query, req.channel, req.mode, event_sink)

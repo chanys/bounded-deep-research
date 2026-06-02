@@ -1,4 +1,5 @@
 """Retrieval over indexed transcript chunks. Three modes: bm25, dense, hybrid."""
+import asyncio
 from typing import Literal
 
 from openai import AsyncOpenAI
@@ -252,9 +253,13 @@ async def _hybrid_search(query: str, channel: str, k: int) -> list[dict]:
     Why pool = 5*k or 50. Heuristic. Wider pools find more agreement signal at low cost.
     """
     # Fetch a wider pool from each ranker so RRF has agreement signal to work with.
+    # The two rankers are independent, so run them concurrently: wall-clock is the
+    # slower of the two, not their sum.
     pool = max(k * 5, 50)
-    bm25_hits = await _bm25_search(query, channel, pool)
-    dense_hits = await _dense_search(query, channel, pool)
+    bm25_hits, dense_hits = await asyncio.gather(
+        _bm25_search(query, channel, pool),
+        _dense_search(query, channel, pool),
+    )
     return _rrf_fuse(bm25_hits, dense_hits, k=k, rrf_k=60)
 
 
