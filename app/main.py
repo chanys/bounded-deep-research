@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
 
 from app.agent import run_agent
+from app.retrieval import aclose
 
 """
 **Pattern for this main.py:**
@@ -142,6 +143,12 @@ def health():
     return {"status": "ok"}
 
 
+@app.on_event("shutdown")
+async def _shutdown():
+    # Close the async OpenSearch client's aiohttp session on server shutdown.
+    await aclose()
+
+
 # /query endpoint expects JSON shaped like: { "query": "what has the creator said about graph RAG?" }
 class QueryRequest(BaseModel):
     query: str
@@ -200,7 +207,7 @@ async def query(req: QueryRequest):  # FastAPI automatically turns incoming JSON
         which means: Run the blocking agent in a separate thread, while the async /query endpoint continues managing the stream.
         """
         try:
-            result = await asyncio.to_thread(run_agent, req.query, req.channel, req.mode, event_sink)
+            result = await run_agent(req.query, req.channel, req.mode, event_sink)
             queue.put_nowait({
                 "type": "answer_complete",
                 "answer": result.answer,

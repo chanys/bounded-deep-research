@@ -12,11 +12,14 @@ flushed to Langfuse on exit; open the Langfuse console to inspect it.
 Usage:
   uv run python -m scripts.full_agent_smoke
 """
+import asyncio
+
 # Import config first so Langfuse keys land in the environment before the SDK initializes.
 from app.config import settings  # noqa: F401
 from langfuse import get_client
 
 from app.agent import run_agent
+from app.retrieval import aclose
 
 # Trace lands in the Langfuse console; open it there to verify the run.
 
@@ -24,9 +27,12 @@ QUERY = "How does the creator view RAG vs Harness?"
 CHANNEL = "code4AI"
 
 
-def main():
+async def main():
     print(f"running agent: {QUERY!r} (channel={CHANNEL})\n")
-    result = run_agent(QUERY, CHANNEL, mode="hybrid")
+    try:
+        result = await run_agent(QUERY, CHANNEL, mode="hybrid")
+    finally:
+        await aclose()
 
     print("=== agent result ===")
     print(f"  steps_used: {result.steps_used}")
@@ -36,5 +42,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
     get_client().flush()

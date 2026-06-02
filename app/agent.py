@@ -1,4 +1,5 @@
 """ReAct agent loop over the transcript corpus."""
+import asyncio
 import json
 from langfuse import observe, get_client
 
@@ -10,6 +11,10 @@ from app.tools import TOOLS, dispatch, SubmittedAnswer
 
 
 _RECIPE_METADATA, SYSTEM_PROMPT = load_recipe()
+
+
+def _noop(event: dict) -> None:
+    """Default event sink: drops events when no caller is listening."""
 
 
 class AgentResult(SubmittedAnswer):
@@ -34,7 +39,7 @@ def _finalize(submitted: SubmittedAnswer, steps_used: int, budget_exhausted: boo
 
 
 @observe(name="run_agent")
-def run_agent(query: str, channel: str, mode: Mode, event_sink=None) -> AgentResult:
+async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop) -> AgentResult:
     """Run the ReAct loop for a single query.
 
     Returns AgentResult on success. Raises RuntimeError if the agent
@@ -62,61 +67,66 @@ def run_agent(query: str, channel: str, mode: Mode, event_sink=None) -> AgentRes
     search_id_counter = 0
 
     def emit(event: dict) -> None:
-        if event_sink is not None:  # If someone gave me an event sink, send the event there.
-            event_sink(event)       # Example of `event`: <some_list>.append ; so this appends `event` dict to the list
+        event_sink(event)  # event_sink defaults to _noop, so this is always safe to call.
+
+    async def _dispatch_with_events(call_item, search_id):
+        # Run one tool call and wrap it with its SSE progress events, so the whole
+        # unit can be handed to asyncio.gather and run concurrently with the others.
+        # For search_transcripts: emit search_start before the call, search_complete
+        # after, both tagged with search_id so the frontend can pair them even when
+        # parallel searches finish out of order. Non-search calls (search_id=None)
+        # just dispatch with no events.
+        if call_item["name"] == "search_transcripts":
+            args = json.loads(call_item.get("arguments", "{}"))
+            emit({"type": "search_start", "search_id": search_id, "query": args.get("query", "")})
+        result = await dispatch(call_item, channel=channel, mode=mode)
+        if call_item["name"] == "search_transcripts":
+            parsed = json.loads(result.output_item["output"])
+            result_count = len(parsed.get("hits", [])) if "hits" in parsed else 0
+            emit({"type": "search_complete", "search_id": search_id, "result_count": result_count})
+        return result
 
     for step in range(settings.agent_max_steps):
-        # print(f"--- turn {step + 1} input_items ---")
-        # for i, it in enumerate(input_items):
-        #     print(i, json.dumps(it, indent=2, default=str))
-
-        response = respond(input_items, tools=TOOLS, tool_choice="required")
+        response = await respond(input_items, tools=TOOLS, tool_choice="required")
 
         # 1. Append every emitted item verbatim (reasoning, function_calls, messages).
         for item in response.output:
             input_items.append(to_input_item(item))
 
-        # 2. Dispatch every function_call; append each output.
+        # 2. Collect every function_call, then dispatch them in parallel.
+        call_items = [
+            to_input_item(item) for item in response.output if item.type == "function_call"
+        ]
+        any_function_call = bool(call_items)
+
+        # Sync pre-pass: allocate a unique search_id per search_transcripts call
+        # before gather kicks off, so ids stay deterministic regardless of the
+        # order coroutines actually complete in.
+        search_ids = []
+        for call_item in call_items:
+            if call_item["name"] == "search_transcripts":
+                search_ids.append(search_id_counter)
+                search_id_counter += 1
+            else:
+                search_ids.append(None)
+
+        results = await asyncio.gather(*(
+            _dispatch_with_events(call_item, sid)
+            for call_item, sid in zip(call_items, search_ids)
+        ))
+
+        # 3. Append outputs in call order, short-circuiting at submit_answer.
         terminal = None
-        any_function_call = False
-        for item in response.output:
-            if item.type == "function_call":
-                any_function_call = True
-                call_item = to_input_item(item)
-
-                # Emit search_start before dispatch (only for search_transcripts).
-                this_search_id = None
-                if call_item["name"] == "search_transcripts":
-                    this_search_id = search_id_counter
-                    search_id_counter += 1
-                    args = json.loads(call_item.get("arguments", "{}"))
-                    emit({
-                        "type": "search_start",
-                        "search_id": this_search_id,
-                        "query": args.get("query", ""),
-                    })
-
-                result = dispatch(call_item, channel=channel, mode=mode)
-                input_items.append(result.output_item)
-
-                # Emit search_complete after dispatch.
-                if this_search_id is not None:
-                    parsed = json.loads(result.output_item["output"])
-                    result_count = len(parsed.get("hits", [])) if "hits" in parsed else 0
-                    emit({
-                        "type": "search_complete",
-                        "search_id": this_search_id,
-                        "result_count": result_count,
-                    })
-
-                if result.terminal:
-                    terminal = result
-                    # Stop dispatching: any function_calls after submit_answer in the
-                    # same response.output are left without matching output_items in
-                    # input_items. This is safe only because we return immediately after
-                    # this turn — input_items is not read again. If you ever defer the
-                    # return or log input_items on exit, revisit this.
-                    break
+        for result in results:
+            input_items.append(result.output_item)
+            if result.terminal:
+                terminal = result
+                # Stop dispatching: any function_calls after submit_answer in the
+                # same response.output are left without matching output_items in
+                # input_items. This is safe only because we return immediately after
+                # this turn — input_items is not read again. If you ever defer the
+                # return or log input_items on exit, revisit this.
+                break
 
         # 3. Exit on successful submit_answer.
         if terminal is not None:
@@ -138,7 +148,7 @@ def run_agent(query: str, channel: str, mode: Mode, event_sink=None) -> AgentRes
             "evidence is insufficient, say so in the answer."
         ),
     })
-    response = respond(
+    response = await respond(
         input_items,
         tools=TOOLS,
         tool_choice={"type": "function", "name": "submit_answer"},
@@ -147,7 +157,7 @@ def run_agent(query: str, channel: str, mode: Mode, event_sink=None) -> AgentRes
         input_items.append(to_input_item(item))
     for item in response.output:
         if item.type == "function_call":
-            result = dispatch(to_input_item(item), channel=channel, mode=mode)
+            result = await dispatch(to_input_item(item), channel=channel, mode=mode)
             input_items.append(result.output_item)
             if result.terminal:
                 return _finalize(result.submitted, settings.agent_max_steps, True)

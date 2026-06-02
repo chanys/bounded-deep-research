@@ -9,18 +9,18 @@ Stateless mode (store=False); the ReAct loop owns its message history.
 """
 from typing import TypeVar
 
-from langfuse.openai import OpenAI
+from langfuse.openai import AsyncOpenAI
 from openai.types.responses import Response
 from pydantic import BaseModel
 
 from app.config import settings
 
-client = OpenAI(api_key=settings.openai_api_key)
+client = AsyncOpenAI(api_key=settings.openai_api_key)
 
 T = TypeVar("T", bound=BaseModel)
 
 
-def respond(
+async def respond(
     input_items: list[dict],
     tools: list[dict] | None = None,
     tool_choice: str | dict = "auto",  # Model decides: either emit a text message, or call one (or more) of the tools.
@@ -46,12 +46,12 @@ def respond(
     if tools:
         kwargs["tools"] = tools
         kwargs["tool_choice"] = tool_choice
-    return client.responses.create(**kwargs)
+    return await client.responses.create(**kwargs)
 
 
-def call_text_llm(system: str, user: str) -> str:
+async def call_text_llm(system: str, user: str) -> str:
     """Single-shot text-in, text-out. For the summarization sub-agent."""
-    response = client.responses.create(
+    response = await client.responses.create(
         model=settings.agent_model,
         reasoning={"effort": settings.reasoning_effort},
         input=[
@@ -63,14 +63,14 @@ def call_text_llm(system: str, user: str) -> str:
     return response.output_text
 
 
-def call_structured_llm(
+async def call_structured_llm(
     system: str,
     user: str,
     response_model: type[T],
 ) -> T:
     """Single-shot text-in, Pydantic-out. For calibrated judges (Phase 4).
     """
-    response = client.responses.parse(
+    response = await client.responses.parse(
         model=settings.agent_model,
         reasoning={"effort": settings.reasoning_effort},
         input=[

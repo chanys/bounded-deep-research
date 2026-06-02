@@ -1,8 +1,8 @@
 """Retrieval over indexed transcript chunks. Three modes: bm25, dense, hybrid."""
 from typing import Literal
 
-from openai import OpenAI
-from opensearchpy import OpenSearch
+from openai import AsyncOpenAI
+from opensearchpy import AsyncOpenSearch
 
 from app.config import settings
 
@@ -10,22 +10,31 @@ Mode = Literal["bm25", "dense", "hybrid"]
 
 EMBEDDING_MODEL = settings.embedding_model
 
-_client = OpenSearch(
+_client = AsyncOpenSearch(
     hosts=[{"host": "localhost", "port": 9200}],
     use_ssl=False,
     verify_certs=False,
 )
 
-_openai_client = OpenAI(api_key=settings.openai_api_key)
+_openai_client = AsyncOpenAI(api_key=settings.openai_api_key)
+
+
+async def aclose() -> None:
+    """Close the async OpenSearch client's aiohttp session. Call on shutdown.
+
+    AsyncOpenSearch holds an aiohttp ClientSession that, unlike the old sync
+    client, must be closed explicitly or aiohttp warns at interpreter exit.
+    """
+    await _client.close()
 
 
 def _index_for(channel: str) -> str:
     return f"{settings.opensearch_index_prefix}_{channel}".lower()
 
 
-def _embed_query(query: str) -> list[float]:
+async def _embed_query(query: str) -> list[float]:
     """Embed a single query for dense retrieval. Same model as the corpus."""
-    resp = _openai_client.embeddings.create(
+    resp = await _openai_client.embeddings.create(
         model=EMBEDDING_MODEL,
         input=[query],
     )
@@ -37,7 +46,7 @@ def _doc_key(hit: dict) -> str:
     return f"{hit['video_id']}:{hit['start_ts']}"
 
 
-def chunk_exists(video_id: str, start_ts: int, channel: str) -> bool:
+async def chunk_exists(video_id: str, start_ts: int, channel: str) -> bool:
     """Check whether a chunk with exact (video_id, start_ts) exists.
     size: 1        # we only need to know whether any exists
     bool + filter  # combine multiple conditions with AND
@@ -53,11 +62,11 @@ def chunk_exists(video_id: str, start_ts: int, channel: str) -> bool:
             }
         },
     }
-    res = _client.search(index=_index_for(channel), body=body)
+    res = await _client.search(index=_index_for(channel), body=body)
     return res["hits"]["total"]["value"] > 0
 
 
-def read_video_segment(video_id: str, start_ts: int, channel: str) -> dict | None:
+async def read_video_segment(video_id: str, start_ts: int, channel: str) -> dict | None:
     """Return the full chunk at (video_id, start_ts), or None if no match.
     """
     body = {
@@ -71,7 +80,7 @@ def read_video_segment(video_id: str, start_ts: int, channel: str) -> dict | Non
             }
         },
     }
-    res = _client.search(index=_index_for(channel), body=body)
+    res = await _client.search(index=_index_for(channel), body=body)
     hits = res["hits"]["hits"]
     if not hits:
         return None
@@ -95,7 +104,7 @@ def read_video_segment(video_id: str, start_ts: int, channel: str) -> dict | Non
     }
 
 
-def search(
+async def search(
     query: str,
     channel: str,
     k: int = 10,
@@ -125,11 +134,11 @@ def search(
     We unpack _source and overwrite score with _score (or fused RRF score).
     """
     if mode == "bm25":
-        return _bm25_search(query, channel, k)
+        return await _bm25_search(query, channel, k)
     if mode == "dense":
-        return _dense_search(query, channel, k)
+        return await _dense_search(query, channel, k)
     if mode == "hybrid":
-        return _hybrid_search(query, channel, k)
+        return await _hybrid_search(query, channel, k)
     raise ValueError(f"unknown mode: {mode}")
 
 
@@ -138,7 +147,7 @@ def search(
 # ---------------------------------------------------------------------------
 
 
-def _bm25_search(query: str, channel: str, k: int) -> list[dict]:
+async def _bm25_search(query: str, channel: str, k: int) -> list[dict]:
     """BM25 search. Returns list of {video_id, title, start_ts, end_ts, text, score}.
 
     Each hit is OpenSearch's wrapper around one matching document. Shape:
@@ -185,7 +194,7 @@ def _bm25_search(query: str, channel: str, k: int) -> list[dict]:
                            Best when you expect the query to match one field strongly.
           "most_fields" — sum across fields (rewards docs that match many fields a little)
     """
-    resp = _client.search(
+    resp = await _client.search(
         index=_index_for(channel),
         body={
             "size": k,
@@ -207,7 +216,7 @@ def _bm25_search(query: str, channel: str, k: int) -> list[dict]:
     ]
 
 
-def _dense_search(query: str, channel: str, k: int) -> list[dict]:
+async def _dense_search(query: str, channel: str, k: int) -> list[dict]:
     """
     Worth understanding: the kNN query has two k values:
     - outer size (how many docs to return)
@@ -219,8 +228,8 @@ def _dense_search(query: str, channel: str, k: int) -> list[dict]:
     The production pattern (inner 100, outer 10) means:
     - "explore enough graph to be confident the true top-10 is in my candidate pool of 100, then return only the 10 best of those 100."
     """
-    vec = _embed_query(query)
-    resp = _client.search(
+    vec = await _embed_query(query)
+    resp = await _client.search(
         index=_index_for(channel),
         body={
             "size": k,
@@ -233,7 +242,7 @@ def _dense_search(query: str, channel: str, k: int) -> list[dict]:
     ]
 
 
-def _hybrid_search(query: str, channel: str, k: int) -> list[dict]:
+async def _hybrid_search(query: str, channel: str, k: int) -> list[dict]:
     """
     Why fetch more than k from each. RRF fuses ranks.
     If a doc is rank 1 in BM25 and rank 47 in dense, but you only fetched top-10 from dense, you'd never see rank 47.
@@ -244,8 +253,8 @@ def _hybrid_search(query: str, channel: str, k: int) -> list[dict]:
     """
     # Fetch a wider pool from each ranker so RRF has agreement signal to work with.
     pool = max(k * 5, 50)
-    bm25_hits = _bm25_search(query, channel, pool)
-    dense_hits = _dense_search(query, channel, pool)
+    bm25_hits = await _bm25_search(query, channel, pool)
+    dense_hits = await _dense_search(query, channel, pool)
     return _rrf_fuse(bm25_hits, dense_hits, k=k, rrf_k=60)
 
 

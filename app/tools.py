@@ -30,6 +30,7 @@ seconds is the canonical form set at ingest time).
     - run_agent() returns {answer, citations} as a typed object.
     - Retrieval F1 is computed directly. No parsing layer between the agent and the metrics.
 """
+import asyncio
 import json
 from typing import Any
 
@@ -156,7 +157,7 @@ class DispatchResult(BaseModel):
 # ---------------------------------------------------------------------------
 
 @observe(name="dispatch_tool")
-def dispatch(function_call_item: dict, channel: str, mode: Mode) -> DispatchResult:
+async def dispatch(function_call_item: dict, channel: str, mode: Mode) -> DispatchResult:
     """Execute a function_call item from response.output.
 
     Returns a DispatchResult containing the function_call_output item to
@@ -176,22 +177,22 @@ def dispatch(function_call_item: dict, channel: str, mode: Mode) -> DispatchResu
         return _error_output(call_id, f"Invalid JSON in tool arguments: {e}")
 
     if name == "search_transcripts":
-        return _handle_search(call_id, args, channel, mode)
+        return await _handle_search(call_id, args, channel, mode)
     if name == "submit_answer":
-        return _handle_submit(call_id, args, channel)
+        return await _handle_submit(call_id, args, channel)
     if name == "read_video_segment":
-        return _handle_read(call_id, args, channel)
+        return await _handle_read(call_id, args, channel)
     return _error_output(call_id, f"Unknown tool: {name}")
 
 
-def _handle_search(call_id: str, args: dict[str, Any], channel: str, mode: Mode) -> DispatchResult:
+async def _handle_search(call_id: str, args: dict[str, Any], channel: str, mode: Mode) -> DispatchResult:
     query = args.get("query")
     if not query or not isinstance(query, str):
         return _error_output(call_id, "search_transcripts requires a non-empty 'query' string.")
 
     k = args.get("k", settings.retrieval_k)
     try:
-        hits = search(query, channel=channel, k=k, mode=mode)
+        hits = await search(query, channel=channel, k=k, mode=mode)
     except Exception as e:
         return _error_output(call_id, f"search failed: {e}")
 
@@ -218,7 +219,7 @@ def _handle_search(call_id: str, args: dict[str, Any], channel: str, mode: Mode)
     return DispatchResult(output_item=output, terminal=False)
 
 
-def _handle_read(call_id: str, args: dict[str, Any], channel: str) -> DispatchResult:
+async def _handle_read(call_id: str, args: dict[str, Any], channel: str) -> DispatchResult:
     video_id = args.get("video_id")
     start_ts = args.get("start_ts")
     if not video_id or not isinstance(video_id, str):
@@ -227,7 +228,7 @@ def _handle_read(call_id: str, args: dict[str, Any], channel: str) -> DispatchRe
         return _error_output(call_id, "read_video_segment requires an integer 'start_ts'.")
 
     try:
-        segment = read_video_segment(video_id=video_id, start_ts=start_ts, channel=channel)
+        segment = await read_video_segment(video_id=video_id, start_ts=start_ts, channel=channel)
     except Exception as e:
         return _error_output(call_id, f"read_video_segment failed: {e}")
 
@@ -244,16 +245,20 @@ def _handle_read(call_id: str, args: dict[str, Any], channel: str) -> DispatchRe
     return DispatchResult(output_item=output, terminal=False)
 
 
-def _handle_submit(call_id: str, args: dict[str, Any], channel: str) -> DispatchResult:
+async def _handle_submit(call_id: str, args: dict[str, Any], channel: str) -> DispatchResult:
     try:
         submitted = SubmittedAnswer(**args)
     except ValidationError as e:
         return _error_output(call_id, f"submit_answer arguments invalid: {e}")
 
     # Validate each citation exists in the index by exact (video_id, start_ts).
+    # N citations validate in parallel: N concurrent chunk_exists calls.
+    exists = await asyncio.gather(
+        *(_citation_exists(c, channel) for c in submitted.citations)
+    )
     invalid: list[str] = []
-    for i, c in enumerate(submitted.citations):
-        if not _citation_exists(c, channel):
+    for i, (c, ok) in enumerate(zip(submitted.citations, exists)):
+        if not ok:
             invalid.append(
                 f"citation {i}: no chunk found for video_id={c.video_id} "
                 f"start_ts={c.start_ts}"
@@ -291,6 +296,6 @@ def _snippet(text: str, max_chars: int = 250) -> str:
     return text[: max_chars - 1].rstrip() + "…"
 
 
-def _citation_exists(c: Citation, channel: str) -> bool:
+async def _citation_exists(c: Citation, channel: str) -> bool:
     from app.retrieval import chunk_exists
-    return chunk_exists(video_id=c.video_id, start_ts=c.start_ts, channel=channel)
+    return await chunk_exists(video_id=c.video_id, start_ts=c.start_ts, channel=channel)
