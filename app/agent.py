@@ -39,12 +39,16 @@ def _finalize(submitted: SubmittedAnswer, steps_used: int, budget_exhausted: boo
 
 
 @observe(name="run_agent")
-async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop) -> AgentResult:
+async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump_dir=None) -> AgentResult:
     """Run the ReAct loop for a single query.
 
     Returns AgentResult on success. Raises RuntimeError if the agent
     emits text without calling any tool (unexpected state) or if the
     forced submit_answer on budget exhaustion also fails.
+
+    If dump_dir is set, a readable markdown trace of the run is written there
+    on success (see app.trace_dump). Off by default so the server doesn't write
+    files per request; the recipe-iteration batch runner turns it on.
     """
     langfuse = get_client()
     langfuse.update_current_span(
@@ -84,6 +88,24 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop) -> A
             parsed = json.loads(result.output_item["output"])
             result_count = len(parsed.get("hits", [])) if "hits" in parsed else 0
             emit({"type": "search_complete", "search_id": search_id, "result_count": result_count})
+        return result
+
+    def _finish(result: AgentResult) -> AgentResult:
+        # Single exit point for successful runs: optionally dump a markdown trace,
+        # then return. trace_id/url are read here while still inside the @observe span.
+        if dump_dir is not None:
+            from app.trace_dump import write_trace_dump
+            write_trace_dump(
+                dump_dir,
+                query=query,
+                channel=channel,
+                mode=mode,
+                recipe_version=_RECIPE_METADATA.version,
+                trace_id=langfuse.get_current_trace_id(),
+                trace_url=langfuse.get_trace_url(),
+                input_items=input_items,
+                result=result,
+            )
         return result
 
     for step in range(settings.agent_max_steps):
@@ -130,7 +152,7 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop) -> A
 
         # 3. Exit on successful submit_answer.
         if terminal is not None:
-            return _finalize(terminal.submitted, step + 1, False)
+            return _finish(_finalize(terminal.submitted, step + 1, False))
 
         # 4. Model emitted text with no tool call — unexpected in this loop.
         if not any_function_call:
@@ -160,6 +182,6 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop) -> A
             result = await dispatch(to_input_item(item), channel=channel, mode=mode)
             input_items.append(result.output_item)
             if result.terminal:
-                return _finalize(result.submitted, settings.agent_max_steps, True)
+                return _finish(_finalize(result.submitted, settings.agent_max_steps, True))
 
     raise RuntimeError("Forced submit_answer on budget exhaustion failed.")

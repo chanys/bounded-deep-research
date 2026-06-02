@@ -27,3 +27,4 @@ node_modules/
 .DS_Store
 planning_docs
 CLAUDE.md
+traces
