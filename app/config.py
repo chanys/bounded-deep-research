@@ -1,4 +1,3 @@
-from typing import Literal
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -32,7 +31,6 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-large"
     embedding_dimensions: int = 3072
     title_boost: float = 1.0
-    read_mode: Literal["raw", "summarized"] = "raw"
 
     # Ingestion
     youtube_api_key: str

@@ -87,21 +87,12 @@ async def read_video_segment(video_id: str, start_ts: int, channel: str) -> dict
         return None
     source = hits[0]["_source"]
 
-    mode = settings.read_mode  # "raw" or "summarized"
-    if mode == "raw":
-        text = source["text"]
-    elif mode == "summarized":
-        raise NotImplementedError("Summarizer sub-agent lands in Phase 2")
-    else:
-        raise ValueError(f"Unknown read mode: {mode}")
-
     return {
         "video_id": source["video_id"],
         "title": source["title"],
         "start_ts": source["start_ts"],
         "end_ts": source["end_ts"],
-        "text": text,
-        "mode": mode,
+        "text": source["text"],
     }
 
 
