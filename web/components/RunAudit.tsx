@@ -6,9 +6,9 @@ import type { RunEvidence } from "@/lib/api";
 
 function Stat({ label, value, warn }: { label: string; value: React.ReactNode; warn?: boolean }) {
   return (
-    <div className="rounded border border-zinc-200 p-3">
-      <div className="text-xs text-zinc-500">{label}</div>
-      <div className={`text-lg font-mono ${warn ? "text-red-600" : ""}`}>{value}</div>
+    <div className="rounded-lg border border-border bg-card p-3">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className={`text-lg font-mono ${warn ? "text-red-600" : "text-foreground"}`}>{value}</div>
     </div>
   );
 }
@@ -16,14 +16,14 @@ function Stat({ label, value, warn }: { label: string; value: React.ReactNode; w
 function ChunkList({ label, ids, warnIfAny }: { label: string; ids: string[]; warnIfAny?: boolean }) {
   const bad = warnIfAny && ids.length > 0;
   return (
-    <div className="rounded border border-zinc-200 p-3">
-      <div className={`text-xs ${bad ? "text-red-600" : "text-zinc-500"}`}>
+    <div className="rounded-lg border border-border bg-card p-3">
+      <div className={`text-xs ${bad ? "text-red-600" : "text-muted-foreground"}`}>
         {label} ({ids.length})
       </div>
       {ids.length === 0 ? (
-        <div className="text-sm text-zinc-400">none</div>
+        <div className="text-sm text-muted-foreground">none</div>
       ) : (
-        <ul className="mt-1 font-mono text-xs text-zinc-700 space-y-0.5">
+        <ul className="mt-1 space-y-0.5 font-mono text-xs text-foreground">
           {ids.map((id) => (
             <li key={id}>{id}</li>
           ))}
@@ -38,8 +38,8 @@ export function RunAudit({ evidence: e }: { evidence: RunEvidence }) {
     <div className="space-y-4">
       {/* Run identity */}
       <div className="text-sm">
-        <div className="text-zinc-700">{e.query}</div>
-        <div className="mt-1 font-mono text-xs text-zinc-400">
+        <div className="text-foreground">{e.query}</div>
+        <div className="mt-1 font-mono text-xs text-muted-foreground">
           run {e.run_id}
           {e.trace_url && (
             <>

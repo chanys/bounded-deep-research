@@ -18,6 +18,7 @@ export type RunStarted = {
   channel: string;
   mode: string;
   recipe_version: string;
+  max_steps: number; // step budget, for "steps used / budget"
 };
 
 export type TurnStart = {
@@ -66,6 +67,7 @@ export type Citation = {
   video_id: string;
   start_ts: number;
   end_ts: number;
+  reason: string; // one short phrase: what this chunk contributes to the answer
 };
 
 export type AnswerDelta = {

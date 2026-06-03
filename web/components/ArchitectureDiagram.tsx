@@ -4,15 +4,15 @@
 
 function Box({ title, subtitle }: { title: string; subtitle: string }) {
   return (
-    <div className="rounded-lg border border-zinc-300 bg-white px-4 py-3 text-center shadow-sm">
-      <div className="text-sm font-semibold">{title}</div>
-      <div className="text-xs text-zinc-500">{subtitle}</div>
+    <div className="rounded-lg border border-border bg-card px-4 py-3 text-center shadow-sm">
+      <div className="text-sm font-semibold text-foreground">{title}</div>
+      <div className="text-xs text-muted-foreground">{subtitle}</div>
     </div>
   );
 }
 
 function Arrow() {
-  return <div className="text-zinc-400">↓</div>;
+  return <div className="text-muted-foreground/60">↓</div>;
 }
 
 export function ArchitectureDiagram() {

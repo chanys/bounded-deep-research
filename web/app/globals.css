@@ -7,7 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  /* Was `var(--font-sans)` (self-referential -> fell back to the browser serif).
+     Point it at the Geist sans the layout actually loads. */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -49,7 +51,8 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  /* Page canvas is a soft grey; cards stay pure white for figure/ground layering. */
+  --background: oklch(0.975 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -122,6 +125,7 @@
     @apply border-border outline-ring/50;
   }
   body {
+    /* Canvas comes from the --background token (soft grey); cards use --card (white). */
     @apply bg-background text-foreground;
   }
   html {
@@ -133,9 +137,15 @@
    strips default heading/list styles, and no typography plugin is installed, so
    we restore just enough here. */
 .markdown-answer {
-  line-height: 1.65;
+  font-size: 1.125rem;
+  line-height: 1.78;
+  color: var(--foreground);
 }
-.markdown-answer p { margin: 0.75em 0; }
+.markdown-answer p { margin: 0.85em 0; }
+/* Perplexity-style: minimal inline emphasis, not heavy mid-sentence bold. */
+.markdown-answer strong { font-weight: 500; }
+.markdown-answer > :first-child { margin-top: 0; }
+.markdown-answer > :last-child { margin-bottom: 0; }
 .markdown-answer h1, .markdown-answer h2, .markdown-answer h3 {
   font-weight: 600;
   margin: 1.2em 0 0.5em;
@@ -147,7 +157,19 @@
 .markdown-answer ul { list-style: disc; padding-left: 1.4em; margin: 0.75em 0; }
 .markdown-answer ol { list-style: decimal; padding-left: 1.4em; margin: 0.75em 0; }
 .markdown-answer li { margin: 0.25em 0; }
-.markdown-answer a { color: oklch(0.5 0.2 264); text-decoration: underline; }
+.markdown-answer a { color: oklch(0.51 0.18 277); text-decoration: underline; }
+/* Inline citation chips: [n] links to a Sources card. Rendered as a small
+   superscript indigo pill with bracket glyphs, not underlined like a normal link. */
+.markdown-answer a[href^="#source-"] {
+  text-decoration: none;
+  font-size: 0.72em;
+  font-weight: 600;
+  vertical-align: super;
+  padding: 0 0.1em;
+  color: oklch(0.51 0.18 277);
+}
+.markdown-answer a[href^="#source-"]::before { content: "["; }
+.markdown-answer a[href^="#source-"]::after { content: "]"; }
 .markdown-answer code {
   font-family: var(--font-mono);
   font-size: 0.9em;

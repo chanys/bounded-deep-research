@@ -9,7 +9,7 @@ import { fetchLatestEvidence, fetchRunEvidence, type RunEvidence } from "@/lib/a
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mb-10">
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-zinc-500">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
         {title}
       </h2>
       {children}
@@ -44,13 +44,8 @@ export default function SystemPage() {
   };
 
   return (
-    <main className="max-w-3xl mx-auto p-8 font-sans">
-      <div className="mb-8 flex items-baseline justify-between">
-        <h1 className="text-2xl font-semibold">System</h1>
-        <Link href="/query" className="text-sm text-zinc-500 underline">
-          ← back to query
-        </Link>
-      </div>
+    <main className="mx-auto max-w-3xl px-6 py-10">
+      <h1 className="mb-8 text-xl font-semibold tracking-tight">System</h1>
 
       <Section title="Architecture">
         <ArchitectureDiagram />
@@ -63,7 +58,7 @@ export default function SystemPage() {
               href={evidence.trace_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded border border-zinc-200 px-3 py-1.5 hover:bg-zinc-50"
+              className="rounded-md border border-border bg-card px-3 py-1.5 hover:bg-muted"
             >
               Latest run in Langfuse →
             </a>
@@ -72,7 +67,7 @@ export default function SystemPage() {
             href="https://platform.openai.com/usage"
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded border border-zinc-200 px-3 py-1.5 hover:bg-zinc-50"
+            className="rounded-md border border-border bg-card px-3 py-1.5 hover:bg-muted"
           >
             OpenAI usage dashboard →
           </a>
@@ -80,7 +75,7 @@ export default function SystemPage() {
       </Section>
 
       <Section title="Eval results">
-        <div className="rounded border border-dashed border-zinc-300 p-4 text-sm text-zinc-500">
+        <div className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">
           Calibrated-judge eval results land in Phase 4.
         </div>
       </Section>
@@ -89,7 +84,7 @@ export default function SystemPage() {
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <button
             onClick={loadLatest}
-            className="rounded border border-zinc-200 px-3 py-1.5 text-sm hover:bg-zinc-50"
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:bg-muted"
           >
             Load latest
           </button>
@@ -98,23 +93,23 @@ export default function SystemPage() {
             onChange={(ev) => setLookupId(ev.target.value)}
             onKeyDown={(ev) => ev.key === "Enter" && loadById()}
             placeholder="run id…"
-            className="flex-1 rounded border border-zinc-300 px-3 py-1.5 font-mono text-xs"
+            className="flex-1 rounded-md border border-input bg-card px-3 py-1.5 font-mono text-xs"
           />
           <button
             onClick={loadById}
             disabled={!lookupId.trim()}
-            className="rounded border border-zinc-200 px-3 py-1.5 text-sm hover:bg-zinc-50 disabled:opacity-50"
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm hover:bg-muted disabled:opacity-50"
           >
             Load
           </button>
         </div>
 
         {loading ? (
-          <p className="text-sm text-zinc-400">Loading…</p>
+          <p className="text-sm text-muted-foreground">Loading…</p>
         ) : evidence ? (
           <RunAudit evidence={evidence} />
         ) : (
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-muted-foreground">
             No run found. Run a query on the{" "}
             <Link href="/query" className="underline">
               query page

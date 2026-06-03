@@ -1,17 +1,47 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import { TracePanel, type TraceItem } from "@/components/TracePanel";
-import { CitationCard } from "@/components/CitationCard";
+import { Sources } from "@/components/Sources";
+import { VerificationStrip } from "@/components/VerificationStrip";
 import type { Citation, SseEvent } from "@/lib/events";
 import { streamQuery } from "@/lib/sse";
-import { hydrateCitations } from "@/lib/api";
+import { hydrateCitations, fetchLatestEvidence, type RunEvidence } from "@/lib/api";
 
-// One-click examples spanning the recipe's tiers (factual / comparative / longitudinal).
+// The model marks citations inline, but the exact form varies: either
+// (video_id, start, end) tuples or [start-end] timestamp ranges (any dash). We
+// rewrite each marker that maps to a known citation into a markdown link
+// [n](#source-n), which renders as a numbered chip linking to its Sources row.
+// Mapping is by (video_id, start) for tuples and by (start, end) for ranges. A
+// bracket range that doesn't match a real citation (e.g. a year range like
+// [2025-2026]) is left untouched, as are all markers during streaming (before
+// citations are known).
+function withCitationChips(text: string, citations: Citation[]): string {
+  if (citations.length === 0) return text;
+  const byVidStart = new Map<string, number>();
+  const byRange = new Map<string, number>();
+  citations.forEach((c, i) => {
+    byVidStart.set(`${c.video_id}:${c.start_ts}`, i + 1);
+    byRange.set(`${c.start_ts}-${c.end_ts}`, i + 1);
+  });
+
+  return text
+    // (video_id, start, end)
+    .replace(/\(([A-Za-z0-9_-]+),\s*(\d+),\s*(\d+)\)/g, (whole, vid, start) => {
+      const n = byVidStart.get(`${vid}:${start}`);
+      return n ? `[${n}](#source-${n})` : whole;
+    })
+    // [start-end] with a hyphen, en-dash, or em-dash; possibly chained
+    .replace(/\[(\d+)\s*[-–—]\s*(\d+)\]/g, (whole, start, end) => {
+      const n = byRange.get(`${start}-${end}`);
+      return n ? `[${n}](#source-${n})` : whole;
+    });
+}
+
+// One-click examples: a comparative question and a longitudinal one (two, so they
+// sit as one balanced row).
 const EXAMPLE_PROMPTS = [
-  "What two techniques does Llama 4 Scout use to achieve its 10 million token context length?",
   "How does the creator distinguish RAG from the broader 'AI harness', and what role does each play?",
   "How has the creator's view of LLM reasoning evolved over 2025-2026?",
 ];
@@ -27,6 +57,8 @@ export default function QueryPage() {
   const [answerText, setAnswerText] = useState(""); // grows from answer_delta, finalized by answer_complete
   const [citations, setCitations] = useState<Citation[]>([]);
   const [titles, setTitles] = useState<Record<string, string>>({}); // video_id -> title
+  const [maxSteps, setMaxSteps] = useState<number | null>(null); // step budget from run_started
+  const [evidence, setEvidence] = useState<RunEvidence | null>(null); // fetched after the run
   const [error, setError] = useState<string | null>(null);
 
   // Elapsed-time clock: ticks while a run is in flight, freezes when it ends.
@@ -41,7 +73,8 @@ export default function QueryPage() {
     // Discriminated union: TypeScript narrows `event` inside each branch.
     switch (event.type) {
       case "run_started":
-        setRunId(event.run_id); // stashed for the Day-5 Run Audit fetch
+        setRunId(event.run_id); // stashed for the Run Audit fetch
+        setMaxSteps(event.max_steps);
         break;
 
       // Model turn lifecycle drives the token-in-flight indicator.
@@ -87,7 +120,7 @@ export default function QueryPage() {
         setTrace((prev) =>
           prev.map((it) =>
             it.kind === "read" && it.id === event.read_id
-              ? { ...it, status: event.ok ? "ok" : "not_found" }
+              ? { ...it, status: event.ok ? "ok" : "not_found", endTs: event.end_ts }
               : it,
           ),
         );
@@ -105,6 +138,9 @@ export default function QueryPage() {
           const ids = [...new Set(event.citations.map((c) => c.video_id))];
           hydrateCitations(ids).then(setTitles);
         }
+        // Evidence is stored server-side before answer_complete is emitted, so the
+        // just-finished run is the latest. Fetch it for the verification strip.
+        fetchLatestEvidence().then(setEvidence);
         break;
       case "error":
         setError(event.message);
@@ -127,6 +163,8 @@ export default function QueryPage() {
     setAnswerText("");
     setCitations([]);
     setTitles({});
+    setMaxSteps(null);
+    setEvidence(null);
     setError(null);
 
     try {
@@ -141,38 +179,40 @@ export default function QueryPage() {
     }
   };
 
-  return (
-    <main className="max-w-3xl mx-auto p-8 font-sans">
-      <div className="mb-6 flex items-baseline justify-between">
-        <h1 className="text-2xl font-semibold">Bounded Deep Research</h1>
-        <Link href="/system" className="text-sm text-zinc-500 underline">
-          system →
-        </Link>
-      </div>
+  const started = isRunning || !!answerText || trace.length > 0;
 
-      <div className="mb-4">
+  return (
+    <main className="mx-auto max-w-5xl px-6 py-8">
+      {/* Ask box: borderless textarea on a raised card surface. */}
+      <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
         <textarea
-          className="w-full p-3 border border-zinc-300 rounded"
+          className="w-full resize-none bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
           rows={3}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Ask a question about the Discover AI corpus..."
+          placeholder="Ask a question about the Discover AI corpus…"
           disabled={isRunning}
         />
-        <button
-          className="mt-2 px-4 py-2 bg-black text-white rounded disabled:bg-zinc-400"
-          onClick={() => runQuery(query)}
-          disabled={isRunning || !query.trim()}
-        >
-          {isRunning ? "Running..." : "Ask"}
-        </button>
+        <div className="mt-3 flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            Discover AI transcript corpus
+          </span>
+          <button
+            className="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+            onClick={() => runQuery(query)}
+            disabled={isRunning || !query.trim()}
+          >
+            {isRunning ? "Running…" : "Ask"}
+          </button>
+        </div>
       </div>
 
-      <div className="mb-8 flex flex-wrap gap-2">
+      {/* Example prompts */}
+      <div className="mt-3 flex flex-wrap gap-2">
         {EXAMPLE_PROMPTS.map((p) => (
           <button
             key={p}
-            className="text-xs text-left px-3 py-1.5 border border-zinc-200 rounded-full text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+            className="rounded-full border border-border bg-card px-3 py-1.5 text-left text-xs text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
             onClick={() => {
               setQuery(p);
               runQuery(p);
@@ -184,47 +224,57 @@ export default function QueryPage() {
         ))}
       </div>
 
-      {runId && (
-        <p className="mb-4 text-xs font-mono text-zinc-400">run: {runId}</p>
-      )}
-
       {error && (
-        <div className="mb-6 p-3 bg-red-50 text-red-800 rounded">
-          Error: {error}
+        <div className="mt-6 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
         </div>
       )}
 
-      <TracePanel
-        trace={trace}
-        thinking={thinking}
-        tokens={tokens}
-        elapsedMs={elapsedMs}
-        isRunning={isRunning}
-      />
+      {/* Once a run starts: answer + sources in the main column, agent trace in the rail. */}
+      {started && (
+        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
+          <div className="min-w-0 space-y-6">
+            <section>
+              <div className="mb-3 text-sm font-semibold text-foreground">Answer</div>
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                {answerText ? (
+                  <div className="markdown-answer">
+                    <ReactMarkdown>
+                      {withCitationChips(answerText, citations)}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  <p className="animate-pulse text-sm text-muted-foreground">
+                    Researching the corpus…
+                  </p>
+                )}
+              </div>
+              {evidence && (
+                <VerificationStrip evidence={evidence} maxSteps={maxSteps} />
+              )}
+            </section>
 
-      {answerText && (
-        <div className="mb-8">
-          <h2 className="text-sm font-semibold text-zinc-600 mb-2">Answer</h2>
-          <div className="markdown-answer">
-            <ReactMarkdown>{answerText}</ReactMarkdown>
+            {citations.length > 0 && (
+              <section>
+                <div className="mb-3 text-sm font-semibold text-foreground">Sources</div>
+                <Sources citations={citations} titles={titles} />
+              </section>
+            )}
           </div>
 
-          {citations.length > 0 && (
-            <>
-              <h2 className="text-sm font-semibold text-zinc-600 mt-6 mb-2">
-                Citations
-              </h2>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {citations.map((c, i) => (
-                  <CitationCard
-                    key={i}
-                    citation={c}
-                    title={titles[c.video_id]}
-                  />
-                ))}
-              </div>
-            </>
-          )}
+          <div className="lg:sticky lg:top-20 lg:self-start">
+            <TracePanel
+              trace={trace}
+              thinking={thinking}
+              tokens={tokens}
+              elapsedMs={elapsedMs}
+              isRunning={isRunning}
+              citations={citations}
+              titles={titles}
+              evidence={evidence}
+              runId={runId}
+            />
+          </div>
         </div>
       )}
     </main>
