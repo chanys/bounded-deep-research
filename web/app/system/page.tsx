@@ -45,7 +45,12 @@ export default function SystemPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
-      <h1 className="mb-8 text-xl font-semibold tracking-tight">System</h1>
+      <div className="mb-8 flex items-baseline justify-between">
+        <h1 className="text-xl font-semibold tracking-tight">AnswerTrail · System</h1>
+        <Link href="/query" className="text-sm text-muted-foreground hover:text-foreground">
+          ← back
+        </Link>
+      </div>
 
       <Section title="Architecture">
         <ArchitectureDiagram />

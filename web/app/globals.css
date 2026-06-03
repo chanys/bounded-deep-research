@@ -137,13 +137,14 @@
    strips default heading/list styles, and no typography plugin is installed, so
    we restore just enough here. */
 .markdown-answer {
-  font-size: 1.125rem;
-  line-height: 1.78;
+  font-size: 1rem;          /* same size as the user's question */
+  line-height: 1.7;
   color: var(--foreground);
 }
-.markdown-answer p { margin: 0.85em 0; }
-/* Perplexity-style: minimal inline emphasis, not heavy mid-sentence bold. */
-.markdown-answer strong { font-weight: 500; }
+.markdown-answer p { margin: 0.9em 0; }
+/* Perplexity-style: minimal inline emphasis, no italics, short bold only. */
+.markdown-answer strong { font-weight: 600; }
+.markdown-answer em { font-style: normal; }
 .markdown-answer > :first-child { margin-top: 0; }
 .markdown-answer > :last-child { margin-bottom: 0; }
 .markdown-answer h1, .markdown-answer h2, .markdown-answer h3 {

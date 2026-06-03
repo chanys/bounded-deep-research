@@ -1,9 +1,10 @@
-// The agent's run shown as a human-readable research audit, not raw logs. It
-// answers "what did the agent do, and why trust the result?" via numbered steps
-// (search / read / synthesize / validate) plus a budget summary. Raw identifiers
-// (run id, chunk ids) live under a "Debug details" expansion. Lives in the right
-// rail; presentational only (event handling and id correlation stay in the page).
+// Right rail: the run shown as a polished audit panel. Two sections:
+//  - Research steps: raw search/read/answer/validate events grouped into four
+//    human-readable categories with Lucide icons (no step numbers, no raw ids).
+//  - Run details: production/reliability metrics from the run evidence.
+// Presentational only; event handling and id correlation stay in the page.
 
+import { Search, BookOpen, Sparkles, ShieldCheck } from "lucide-react";
 import type { Citation } from "@/lib/events";
 import type { RunEvidence } from "@/lib/api";
 
@@ -18,154 +19,148 @@ export type TraceItem =
       status: "reading" | "ok" | "not_found";
     };
 
-function ts(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-function Step({ n, title, children }: { n: number; title: string; children?: React.ReactNode }) {
+function StepRow({
+  icon: Icon,
+  active,
+  title,
+  detail,
+}: {
+  icon: typeof Search;
+  active: boolean;
+  title: string;
+  detail?: string;
+}) {
   return (
     <li className="flex gap-3">
-      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-[10px] font-semibold text-muted-foreground">
-        {n}
-      </span>
+      <Icon
+        className={`mt-0.5 h-4 w-4 shrink-0 ${active ? "animate-pulse text-amber-600" : "text-muted-foreground"}`}
+      />
       <div className="min-w-0">
         <div className="text-sm font-medium text-foreground">{title}</div>
-        {children}
+        {detail && <div className="text-xs text-muted-foreground">{detail}</div>}
       </div>
     </li>
   );
 }
 
+function Detail({ label, children, warn }: { label: string; children: React.ReactNode; warn?: boolean }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 py-1">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className={`text-right text-xs font-medium ${warn ? "text-red-600" : "text-foreground"}`}>
+        {children}
+      </span>
+    </div>
+  );
+}
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 export function TracePanel({
   trace,
-  thinking,
-  tokens,
-  elapsedMs,
   isRunning,
+  answering,
   citations,
-  titles,
   evidence,
-  runId,
 }: {
   trace: TraceItem[];
-  thinking: boolean;
-  tokens: number;
-  elapsedMs: number;
   isRunning: boolean;
+  answering: boolean;
   citations: Citation[];
-  titles: Record<string, string>;
   evidence: RunEvidence | null;
-  runId: string | null;
 }) {
   const searchCount = trace.filter((t) => t.kind === "search").length;
-  const readCount = trace.filter((t) => t.kind === "read" && t.status === "ok").length;
-  const distinctSources = new Set(citations.map((c) => c.video_id)).size;
+  const reads = trace.filter((t): t is Extract<TraceItem, { kind: "read" }> => t.kind === "read");
+  const readOk = reads.filter((r) => r.status === "ok");
+  const distinctReadVideos = new Set(readOk.map((r) => r.videoId)).size;
 
-  // Number the steps as we go: each trace item, then synthesize + validate at the end.
-  let n = 0;
+  // Current phase, used to mark one step "active" (present tense + pulse) while running.
+  const phase = answering ? "wrote" : reads.length > 0 ? "read" : "search";
+  const activeIf = (p: string) => isRunning && phase === p;
 
   return (
-    <aside className="rounded-xl border border-border bg-card">
-      <div className="border-b border-border px-4 py-3">
-        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Research Trace
+    <div className="space-y-4">
+      {/* Research steps */}
+      <section className="rounded-xl border border-border bg-card">
+        <div className="border-b border-border px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {isRunning ? "Researching…" : "Research steps"}
         </div>
-        <div className="mt-1.5 text-xs text-muted-foreground">
-          {Math.floor(elapsedMs / 1000)}s · {tokens.toLocaleString()} tokens
-          {evidence ? ` · $${evidence.usd_cost.toFixed(4)}` : ""}
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {evidence ? `${evidence.steps_used} steps · ` : ""}
-          {searchCount} searches · {readCount} chunks read
-          {thinking && <span className="ml-2 animate-pulse text-amber-600">● thinking</span>}
-        </div>
-      </div>
-
-      <ol className="space-y-3 px-4 py-4">
-        {trace.length === 0 && (
-          <li className="text-xs text-muted-foreground/60">
-            {isRunning ? "starting…" : "no activity yet"}
-          </li>
-        )}
-
-        {trace.map((item) =>
-          item.kind === "search" ? (
-            <Step key={`s-${item.id}`} n={++n} title="Searched transcript corpus">
-              <div className="truncate text-sm text-muted-foreground">“{item.query}”</div>
-              <div className="text-xs text-muted-foreground/70">
-                {item.resultCount === null
-                  ? "searching…"
-                  : `${item.resultCount} candidate passages`}
-              </div>
-            </Step>
-          ) : (
-            <Step
-              key={`r-${item.id}`}
-              n={++n}
-              title={item.status === "not_found" ? "Read failed" : "Read passage"}
-            >
-              {titles[item.videoId] && (
-                <div className="line-clamp-1 text-sm text-muted-foreground">
-                  {titles[item.videoId]}
-                </div>
-              )}
-              <div className="text-xs text-muted-foreground/70">
-                {item.endTs ? `${ts(item.startTs)}–${ts(item.endTs)}` : ts(item.startTs)}
-                {item.status === "reading" && " · reading…"}
-                {item.status === "not_found" && " · not found"}
-              </div>
-            </Step>
-          ),
-        )}
-
-        {/* Synthesize + validate, derived once the run finishes. */}
-        {citations.length > 0 && (
-          <Step n={++n} title="Generated answer">
-            <div className="text-xs text-muted-foreground/70">
-              {citations.length} cited passage{citations.length > 1 ? "s" : ""} from{" "}
-              {distinctSources} source{distinctSources > 1 ? "s" : ""}
-            </div>
-          </Step>
-        )}
-        {evidence && (
-          <Step n={++n} title="Validated citations">
-            <div
-              className={`text-xs ${
+        <ol className="space-y-3 px-4 py-4">
+          {(isRunning || searchCount > 0) && (
+            <StepRow
+              icon={Search}
+              active={activeIf("search")}
+              title={activeIf("search") ? "Searching transcript corpus" : "Searched transcript corpus"}
+              detail={plural(searchCount, "search").replace("searchs", "searches")}
+            />
+          )}
+          {reads.length > 0 && (
+            <StepRow
+              icon={BookOpen}
+              active={activeIf("read")}
+              title={activeIf("read") ? "Reading relevant passages" : "Read relevant passages"}
+              detail={`${plural(readOk.length, "passage")} from ${plural(distinctReadVideos, "video")}`}
+            />
+          )}
+          {answering && (
+            <StepRow
+              icon={Sparkles}
+              active={activeIf("wrote")}
+              title={activeIf("wrote") ? "Writing answer" : "Wrote answer"}
+              detail={citations.length > 0 ? `Used ${plural(citations.length, "cited passage")}` : undefined}
+            />
+          )}
+          {evidence && (
+            <StepRow
+              icon={ShieldCheck}
+              active={false}
+              title="Checked citations"
+              detail={
                 evidence.citations_valid && evidence.read_before_cite_violations.length === 0
-                  ? "text-muted-foreground/70"
-                  : "text-red-600"
-              }`}
-            >
-              {!evidence.citations_valid
-                ? "validation failed"
-                : evidence.read_before_cite_violations.length > 0
-                  ? `${evidence.read_before_cite_violations.length} cited without reading`
-                  : "all cited passages matched"}
-            </div>
-          </Step>
-        )}
-      </ol>
+                  ? "All citations matched cited passages"
+                  : !evidence.citations_valid
+                    ? "Validation failed"
+                    : `${plural(evidence.read_before_cite_violations.length, "citation")} without a read`
+              }
+            />
+          )}
+        </ol>
+      </section>
 
-      {/* Raw identifiers, for reproducing or inspecting the exact run. */}
-      {(runId || trace.some((t) => t.kind === "read")) && (
-        <details className="border-t border-border px-4 py-2">
-          <summary className="cursor-pointer text-xs text-muted-foreground">
-            Debug details
-          </summary>
-          <div className="mt-2 space-y-1 break-all font-mono text-[11px] text-muted-foreground/80">
-            {runId && <div>run_id: {runId}</div>}
-            {trace
-              .filter((t): t is Extract<TraceItem, { kind: "read" }> => t.kind === "read")
-              .map((t) => (
-                <div key={`d-${t.id}`}>
-                  {t.videoId}:{String(t.startTs).padStart(5, "0")}
-                </div>
-              ))}
+      {/* Run details */}
+      {evidence && (
+        <section className="rounded-xl border border-border bg-card">
+          <div className="border-b border-border px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Run details
           </div>
-        </details>
+          <div className="px-4 py-3">
+            {evidence.trace_url && (
+              <Detail label="Langfuse trace">
+                <a href={evidence.trace_url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline">
+                  Open trace
+                </a>
+              </Detail>
+            )}
+            <Detail label="Model">{evidence.model}</Detail>
+            <Detail label="Retrieval mode">{evidence.retrieval_mode}</Detail>
+            <Detail label="Searches">{evidence.search_count}</Detail>
+            <Detail label="Chunks retrieved">{evidence.seen_count}</Detail>
+            <Detail label="Chunks cited">{evidence.cited_count}</Detail>
+            <Detail label="Duplicate search rate">
+              {Math.round(evidence.duplicate_search_rate * 100)}%
+            </Detail>
+            <Detail label="Cited without reading" warn={evidence.read_before_cite_violations.length > 0}>
+              {evidence.read_before_cite_violations.length}
+            </Detail>
+            <Detail label="Cited but never surfaced" warn={evidence.cited_not_seen.length > 0}>
+              {evidence.cited_not_seen.length}
+            </Detail>
+            <Detail label="Citations valid" warn={!evidence.citations_valid}>
+              {evidence.citations_valid ? "Yes" : "No"}
+            </Detail>
+          </div>
+        </section>
       )}
-    </aside>
+    </div>
   );
 }

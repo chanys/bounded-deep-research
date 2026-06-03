@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { ArrowRight } from "lucide-react";
 import { TracePanel, type TraceItem } from "@/components/TracePanel";
 import { Sources } from "@/components/Sources";
-import { VerificationStrip } from "@/components/VerificationStrip";
 import type { Citation, SseEvent } from "@/lib/events";
 import { streamQuery } from "@/lib/sse";
 import { hydrateCitations, fetchLatestEvidence, type RunEvidence } from "@/lib/api";
@@ -13,10 +13,8 @@ import { hydrateCitations, fetchLatestEvidence, type RunEvidence } from "@/lib/a
 // (video_id, start, end) tuples or [start-end] timestamp ranges (any dash). We
 // rewrite each marker that maps to a known citation into a markdown link
 // [n](#source-n), which renders as a numbered chip linking to its Sources row.
-// Mapping is by (video_id, start) for tuples and by (start, end) for ranges. A
-// bracket range that doesn't match a real citation (e.g. a year range like
-// [2025-2026]) is left untouched, as are all markers during streaming (before
-// citations are known).
+// A bracket range that doesn't match a real citation (e.g. a year range like
+// [2025-2026]) is left untouched, as are all markers during streaming.
 function withCitationChips(text: string, citations: Citation[]): string {
   if (citations.length === 0) return text;
   const byVidStart = new Map<string, number>();
@@ -25,22 +23,18 @@ function withCitationChips(text: string, citations: Citation[]): string {
     byVidStart.set(`${c.video_id}:${c.start_ts}`, i + 1);
     byRange.set(`${c.start_ts}-${c.end_ts}`, i + 1);
   });
-
   return text
-    // (video_id, start, end)
     .replace(/\(([A-Za-z0-9_-]+),\s*(\d+),\s*(\d+)\)/g, (whole, vid, start) => {
       const n = byVidStart.get(`${vid}:${start}`);
       return n ? `[${n}](#source-${n})` : whole;
     })
-    // [start-end] with a hyphen, en-dash, or em-dash; possibly chained
     .replace(/\[(\d+)\s*[-–—]\s*(\d+)\]/g, (whole, start, end) => {
       const n = byRange.get(`${start}-${end}`);
       return n ? `[${n}](#source-${n})` : whole;
     });
 }
 
-// One-click examples: a comparative question and a longitudinal one (two, so they
-// sit as one balanced row).
+// One-click examples: a comparative question and a longitudinal one.
 const EXAMPLE_PROMPTS = [
   "How does the creator distinguish RAG from the broader 'AI harness', and what role does each play?",
   "How has the creator's view of LLM reasoning evolved over 2025-2026?",
@@ -49,43 +43,25 @@ const EXAMPLE_PROMPTS = [
 export default function QueryPage() {
   const [query, setQuery] = useState("");
   const [isRunning, setIsRunning] = useState(false);
-  const [runId, setRunId] = useState<string | null>(null);
   const [trace, setTrace] = useState<TraceItem[]>([]);
-  const [thinking, setThinking] = useState(false);
-  const [tokens, setTokens] = useState(0);
-  const [elapsedMs, setElapsedMs] = useState(0);
   const [answerText, setAnswerText] = useState(""); // grows from answer_delta, finalized by answer_complete
   const [citations, setCitations] = useState<Citation[]>([]);
   const [titles, setTitles] = useState<Record<string, string>>({}); // video_id -> title
-  const [maxSteps, setMaxSteps] = useState<number | null>(null); // step budget from run_started
   const [evidence, setEvidence] = useState<RunEvidence | null>(null); // fetched after the run
   const [error, setError] = useState<string | null>(null);
 
-  // Elapsed-time clock: ticks while a run is in flight, freezes when it ends.
+  // Auto-size the input so it hugs the query text instead of a fixed tall box.
+  const taRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
-    if (!isRunning) return;
-    const start = performance.now();
-    const id = setInterval(() => setElapsedMs(performance.now() - start), 1000);
-    return () => clearInterval(id);
-  }, [isRunning]);
+    const el = taRef.current;
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+    }
+  }, [query]);
 
   const handleEvent = (event: SseEvent) => {
-    // Discriminated union: TypeScript narrows `event` inside each branch.
     switch (event.type) {
-      case "run_started":
-        setRunId(event.run_id); // stashed for the Run Audit fetch
-        setMaxSteps(event.max_steps);
-        break;
-
-      // Model turn lifecycle drives the token-in-flight indicator.
-      case "turn_start":
-        setThinking(true);
-        break;
-      case "turn_complete":
-        setThinking(false);
-        setTokens((t) => t + event.usage.total_tokens);
-        break;
-
       // Searches: append on start, fill result count on complete (by search_id).
       case "search_start":
         setTrace((prev) => [
@@ -107,13 +83,7 @@ export default function QueryPage() {
       case "read_start":
         setTrace((prev) => [
           ...prev,
-          {
-            kind: "read",
-            id: event.read_id,
-            videoId: event.video_id,
-            startTs: event.start_ts,
-            status: "reading",
-          },
+          { kind: "read", id: event.read_id, videoId: event.video_id, startTs: event.start_ts, status: "reading" },
         ]);
         break;
       case "read_complete":
@@ -126,8 +96,8 @@ export default function QueryPage() {
         );
         break;
 
-      // Answer streams in piece by piece, then answer_complete delivers the
-      // authoritative final text + citations. We then fetch the citation titles.
+      // Answer streams in piece by piece; answer_complete delivers the final text +
+      // citations, then we fetch titles and the run evidence.
       case "answer_delta":
         setAnswerText((prev) => prev + event.text);
         break;
@@ -138,10 +108,9 @@ export default function QueryPage() {
           const ids = [...new Set(event.citations.map((c) => c.video_id))];
           hydrateCitations(ids).then(setTitles);
         }
-        // Evidence is stored server-side before answer_complete is emitted, so the
-        // just-finished run is the latest. Fetch it for the verification strip.
         fetchLatestEvidence().then(setEvidence);
         break;
+
       case "error":
         setError(event.message);
         break;
@@ -152,21 +121,13 @@ export default function QueryPage() {
 
   const runQuery = async (q: string) => {
     if (!q.trim() || isRunning) return;
-
-    // Reset state for a new run.
     setIsRunning(true);
-    setRunId(null);
     setTrace([]);
-    setThinking(false);
-    setTokens(0);
-    setElapsedMs(0);
     setAnswerText("");
     setCitations([]);
     setTitles({});
-    setMaxSteps(null);
     setEvidence(null);
     setError(null);
-
     try {
       for await (const event of streamQuery({ query: q })) {
         handleEvent(event);
@@ -175,51 +136,63 @@ export default function QueryPage() {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setIsRunning(false);
-      setThinking(false);
     }
   };
 
   const started = isRunning || !!answerText || trace.length > 0;
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-8">
-      {/* Ask box: borderless textarea on a raised card surface. */}
-      <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+    <main className="mx-auto max-w-5xl px-6 py-10">
+      <header className="mb-8">
+        <h1 className="text-3xl font-semibold tracking-tight">AnswerTrail</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Deep research over YouTube channels
+        </p>
+      </header>
+
+      {/* Ask box: auto-sizing textarea with a corpus pill and a round submit button. */}
+      <div className="relative rounded-2xl border border-border bg-card shadow-sm">
         <textarea
-          className="w-full resize-none bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
-          rows={3}
+          ref={taRef}
+          rows={1}
+          className="w-full resize-none overflow-hidden bg-transparent px-4 pb-14 pt-4 text-base outline-none placeholder:text-muted-foreground"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Ask a question about the Discover AI corpus…"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              runQuery(query);
+            }
+          }}
+          placeholder="Ask a question about the corpus…"
           disabled={isRunning}
         />
-        <div className="mt-3 flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">
-            Discover AI transcript corpus
-          </span>
-          <button
-            className="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
-            onClick={() => runQuery(query)}
-            disabled={isRunning || !query.trim()}
-          >
-            {isRunning ? "Running…" : "Ask"}
-          </button>
-        </div>
+        <span className="absolute bottom-3 left-3 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
+          Discover AI transcript corpus
+        </span>
+        <button
+          aria-label="Ask"
+          className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+          onClick={() => runQuery(query)}
+          disabled={isRunning || !query.trim()}
+        >
+          <ArrowRight className="h-4 w-4" />
+        </button>
       </div>
 
-      {/* Example prompts */}
-      <div className="mt-3 flex flex-wrap gap-2">
+      {/* Two example cards, spanning the same width as the input. */}
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {EXAMPLE_PROMPTS.map((p) => (
           <button
             key={p}
-            className="rounded-full border border-border bg-card px-3 py-1.5 text-left text-xs text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
+            className="rounded-xl border border-border bg-card p-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
             onClick={() => {
               setQuery(p);
               runQuery(p);
             }}
             disabled={isRunning}
           >
-            {p.length > 60 ? p.slice(0, 60) + "…" : p}
+            {p}
           </button>
         ))}
       </div>
@@ -230,28 +203,21 @@ export default function QueryPage() {
         </div>
       )}
 
-      {/* Once a run starts: answer + sources in the main column, agent trace in the rail. */}
+      {/* Once a run starts: answer + sources in the main column, the audit rail on the right. */}
       {started && (
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
+        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_320px]">
           <div className="min-w-0 space-y-6">
             <section>
               <div className="mb-3 text-sm font-semibold text-foreground">Answer</div>
               <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
                 {answerText ? (
                   <div className="markdown-answer">
-                    <ReactMarkdown>
-                      {withCitationChips(answerText, citations)}
-                    </ReactMarkdown>
+                    <ReactMarkdown>{withCitationChips(answerText, citations)}</ReactMarkdown>
                   </div>
                 ) : (
-                  <p className="animate-pulse text-sm text-muted-foreground">
-                    Researching the corpus…
-                  </p>
+                  <p className="animate-pulse text-sm text-muted-foreground">Researching the corpus…</p>
                 )}
               </div>
-              {evidence && (
-                <VerificationStrip evidence={evidence} maxSteps={maxSteps} />
-              )}
             </section>
 
             {citations.length > 0 && (
@@ -262,17 +228,13 @@ export default function QueryPage() {
             )}
           </div>
 
-          <div className="lg:sticky lg:top-20 lg:self-start">
+          <div className="lg:sticky lg:top-6 lg:self-start">
             <TracePanel
               trace={trace}
-              thinking={thinking}
-              tokens={tokens}
-              elapsedMs={elapsedMs}
               isRunning={isRunning}
+              answering={!!answerText}
               citations={citations}
-              titles={titles}
               evidence={evidence}
-              runId={runId}
             />
           </div>
         </div>
