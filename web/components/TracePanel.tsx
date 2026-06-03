@@ -146,14 +146,18 @@ export function TracePanel({
             <Detail label="Searches">{evidence.search_count}</Detail>
             <Detail label="Chunks retrieved">{evidence.seen_count}</Detail>
             <Detail label="Chunks cited">{evidence.cited_count}</Detail>
-            <Detail label="Duplicate search rate">
-              {Math.round(evidence.duplicate_search_rate * 100)}%
+            <Detail label="Duplicate search rate" warn={evidence.duplicate_search_rate >= 0.5}>
+              {evidence.duplicate_search_rate === 0
+                ? "None"
+                : `${Math.round(evidence.duplicate_search_rate * 100)}%`}
             </Detail>
             <Detail label="Cited without reading" warn={evidence.read_before_cite_violations.length > 0}>
-              {evidence.read_before_cite_violations.length}
+              {evidence.read_before_cite_violations.length === 0
+                ? "None"
+                : evidence.read_before_cite_violations.length}
             </Detail>
             <Detail label="Cited but never surfaced" warn={evidence.cited_not_seen.length > 0}>
-              {evidence.cited_not_seen.length}
+              {evidence.cited_not_seen.length === 0 ? "None" : evidence.cited_not_seen.length}
             </Detail>
             <Detail label="Citations valid" warn={!evidence.citations_valid}>
               {evidence.citations_valid ? "Yes" : "No"}
