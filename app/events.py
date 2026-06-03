@@ -89,6 +89,14 @@ class ReadComplete(BaseModel):
     end_ts: int | None = None       # chunk end time in seconds (when ok)
 
 
+class AnswerDelta(BaseModel):
+    """A piece of the final answer, streamed as the model writes it (before the
+    full AnswerComplete arrives). The client appends `text` to what it has so far."""
+
+    type: Literal["answer_delta"] = "answer_delta"  # event tag
+    text: str                   # newly produced answer text to append
+
+
 class AnswerComplete(BaseModel):
     """Final event of a successful run. Carries the finished answer and the chunks
     it cites."""

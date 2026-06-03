@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import ReactMarkdown from "react-markdown";
 import { TracePanel, type TraceItem } from "@/components/TracePanel";
-import type { AnswerComplete, SseEvent } from "@/lib/events";
+import { CitationCard } from "@/components/CitationCard";
+import type { Citation, SseEvent } from "@/lib/events";
 import { streamQuery } from "@/lib/sse";
+import { hydrateCitations } from "@/lib/api";
 
 // One-click examples spanning the recipe's tiers (factual / comparative / longitudinal).
 const EXAMPLE_PROMPTS = [
@@ -21,7 +23,9 @@ export default function QueryPage() {
   const [thinking, setThinking] = useState(false);
   const [tokens, setTokens] = useState(0);
   const [elapsedMs, setElapsedMs] = useState(0);
-  const [answer, setAnswer] = useState<AnswerComplete | null>(null);
+  const [answerText, setAnswerText] = useState(""); // grows from answer_delta, finalized by answer_complete
+  const [citations, setCitations] = useState<Citation[]>([]);
+  const [titles, setTitles] = useState<Record<string, string>>({}); // video_id -> title
   const [error, setError] = useState<string | null>(null);
 
   // Elapsed-time clock: ticks while a run is in flight, freezes when it ends.
@@ -88,8 +92,18 @@ export default function QueryPage() {
         );
         break;
 
+      // Answer streams in piece by piece, then answer_complete delivers the
+      // authoritative final text + citations. We then fetch the citation titles.
+      case "answer_delta":
+        setAnswerText((prev) => prev + event.text);
+        break;
       case "answer_complete":
-        setAnswer(event);
+        setAnswerText(event.answer);
+        setCitations(event.citations);
+        {
+          const ids = [...new Set(event.citations.map((c) => c.video_id))];
+          hydrateCitations(ids).then(setTitles);
+        }
         break;
       case "error":
         setError(event.message);
@@ -109,7 +123,9 @@ export default function QueryPage() {
     setThinking(false);
     setTokens(0);
     setElapsedMs(0);
-    setAnswer(null);
+    setAnswerText("");
+    setCitations([]);
+    setTitles({});
     setError(null);
 
     try {
@@ -180,32 +196,29 @@ export default function QueryPage() {
         isRunning={isRunning}
       />
 
-      {answer && (
+      {answerText && (
         <div className="mb-8">
           <h2 className="text-sm font-semibold text-zinc-600 mb-2">Answer</h2>
-          <div className="whitespace-pre-wrap">{answer.answer}</div>
-
-          <h2 className="text-sm font-semibold text-zinc-600 mt-6 mb-2">
-            Citations
-          </h2>
-
-          <div className="space-y-2">
-            {answer.citations.map((c, i) => (
-              <a
-                key={i}
-                href={`https://www.youtube.com/watch?v=${c.video_id}&t=${c.start_ts}s`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block"
-              >
-                <Card className="hover:bg-zinc-50 transition-colors">
-                  <CardContent className="p-3 font-mono text-sm">
-                    {c.video_id} @ {c.start_ts}–{c.end_ts}
-                  </CardContent>
-                </Card>
-              </a>
-            ))}
+          <div className="markdown-answer">
+            <ReactMarkdown>{answerText}</ReactMarkdown>
           </div>
+
+          {citations.length > 0 && (
+            <>
+              <h2 className="text-sm font-semibold text-zinc-600 mt-6 mb-2">
+                Citations
+              </h2>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {citations.map((c, i) => (
+                  <CitationCard
+                    key={i}
+                    citation={c}
+                    title={titles[c.video_id]}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
     </main>

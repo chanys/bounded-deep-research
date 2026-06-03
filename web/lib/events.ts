@@ -68,6 +68,11 @@ export type Citation = {
   end_ts: number;
 };
 
+export type AnswerDelta = {
+  type: "answer_delta";
+  text: string; // newly produced answer text to append
+};
+
 export type AnswerComplete = {
   type: "answer_complete";
   answer: string;
@@ -88,5 +93,6 @@ export type SseEvent =
   | SearchComplete
   | ReadStart
   | ReadComplete
+  | AnswerDelta
   | AnswerComplete
   | ErrorEvent;

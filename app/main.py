@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
 
 from app.agent import run_agent
+from app.db import transaction
 from app.events import AnswerComplete, ErrorEvent
 from app.evidence import RunEvidenceState, get_run, latest_run
 from app.retrieval import aclose
@@ -104,6 +105,31 @@ def run_evidence(run_id: str):
     if state is None:
         raise HTTPException(status_code=404, detail=f"unknown run_id: {run_id}")
     return state
+
+
+class HydrateRequest(BaseModel):
+    """JSON body of a POST /citations/hydrate request: the video ids to look up."""
+
+    video_ids: list[str]
+
+
+@app.post("/citations/hydrate")
+def hydrate_citations(req: HydrateRequest) -> dict[str, str]:
+    """Resolve video ids to titles in one batch query (no YouTube API call).
+
+    Citations arrive as ids only; the frontend calls this once to get titles for
+    the citation cards. Thumbnails and deep links are derived from the id on the
+    client, so titles are the only thing that needs a lookup. Returns a
+    {video_id: title} map; ids with no row are simply absent.
+    """
+    if not req.video_ids:
+        return {}
+    with transaction() as conn:
+        rows = conn.execute(
+            "SELECT video_id, title FROM videos WHERE video_id = ANY(%s)",
+            (req.video_ids,),
+        ).fetchall()
+    return {r["video_id"]: r["title"] for r in rows}
 
 
 class QueryRequest(BaseModel):

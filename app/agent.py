@@ -9,6 +9,7 @@ If the agent never submits within the step budget, a final turn forces it to.
 """
 import asyncio
 import json
+import re
 from uuid import uuid4
 
 from langfuse import observe, get_client
@@ -17,7 +18,7 @@ from app.config import settings
 from app.evidence import EvidenceCollector, put_run
 from app.events import (
     RunStarted, TurnStart, TurnComplete,
-    SearchStart, SearchComplete, ReadStart, ReadComplete, usage_dict,
+    SearchStart, SearchComplete, ReadStart, ReadComplete, AnswerDelta, usage_dict,
 )
 from app.llm import respond, to_input_item
 from app.prompts import load_recipe
@@ -30,6 +31,67 @@ _RECIPE_METADATA, SYSTEM_PROMPT = load_recipe()
 
 def _noop(event: dict) -> None:
     """Default event sink: silently drops events when no caller is listening."""
+
+
+class _AnswerStream:
+    """Pulls the final answer text out of submit_answer's streamed arguments.
+
+    submit_answer's arguments arrive over the stream as a growing JSON string,
+    like {"answer":"...so far...","citations":[...]}. This watches for the
+    "answer" field and decodes its string value as it grows, returning only the
+    newly added text on each feed() so the UI can append it.
+
+    It re-decodes the value from the field start every time rather than tracking
+    escape state across delta boundaries, which keeps backslash escapes correct
+    even when a delta splits one. (\\uXXXX escapes are not decoded; the model
+    effectively never emits them in answer prose.)
+    """
+
+    _KEY = re.compile(r'"answer"\s*:\s*"')
+    _UNESCAPE = {"n": "\n", "t": "\t", "r": "\r", '"': '"', "\\": "\\", "/": "/", "b": "\b", "f": "\f"}
+
+    def __init__(self):
+        self._buf = ""           # all argument text seen so far
+        self._value_start = -1   # index just past the answer value's opening quote
+        self._emitted = 0        # count of decoded chars already returned
+        self._done = False       # True once the value's closing quote is seen
+
+    def feed(self, delta: str) -> str:
+        """Add one argument-delta chunk and return any newly decoded answer text."""
+        if self._done:
+            return ""
+        self._buf += delta
+        if self._value_start < 0:
+            m = self._KEY.search(self._buf)
+            if not m:
+                return ""        # the "answer" field hasn't started yet
+            self._value_start = m.end()
+
+        # Decode the JSON string value until an unescaped closing quote.
+        decoded: list[str] = []
+        esc = False
+        i = self._value_start
+        ended = False
+        while i < len(self._buf):
+            c = self._buf[i]
+            if esc:
+                decoded.append(self._UNESCAPE.get(c, c))
+                esc = False
+            elif c == "\\":
+                esc = True
+            elif c == '"':
+                ended = True
+                break
+            else:
+                decoded.append(c)
+            i += 1
+
+        text = "".join(decoded)
+        new = text[self._emitted:]   # only the part we haven't emitted yet
+        self._emitted = len(text)
+        if ended:
+            self._done = True
+        return new
 
 
 class AgentResult(SubmittedAnswer):
@@ -127,12 +189,56 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
     read_id_counter = 0
 
     async def _respond_turn(step, tool_choice):
-        """Make one model call and wrap it in two events: a turn_start just before,
-        and a turn_complete just after. The turn_complete reports how many tokens
-        this call used, which the UI shows as a token count and the evidence fold
-        adds up into the run's total cost."""
+        """Run one model call (one "turn") with bookkeeping around it.
+
+        It brackets the call with two events: turn_start just before, and
+        turn_complete just after. turn_complete carries this call's token usage,
+        which the UI shows as a token count and the evidence fold adds into the
+        run's total cost. (These have nothing to do with streaming; they happen
+        every turn.)
+
+        The call runs in streaming mode, meaning the model's reply arrives in many
+        small pieces instead of all at once. respond() hands each piece to the
+        on_event callback below as it arrives, and still returns the same final
+        assembled Response at the end, so the rest of the loop is unchanged. We use
+        on_event to stream the final answer out to the UI as it is written.
+        """
         emit(TurnStart(step=step).model_dump())
-        response = await respond(input_items, tools=TOOLS, tool_choice=tool_choice)
+
+        # Per-turn state for streaming the answer. Fresh each call: a non-submit
+        # turn simply never sets submit_index, so it emits no answer_delta.
+        extractor = _AnswerStream()   # turns raw argument JSON chunks into answer text
+        submit_index = None           # which output slot the submit_answer call is in
+
+        def on_event(ev):
+            """Handle one streamed piece of the model's reply.
+
+            The final answer is the submit_answer call's "answer" argument, but
+            search/read calls stream their arguments too. So we work in two phases:
+            first find the submit_answer call, then forward only its argument text.
+            """
+            nonlocal submit_index
+            et = getattr(ev, "type", None)
+
+            # Phase 1: the model started a new output item. If it is the
+            # submit_answer call, remember its slot number (output_index) so we can
+            # recognize its argument chunks in phase 2.
+            if et == "response.output_item.added":
+                item = ev.item
+                if getattr(item, "type", None) == "function_call" and getattr(item, "name", None) == "submit_answer":
+                    submit_index = ev.output_index
+
+            # Phase 2: a chunk of some call's arguments arrived. Ignore it unless it
+            # belongs to the submit_answer slot. The extractor pulls the newly
+            # written answer text out of the raw JSON chunk; if there is any, send
+            # it to the UI as an answer_delta.
+            elif et == "response.function_call_arguments.delta":
+                if submit_index is not None and ev.output_index == submit_index:
+                    piece = extractor.feed(ev.delta)
+                    if piece:
+                        emit(AnswerDelta(text=piece).model_dump())
+
+        response = await respond(input_items, tools=TOOLS, tool_choice=tool_choice, on_event=on_event)
         emit(TurnComplete(step=step, usage=usage_dict(response)).model_dump())
         return response
 
