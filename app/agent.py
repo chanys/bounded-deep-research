@@ -23,7 +23,7 @@ from app.events import (
 from app.llm import respond, to_input_item
 from app.prompts import load_recipe
 from app.retrieval import Mode
-from app.tools import TOOLS, dispatch, SubmittedAnswer
+from app.tools import EXPLORE_TOOLS, SUBMIT_TOOLS, dispatch, SubmittedAnswer
 
 
 _RECIPE_METADATA, SYSTEM_PROMPT = load_recipe()
@@ -189,57 +189,55 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
     search_id_counter = 0
     read_id_counter = 0
 
-    async def _respond_turn(step, tool_choice):
-        """Run one model call (one "turn") with bookkeeping around it.
+    async def _respond_turn(step, tools, tool_choice, effort=None, stream_answer=True):
+        """Run one model call (one "turn") and bracket it with two events:
+        turn_start just before, and turn_complete just after (the latter carries
+        this call's token usage, for the UI counter and the cost fold).
 
-        It brackets the call with two events: turn_start just before, and
-        turn_complete just after. turn_complete carries this call's token usage,
-        which the UI shows as a token count and the evidence fold adds into the
-        run's total cost. (These have nothing to do with streaming; they happen
-        every turn.)
-
-        The call runs in streaming mode, meaning the model's reply arrives in many
-        small pieces instead of all at once. respond() hands each piece to the
-        on_event callback below as it arrives, and still returns the same final
-        assembled Response at the end, so the rest of the loop is unchanged. We use
-        on_event to stream the final answer out to the UI as it is written.
+        Parameters:
+          tools:  which tools the model may call this turn. Exploration turns pass
+                  EXPLORE_TOOLS (search / read / mark_ready); synthesis passes
+                  SUBMIT_TOOLS (submit_answer only, forced via tool_choice).
+          effort: reasoning-effort override for this call. Exploration runs at the
+                  global `none`; synthesis runs at `synthesis_reasoning_effort`.
+          stream_answer: whether to stream the submit_answer text to the UI as it
+                  is written. Only the synthesis turn writes an answer, so only it
+                  streams; exploration turns pass False and run non-streaming.
         """
         emit(TurnStart(step=step).model_dump())
 
-        # Per-turn state for streaming the answer. Fresh each call: a non-submit
-        # turn simply never sets submit_index, so it emits no answer_delta.
-        extractor = _AnswerStream()   # turns raw argument JSON chunks into answer text
-        submit_index = None           # which output slot the submit_answer call is in
+        on_event = None
+        if stream_answer:
+            extractor = _AnswerStream()   # turns raw argument JSON chunks into answer text
+            submit_index = None           # which output slot the submit_answer call is in
 
-        def on_event(ev):
-            """Handle one streamed piece of the model's reply.
+            def on_event(ev):  # noqa: F811 (reassigns the on_event = None default above)
+                """Stream the answer to the UI as the model writes it.
 
-            The final answer is the submit_answer call's "answer" argument, but
-            search/read calls stream their arguments too. So we work in two phases:
-            first find the submit_answer call, then forward only its argument text.
-            """
-            nonlocal submit_index
-            et = getattr(ev, "type", None)
+                Runs only on the synthesis turn (the only one with stream_answer),
+                which is forced to call submit_answer. The streaming protocol
+                delivers a function call's arguments in two steps: an
+                `output_item.added` event announces the submit_answer call and its
+                output slot, then `function_call_arguments.delta` events carry the
+                arguments JSON in chunks. So we note that slot, feed its chunks to
+                the extractor (which pulls out the newly written "answer" text), and
+                emit each new piece as an answer_delta. The slot check is defensive;
+                this turn only ever has the one submit_answer call.
+                """
+                nonlocal submit_index
+                et = getattr(ev, "type", None)
+                if et == "response.output_item.added":
+                    item = ev.item
+                    if getattr(item, "type", None) == "function_call" and getattr(item, "name", None) == "submit_answer":
+                        submit_index = ev.output_index
+                elif et == "response.function_call_arguments.delta":
+                    if submit_index is not None and ev.output_index == submit_index:
+                        piece = extractor.feed(ev.delta)
+                        if piece:
+                            emit(AnswerDelta(text=piece).model_dump())
 
-            # Phase 1: the model started a new output item. If it is the
-            # submit_answer call, remember its slot number (output_index) so we can
-            # recognize its argument chunks in phase 2.
-            if et == "response.output_item.added":
-                item = ev.item
-                if getattr(item, "type", None) == "function_call" and getattr(item, "name", None) == "submit_answer":
-                    submit_index = ev.output_index
-
-            # Phase 2: a chunk of some call's arguments arrived. Ignore it unless it
-            # belongs to the submit_answer slot. The extractor pulls the newly
-            # written answer text out of the raw JSON chunk; if there is any, send
-            # it to the UI as an answer_delta.
-            elif et == "response.function_call_arguments.delta":
-                if submit_index is not None and ev.output_index == submit_index:
-                    piece = extractor.feed(ev.delta)
-                    if piece:
-                        emit(AnswerDelta(text=piece).model_dump())
-
-        response = await respond(input_items, tools=TOOLS, tool_choice=tool_choice, on_event=on_event)
+        response = await respond(input_items, tools=tools, tool_choice=tool_choice,
+                                 on_event=on_event, effort=effort)
         emit(TurnComplete(step=step, usage=usage_dict(response)).model_dump())
         return response
 
@@ -314,86 +312,83 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
             )
         return result
 
-    for step in range(settings.agent_max_steps):
-        response = await _respond_turn(step, tool_choice="required")
-
-        # 1. Append everything the model emitted, verbatim (reasoning, function_calls, messages).
+    async def _synthesize(steps_used: int, budget_exhausted: bool) -> AgentResult:
+        """Produce the final answer as a dedicated forced submit_answer turn, run at
+        `synthesis_reasoning_effort` (low) rather than the exploration effort (none).
+        This is the only turn whose answer is streamed to the UI."""
+        response = await _respond_turn(
+            steps_used,
+            tools=SUBMIT_TOOLS,
+            tool_choice={"type": "function", "name": "submit_answer"},
+            effort=settings.synthesis_reasoning_effort,
+            stream_answer=True,
+        )
         for item in response.output:
             input_items.append(to_input_item(item))
+        for item in response.output:
+            if item.type == "function_call":
+                result = await dispatch(to_input_item(item), channel=channel, mode=mode)
+                input_items.append(result.output_item)
+                if result.terminal:
+                    return _finalize(result.submitted, steps_used, budget_exhausted)
+        raise RuntimeError("Forced submit_answer synthesis failed.")
 
-        # 2. Collect this turn's function_calls and assign each search/read its id.
-        #    The pre-pass is synchronous so ids are fixed before the parallel
-        #    dispatch starts. slots holds (kind, ev_id); kind "search" | "read" |
-        #    other tool name (no events for the latter).
+    for step in range(settings.agent_max_steps):
+        # Exploration turn: search/read/mark_ready at the global effort (no answer
+        # is generated here, and nothing is streamed).
+        response = await _respond_turn(step, tools=EXPLORE_TOOLS, tool_choice="required",
+                                       stream_answer=False)
+
+        # Append reasoning/messages and search/read calls. A mark_ready call is the
+        # model's "ready" signal: skip it (no args, no answer, nothing wasted) and
+        # synthesize below at the synthesis effort.
+        ready = False
+        for item in response.output:
+            if item.type == "function_call" and item.name == "mark_ready":
+                ready = True
+                continue
+            input_items.append(to_input_item(item))
+
+        # Collect this turn's search/read calls and assign ids in a sync pre-pass,
+        # so ids are fixed before the parallel dispatch.
         call_items = [
-            to_input_item(item) for item in response.output if item.type == "function_call"
+            to_input_item(item)
+            for item in response.output
+            if item.type == "function_call" and item.name != "mark_ready"
         ]
-        any_function_call = bool(call_items)
-
-        slots: list[tuple[str, int | None]] = []
+        slots: list[tuple[str, int]] = []
         for call_item in call_items:
-            name = call_item["name"]
-            if name == "search_transcripts":
+            if call_item["name"] == "search_transcripts":
                 slots.append(("search", search_id_counter))
                 search_id_counter += 1
-            elif name == "read_video_segment":
+            else:  # read_video_segment
                 slots.append(("read", read_id_counter))
                 read_id_counter += 1
-            else:
-                slots.append((name, None))
 
-        # 3. Dispatch all of this turn's tool calls in parallel.
         results = await asyncio.gather(*(
             _dispatch_with_events(call_item, kind, ev_id)
             for call_item, (kind, ev_id) in zip(call_items, slots)
         ))
-
-        # 4. Append the tool outputs in call order, stopping at submit_answer.
-        terminal = None
         for result in results:
             input_items.append(result.output_item)
-            if result.terminal:
-                terminal = result
-                # Stop here: any function_calls after submit_answer in the same
-                # response.output are left without matching output_items in
-                # input_items. That is safe only because we return immediately
-                # after this turn, so input_items is never read again. If you ever
-                # defer the return or log input_items on exit, revisit this.
-                break
 
-        # 5. Exit on a successful submit_answer.
-        if terminal is not None:
-            return _finish(_finalize(terminal.submitted, step + 1, False))
+        # Model signaled ready -> synthesize the final answer at the synthesis effort.
+        if ready:
+            return _finish(await _synthesize(step + 1, budget_exhausted=False))
 
-        # 6. The model produced no tool call. Unexpected, since tool_choice is
-        #    "required", so treat it as an error rather than looping forever.
-        if not any_function_call:
+        # No tool call at all is unexpected, since tool_choice is "required".
+        if not call_items:
             raise RuntimeError(
-                f"Agent emitted text without calling any tool at step {step + 1}. "
+                f"Agent emitted no tool call at step {step + 1}. "
                 f"Output: {response.output_text!r}"
             )
 
-    # 7. Step budget exhausted without an answer. Force one last turn that must
-    #    call submit_answer (tool_choice pins it to that single tool).
+    # Step budget exhausted without the model signaling ready: force synthesis now.
     input_items.append({
         "role": "user",
         "content": (
-            "Step budget exhausted. Call submit_answer now with the best "
-            "answer you can construct from evidence gathered so far. If "
-            "evidence is insufficient, say so in the answer."
+            "Step budget exhausted. Submit your best answer now from the evidence "
+            "gathered so far; if evidence is insufficient, say so in the answer."
         ),
     })
-    response = await _respond_turn(
-        settings.agent_max_steps,
-        tool_choice={"type": "function", "name": "submit_answer"},
-    )
-    for item in response.output:
-        input_items.append(to_input_item(item))
-    for item in response.output:
-        if item.type == "function_call":
-            result = await dispatch(to_input_item(item), channel=channel, mode=mode)
-            input_items.append(result.output_item)
-            if result.terminal:
-                return _finish(_finalize(result.submitted, settings.agent_max_steps, True))
-
-    raise RuntimeError("Forced submit_answer on budget exhaustion failed.")
+    return _finish(await _synthesize(settings.agent_max_steps, budget_exhausted=True))

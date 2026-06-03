@@ -17,8 +17,11 @@ class Settings(BaseSettings):
 
     # LLM
     openai_api_key: str
-    agent_model: str = "gpt-5.4-mini"
-    reasoning_effort: str = "medium"
+    agent_model: str = "gpt-5.4"
+    reasoning_effort: str = "none"  # exploration turns (search / read)
+    # Reasoning effort for the final synthesis (the submit_answer turn) only, where
+    # reasoning helps answer quality. Exploration stays at `reasoning_effort`.
+    synthesis_reasoning_effort: str = "low"
     # Reasoning summary: "auto" | "concise" | "detailed", or None to disable.
     # The API returns a summary of the reasoning, never the raw chain-of-thought.
     reasoning_summary: str | None = "auto"
