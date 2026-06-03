@@ -163,14 +163,15 @@
    superscript indigo pill with bracket glyphs, not underlined like a normal link. */
 .markdown-answer a[href^="#source-"] {
   text-decoration: none;
-  font-size: 0.72em;
+  font-size: 0.7em;
   font-weight: 600;
   vertical-align: super;
-  padding: 0 0.1em;
-  color: oklch(0.51 0.18 277);
+  margin-left: 2px;                 /* separate adjacent chips so clusters don't merge */
+  padding: 0.1em 0.4em;
+  border-radius: 0.5em;
+  background: oklch(0.96 0.02 277); /* indigo-50 */
+  color: oklch(0.51 0.18 277);      /* indigo-600 */
 }
-.markdown-answer a[href^="#source-"]::before { content: "["; }
-.markdown-answer a[href^="#source-"]::after { content: "]"; }
 .markdown-answer code {
   font-family: var(--font-mono);
   font-size: 0.9em;

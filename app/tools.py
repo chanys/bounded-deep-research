@@ -129,7 +129,28 @@ READ_VIDEO_SEGMENT_SCHEMA: dict = {
     },
 }
 
-TOOLS: list[dict] = [SEARCH_TRANSCRIPTS_SCHEMA, SUBMIT_ANSWER_SCHEMA, READ_VIDEO_SEGMENT_SCHEMA]
+MARK_READY_SCHEMA: dict = {
+    "type": "function",
+    "name": "mark_ready",
+    "description": (
+        "Call when the pre-submit checklist passes and you have enough evidence to "
+        "answer. Signals you are done gathering; you will then be prompted to write "
+        "the final answer with submit_answer. Takes no arguments."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": False,
+    },
+}
+
+# Exploration turns offer search/read/mark_ready but NOT submit_answer, so the
+# model signals readiness (mark_ready, no answer) instead of drafting an answer
+# at the exploration reasoning effort. The answer is then composed in a dedicated
+# synthesis turn forced to submit_answer (SUBMIT_TOOLS).
+EXPLORE_TOOLS: list[dict] = [SEARCH_TRANSCRIPTS_SCHEMA, READ_VIDEO_SEGMENT_SCHEMA, MARK_READY_SCHEMA]
+SUBMIT_TOOLS: list[dict] = [SUBMIT_ANSWER_SCHEMA]
 
 
 # ---------------------------------------------------------------------------

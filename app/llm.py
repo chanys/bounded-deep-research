@@ -25,6 +25,7 @@ async def respond(
     tools: list[dict] | None = None,
     tool_choice: str | dict = "auto",  # Model decides: either emit a text message, or call one (or more) of the tools.
     on_event=None,
+    effort: str | None = None,  # override reasoning effort for this call; defaults to settings
 ) -> Response:
     """Multi-turn call for the ReAct agent loop.
 
@@ -38,9 +39,12 @@ async def respond(
     answer to the UI). The reconstructed final Response is still returned, so the
     caller's logic is unchanged either way.
     """
-    reasoning: dict = {"effort": settings.reasoning_effort}
-    if settings.reasoning_summary:
-        reasoning["summary"] = settings.reasoning_summary  # readable summary of the reasoning
+    effective_effort = effort or settings.reasoning_effort
+    reasoning: dict = {"effort": effective_effort}
+    # Only request a reasoning summary when there's reasoning to summarize.
+    # With effort "none"/"minimal" there isn't, and asking for a summary errors.
+    if settings.reasoning_summary and effective_effort not in {"none", "minimal"}:
+        reasoning["summary"] = settings.reasoning_summary
 
     kwargs: dict = {
         "model": settings.agent_model,
