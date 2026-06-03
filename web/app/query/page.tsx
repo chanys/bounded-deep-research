@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import { TracePanel, type TraceItem } from "@/components/TracePanel";
 import { CitationCard } from "@/components/CitationCard";
@@ -142,7 +143,12 @@ export default function QueryPage() {
 
   return (
     <main className="max-w-3xl mx-auto p-8 font-sans">
-      <h1 className="text-2xl font-semibold mb-6">Bounded Deep Research</h1>
+      <div className="mb-6 flex items-baseline justify-between">
+        <h1 className="text-2xl font-semibold">Bounded Deep Research</h1>
+        <Link href="/system" className="text-sm text-zinc-500 underline">
+          system →
+        </Link>
+      </div>
 
       <div className="mb-4">
         <textarea
