@@ -1,99 +1,126 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { TracePanel, type TraceItem } from "@/components/TracePanel";
+import type { AnswerComplete, SseEvent } from "@/lib/events";
+import { streamQuery } from "@/lib/sse";
 
-// Mirrors the SSE event contract in planning_docs/day-4-sse-contract.md.
-type SearchStart = { type: "search_start"; search_id: number; query: string };
-type SearchComplete = { type: "search_complete"; search_id: number; result_count: number };
-type AnswerComplete = {
-  type: "answer_complete";
-  answer: string;
-  citations: { video_id: string; start_ts: number; end_ts: number }[];
-};
-type SseEvent = SearchStart | SearchComplete | AnswerComplete;
-
-// One row in the trace panel — the UI's view of a single search.
-// search_id is the correlation key with the SSE events.
-type SearchRow = {
-  search_id: number;
-  query: string;
-  result_count: number | null; // null = in-flight
-};
+// One-click examples spanning the recipe's tiers (factual / comparative / longitudinal).
+const EXAMPLE_PROMPTS = [
+  "What two techniques does Llama 4 Scout use to achieve its 10 million token context length?",
+  "How does the creator distinguish RAG from the broader 'AI harness', and what role does each play?",
+  "How has the creator's view of LLM reasoning evolved over 2025-2026?",
+];
 
 export default function QueryPage() {
   const [query, setQuery] = useState("");
   const [isRunning, setIsRunning] = useState(false);
-  const [searches, setSearches] = useState<SearchRow[]>([]);
+  const [runId, setRunId] = useState<string | null>(null);
+  const [trace, setTrace] = useState<TraceItem[]>([]);
+  const [thinking, setThinking] = useState(false);
+  const [tokens, setTokens] = useState(0);
+  const [elapsedMs, setElapsedMs] = useState(0);
   const [answer, setAnswer] = useState<AnswerComplete | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async () => {
-    if (!query.trim() || isRunning) return;
+  // Elapsed-time clock: ticks while a run is in flight, freezes when it ends.
+  useEffect(() => {
+    if (!isRunning) return;
+    const start = performance.now();
+    const id = setInterval(() => setElapsedMs(performance.now() - start), 1000);
+    return () => clearInterval(id);
+  }, [isRunning]);
+
+  const handleEvent = (event: SseEvent) => {
+    // Discriminated union: TypeScript narrows `event` inside each branch.
+    switch (event.type) {
+      case "run_started":
+        setRunId(event.run_id); // stashed for the Day-5 Run Audit fetch
+        break;
+
+      // Model turn lifecycle drives the token-in-flight indicator.
+      case "turn_start":
+        setThinking(true);
+        break;
+      case "turn_complete":
+        setThinking(false);
+        setTokens((t) => t + event.usage.total_tokens);
+        break;
+
+      // Searches: append on start, fill result count on complete (by search_id).
+      case "search_start":
+        setTrace((prev) => [
+          ...prev,
+          { kind: "search", id: event.search_id, query: event.query, resultCount: null },
+        ]);
+        break;
+      case "search_complete":
+        setTrace((prev) =>
+          prev.map((it) =>
+            it.kind === "search" && it.id === event.search_id
+              ? { ...it, resultCount: event.result_count }
+              : it,
+          ),
+        );
+        break;
+
+      // Reads: append on start, set status on complete (by read_id).
+      case "read_start":
+        setTrace((prev) => [
+          ...prev,
+          {
+            kind: "read",
+            id: event.read_id,
+            videoId: event.video_id,
+            startTs: event.start_ts,
+            status: "reading",
+          },
+        ]);
+        break;
+      case "read_complete":
+        setTrace((prev) =>
+          prev.map((it) =>
+            it.kind === "read" && it.id === event.read_id
+              ? { ...it, status: event.ok ? "ok" : "not_found" }
+              : it,
+          ),
+        );
+        break;
+
+      case "answer_complete":
+        setAnswer(event);
+        break;
+      case "error":
+        setError(event.message);
+        break;
+      default:
+        break;
+    }
+  };
+
+  const runQuery = async (q: string) => {
+    if (!q.trim() || isRunning) return;
 
     // Reset state for a new run.
     setIsRunning(true);
-    setSearches([]);
+    setRunId(null);
+    setTrace([]);
+    setThinking(false);
+    setTokens(0);
+    setElapsedMs(0);
     setAnswer(null);
     setError(null);
 
     try {
-      const response = await fetch("http://localhost:8000/query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
-      });
-
-      if (!response.ok || !response.body) {
-        throw new Error(`Request failed: ${response.status}`);
-      }
-
-      // Parse the SSE stream manually. EventSource doesn't support POST,
-      // so we use fetch + a ReadableStream reader and split on "\n\n".
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-
-        // SSE events are separated by a blank line (\n\n).
-        const parts = buffer.split("\n\n");
-        buffer = parts.pop() ?? ""; // keep the last, possibly-incomplete chunk
-
-        for (const part of parts) {
-          if (!part.startsWith("data: ")) continue;
-          const json = part.slice("data: ".length);
-          const event = JSON.parse(json) as SseEvent;
-          handleEvent(event);
-        }
+      for await (const event of streamQuery({ query: q })) {
+        handleEvent(event);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setIsRunning(false);
-    }
-  };
-
-  const handleEvent = (event: SseEvent) => {
-    if (event.type === "search_start") {
-      setSearches((prev) => [
-        ...prev,
-        { search_id: event.search_id, query: event.query, result_count: null },
-      ]);
-    } else if (event.type === "search_complete") {
-      setSearches((prev) =>
-        prev.map((s) =>
-          s.search_id === event.search_id
-            ? { ...s, result_count: event.result_count }
-            : s
-        )
-      );
-    } else if (event.type === "answer_complete") {
-      setAnswer(event);
+      setThinking(false);
     }
   };
 
@@ -101,7 +128,7 @@ export default function QueryPage() {
     <main className="max-w-3xl mx-auto p-8 font-sans">
       <h1 className="text-2xl font-semibold mb-6">Bounded Deep Research</h1>
 
-      <div className="mb-8">
+      <div className="mb-4">
         <textarea
           className="w-full p-3 border border-zinc-300 rounded"
           rows={3}
@@ -112,12 +139,32 @@ export default function QueryPage() {
         />
         <button
           className="mt-2 px-4 py-2 bg-black text-white rounded disabled:bg-zinc-400"
-          onClick={handleSubmit}
+          onClick={() => runQuery(query)}
           disabled={isRunning || !query.trim()}
         >
           {isRunning ? "Running..." : "Ask"}
         </button>
       </div>
+
+      <div className="mb-8 flex flex-wrap gap-2">
+        {EXAMPLE_PROMPTS.map((p) => (
+          <button
+            key={p}
+            className="text-xs text-left px-3 py-1.5 border border-zinc-200 rounded-full text-zinc-600 hover:bg-zinc-50 disabled:opacity-50"
+            onClick={() => {
+              setQuery(p);
+              runQuery(p);
+            }}
+            disabled={isRunning}
+          >
+            {p.length > 60 ? p.slice(0, 60) + "…" : p}
+          </button>
+        ))}
+      </div>
+
+      {runId && (
+        <p className="mb-4 text-xs font-mono text-zinc-400">run: {runId}</p>
+      )}
 
       {error && (
         <div className="mb-6 p-3 bg-red-50 text-red-800 rounded">
@@ -125,21 +172,13 @@ export default function QueryPage() {
         </div>
       )}
 
-      {searches.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-sm font-semibold text-zinc-600 mb-2">Trace</h2>
-          <ul className="space-y-1 text-sm font-mono">
-            {searches.map((s) => (
-              <li key={s.search_id}>
-                [{s.search_id}] search: {s.query}
-                {s.result_count === null
-                  ? " — searching..."
-                  : ` — ${s.result_count} results`}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <TracePanel
+        trace={trace}
+        thinking={thinking}
+        tokens={tokens}
+        elapsedMs={elapsedMs}
+        isRunning={isRunning}
+      />
 
       {answer && (
         <div className="mb-8">
@@ -167,7 +206,6 @@ export default function QueryPage() {
               </a>
             ))}
           </div>
-
         </div>
       )}
     </main>
