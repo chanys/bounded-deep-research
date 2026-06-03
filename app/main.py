@@ -1,6 +1,6 @@
 from typing import Literal
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 import json
@@ -8,33 +8,39 @@ from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
 
 from app.agent import run_agent
+from app.events import AnswerComplete, ErrorEvent
+from app.evidence import RunEvidenceState, get_run, latest_run
 from app.retrieval import aclose
 
 """
 What this file does:
-The browser sends one question to POST /query. While the agent works, we want
-to show live progress (which searches it runs) and then the final answer. We do
-that by streaming events back to the browser as they happen (Server-Sent Events,
-SSE) instead of making the browser wait for one big response at the end.
+The browser sends one question to POST /query.
+While the agent works, we want to show live progress (which searches it runs) and then the final answer.
+We do that by streaming events back to the browser as they happen (Server-Sent Events, SSE)
+instead of making the browser wait for one big response at the end.
 
 The two helpers that make this work:
-1. run_agent is an async function. We start it as its own background task and
-   give it an event_sink callback. Every time the agent starts or finishes a
-   search, it calls event_sink with a small event dict.
+1. run_agent is an async function. We start it as its own background task and give it an event_sink callback.
+   Every time the agent does something worth showing, it calls event_sink with a small event dict.
 2. A generator task reads those events and sends each one to the browser.
 
 These two tasks pass events to each other through an asyncio.Queue:
-   the agent puts events IN, the generator takes them OUT and streams them.
-The queue is just a hand-off buffer between "producing" events and "sending"
-them, so the agent can keep working while the browser is being fed.
+  - the agent puts events IN, the generator takes them OUT and streams them.
 
-Both tasks run on the same event loop (no threads), so event_sink can put an
-event straight into the queue. When the agent is between searches (waiting on
-the network), the loop lets the generator run and flush events to the browser.
+The queue is just a hand-off buffer between "producing" events and "sending" them,
+so the agent can keep working while the browser is being fed.
 
-Order of events the browser receives: one search_start + search_complete pair
-per search, then a single answer_complete with the final answer, then the
-stream closes.
+Both tasks run on the same event loop (no threads), so event_sink can put an event straight into the queue.
+When the agent is between steps (waiting on the network), the loop lets the generator run and flush events to the browser.
+
+Order of events on the stream:
+- run_started first,
+- then for each turn a turn_start / turn_complete pair around the model call,
+- with search_start / search_complete and read_start / read_complete for the tool calls in between.
+- A successful run ends with answer_complete; a failed one ends with error.
+
+Either way the stream then closes.
+The folded run summary is not on the stream; it is fetched afterward from the separate GET /runs/{run_id}/evidence endpoint.
 
 Call chain:
     Browser
@@ -49,96 +55,122 @@ app = FastAPI(title="bounded-deep-research")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Allow browser pages loaded from http://localhost:3000 to call this backend.
+    allow_origins=["http://localhost:3000"],  # let the frontend dev server (port 3000) call this backend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-# responds to: curl http://localhost:8000/health
-@app.get("/health")  # registers function below as HTTP handler: GET request to /health
+@app.get("/health")
 def health():
+    """Liveness check. `curl http://localhost:8000/health` returns {"status": "ok"}."""
     return {"status": "ok"}
 
 
 @app.on_event("shutdown")
 async def _shutdown():
-    # Close the async OpenSearch client's aiohttp session on server shutdown.
+    """On server shutdown, close the async OpenSearch client's aiohttp session so
+    it doesn't leak / warn at exit."""
     await aclose()
 
 
-# /query endpoint expects JSON shaped like: { "query": "what has the creator said about graph RAG?" }
+# Read-only endpoints for the Run Audit panel. Each returns a stored
+# RunEvidenceState exactly as it was saved, without adding anything to it.
+#
+# Why the order of these two routes matters:
+# {run_id} is a wildcard that matches ANY path segment, including the literal word "latest".
+# So the URL /runs/latest/evidence matches BOTH routes below.
+# FastAPI does not pick the more specific route; it uses the first route that matches, in declaration order.
+# So /runs/latest/evidence must come first.
+# If /runs/{run_id}/evidence came first, a request for "latest" would hit it with run_id="latest",
+# look up a run with that id, find none, and 404.
+# A real run id (not the word "latest") doesn't match the first route, so it correctly falls through to the {run_id} route.
+@app.get("/runs/latest/evidence", response_model=RunEvidenceState)
+def latest_evidence():
+    """Return the evidence for the most recently finished run (for the demo's Run Audit panel).
+    404 if no run has completed yet."""
+    state = latest_run()
+    if state is None:
+        raise HTTPException(status_code=404, detail="no runs recorded yet")
+    return state
+
+
+@app.get("/runs/{run_id}/evidence", response_model=RunEvidenceState)
+def run_evidence(run_id: str):
+    """Return the evidence for a specific run by id (the run_id from the
+    run_started event). 404 if there is no such run."""
+    state = get_run(run_id)
+    if state is None:
+        raise HTTPException(status_code=404, detail=f"unknown run_id: {run_id}")
+    return state
+
+
 class QueryRequest(BaseModel):
-    query: str
-    channel: str = "code4AI"  # default for Phase 1
-    mode: Literal["bm25", "dense", "hybrid"] = "hybrid"
+    """JSON body of a POST /query request."""
+
+    query: str                  # the user's question
+    channel: str = "code4AI"    # which corpus to search (one channel for now)
+    mode: Literal["bm25", "dense", "hybrid"] = "hybrid"   # retrieval strategy
 
 
 def sse(event: dict) -> str:
-    """Format a dict as an SSE data line. Note the \n\n, which tells the browser the SSE event is complete."""
+    """Format one event dict as an SSE record: a `data:` line followed by a blank
+    line. The blank line is what tells the browser the event is complete."""
     return f"data: {json.dumps(event)}\n\n"
 
 
-# The function is async because it needs to stream events while other work is happening.
 @app.post("/query")
-async def query(req: QueryRequest):  # FastAPI automatically turns incoming JSON into a QueryRequest object.
-    """
-    This code is trying to connect two different worlds:
-    - World 1: FastAPI async streaming world
-    - World 2: run_agent synchronous/blocking Python world
-    Your code needs a bridge between them. That bridge is the `queue`.
+async def query(req: QueryRequest):   # FastAPI parses the JSON body into a QueryRequest
+    """Run the agent for one query and stream its progress back as SSE.
 
-    So when the agent says: {"type": "search_start"}
-    that event gets placed into the queue.
-
-    Then the streaming generator() takes it out of the queue and yields/sends it to the browser.
-    The queue is needed because the agent and the streamer are running in different execution contexts.
+    The endpoint is async because it has to keep sending events while the agent is
+    still working. It bridges two concurrent tasks with an asyncio.Queue: the
+    agent (in run_and_signal) produces events into the queue, and the generator
+    drains the queue and writes them to the response.
     """
     queue: asyncio.Queue = asyncio.Queue()
 
     def event_sink(event: dict) -> None:
-        # run_agent is now awaited directly on this event loop (no worker thread),
-        # so emit() runs in the loop thread and can enqueue without the
-        # call_soon_threadsafe hop that the old threaded design required.
+        """Hand one agent event to the stream. run_agent is awaited on this same
+        event loop (no worker thread), so we can enqueue directly without the
+        call_soon_threadsafe hop the old threaded design needed."""
         queue.put_nowait(event)
 
     async def run_and_signal():
-        """Run the agent to completion, then push the final answer into the queue.
+        """Run the agent to completion, then push the final result onto the queue.
 
-        This runs as its own task so the agent and the streaming generator make
-        progress side by side. As the agent runs it calls event_sink, which drops
-        search_start / search_complete events into the queue for the generator to
-        send. When the agent finishes, we put one answer_complete event in the
-        queue. The finally always puts None, the sentinel that tells the generator
-        the stream is over (even if the agent raised).
+        Runs as its own task so the agent and the streaming generator make progress
+        side by side. While running, the agent calls event_sink, dropping progress
+        events into the queue for the generator to send. On success we enqueue one
+        answer_complete; on failure, one error. The finally always enqueues None,
+        the sentinel that tells the generator the stream is over.
         """
         try:
             result = await run_agent(req.query, req.channel, req.mode, event_sink)
-            queue.put_nowait({
-                "type": "answer_complete",
-                "answer": result.answer,
-                "citations": [c.model_dump() for c in result.citations],
-            })
+            queue.put_nowait(AnswerComplete(
+                answer=result.answer,
+                citations=[c.model_dump() for c in result.citations],
+            ).model_dump())
         except Exception as e:
-            # TECH DEBT: no error event in contract yet; log and close.
-            print(f"run_agent raised: {e}")
+            queue.put_nowait(ErrorEvent(message=f"{type(e).__name__}: {e}").model_dump())
         finally:
             queue.put_nowait(None)
 
     async def generator():
-        """
-        agent produces events → queue → generator → StreamingResponse → browser
-        """
-        agent_task = asyncio.create_task(run_and_signal())  # Start the agent work, but do not block here waiting for it to finish.
+        """Drain the queue and yield each event as an SSE record, until the None
+        sentinel. The flow is: agent -> queue -> generator -> StreamingResponse ->
+        browser."""
+        # Start the agent in the background; do not block here waiting for it.
+        agent_task = asyncio.create_task(run_and_signal())
         try:
             while True:
-                event = await queue.get()  # Pause here until the queue has an item.
-                if event is None:
+                event = await queue.get()   # wait until the next event is available
+                if event is None:           # sentinel: the run is done
                     break
-                yield sse(event)  # Here, each yield sends one SSE chunk to the browser.
+                yield sse(event)            # send one SSE record to the browser
         finally:
-            await agent_task
+            await agent_task                # ensure the agent task is awaited/cleaned up
 
     return StreamingResponse(
         generator(),
