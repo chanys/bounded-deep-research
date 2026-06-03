@@ -51,6 +51,8 @@ export default function QueryPage() {
   const [query, setQuery] = useState("");
   const [isRunning, setIsRunning] = useState(false);
   const [trace, setTrace] = useState<TraceItem[]>([]);
+  const [tokens, setTokens] = useState(0); // accumulated across turns
+  const [elapsedMs, setElapsedMs] = useState(0);
   const [answerText, setAnswerText] = useState(""); // grows from answer_delta, finalized by answer_complete
   const [citations, setCitations] = useState<Citation[]>([]);
   const [titles, setTitles] = useState<Record<string, string>>({}); // video_id -> title
@@ -67,8 +69,21 @@ export default function QueryPage() {
     }
   }, [query]);
 
+  // Elapsed-time clock: ticks while a run is in flight, freezes when it ends.
+  useEffect(() => {
+    if (!isRunning) return;
+    const start = performance.now();
+    const id = setInterval(() => setElapsedMs(performance.now() - start), 1000);
+    return () => clearInterval(id);
+  }, [isRunning]);
+
   const handleEvent = (event: SseEvent) => {
     switch (event.type) {
+      // Each completed model turn reports its token usage; accumulate it.
+      case "turn_complete":
+        setTokens((t) => t + event.usage.total_tokens);
+        break;
+
       // Searches: append on start, fill result count on complete (by search_id).
       case "search_start":
         setTrace((prev) => [
@@ -130,6 +145,8 @@ export default function QueryPage() {
     if (!q.trim() || isRunning) return;
     setIsRunning(true);
     setTrace([]);
+    setTokens(0);
+    setElapsedMs(0);
     setAnswerText("");
     setCitations([]);
     setTitles({});
@@ -242,6 +259,8 @@ export default function QueryPage() {
               answering={!!answerText}
               citations={citations}
               evidence={evidence}
+              elapsedMs={elapsedMs}
+              tokens={tokens}
             />
           </div>
         </div>
