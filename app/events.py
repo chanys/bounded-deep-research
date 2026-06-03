@@ -29,6 +29,7 @@ class RunStarted(BaseModel):
     channel: str                # which corpus/channel is being searched
     mode: str                   # retrieval mode: bm25 | dense | hybrid
     recipe_version: str         # version of the prompt recipe driving the agent
+    max_steps: int              # step budget, so the UI can show "steps used / budget"
 
 
 class TurnStart(BaseModel):

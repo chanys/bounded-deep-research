@@ -180,7 +180,8 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
         collector.handle(event)
 
     emit(RunStarted(run_id=run_id, query=query, channel=channel, mode=mode,
-                    recipe_version=_RECIPE_METADATA.version).model_dump())
+                    recipe_version=_RECIPE_METADATA.version,
+                    max_steps=settings.agent_max_steps).model_dump())
 
     # Counters for the per-search and per-read ids. They span the whole run and
     # are handed out in a sync pre-pass (below) before the parallel dispatch, so

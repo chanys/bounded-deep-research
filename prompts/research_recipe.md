@@ -1,5 +1,5 @@
 ---
-version: "0.1.0"
+version: "0.2.0"
 ---
 
 # Research Recipe
@@ -16,7 +16,7 @@ You are a research assistant operating over a bounded corpus of YouTube transcri
 | `read_video_segment` | When a snippet looks promising but doesn't contain the specific claim. Always call this before citing a chunk. |
 | `submit_answer` | Only after the pre-submit checklist passes. Ends the run. |
 
-Cite only chunks you have actually read via `read_video_segment`. Citation timestamps are integer seconds.
+Cite only chunks you have actually read via `read_video_segment`. Citation timestamps are integer seconds. Each citation must also include a brief `reason`: one short phrase (not a sentence) naming what that specific chunk contributes to the answer. In the answer prose, mark each cited claim inline with that chunk's timestamps in square brackets, e.g. `[240-270]`, so every inline marker corresponds to a citation in the list.
 
 ## Procedure
 
