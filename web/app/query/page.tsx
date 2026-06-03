@@ -24,10 +24,17 @@ function withCitationChips(text: string, citations: Citation[]): string {
     byRange.set(`${c.start_ts}-${c.end_ts}`, i + 1);
   });
   return text
+    // (video_id, start, end)
     .replace(/\(([A-Za-z0-9_-]+),\s*(\d+),\s*(\d+)\)/g, (whole, vid, start) => {
       const n = byVidStart.get(`${vid}:${start}`);
       return n ? `[${n}](#source-${n})` : whole;
     })
+    // [video_id start-end]  (id, space, range)
+    .replace(/\[([A-Za-z0-9_-]+)\s+(\d+)\s*[-–—]\s*(\d+)\]/g, (whole, vid, start, end) => {
+      const n = byVidStart.get(`${vid}:${start}`) ?? byRange.get(`${start}-${end}`);
+      return n ? `[${n}](#source-${n})` : whole;
+    })
+    // [start-end]  (range only, no id)
     .replace(/\[(\d+)\s*[-–—]\s*(\d+)\]/g, (whole, start, end) => {
       const n = byRange.get(`${start}-${end}`);
       return n ? `[${n}](#source-${n})` : whole;
