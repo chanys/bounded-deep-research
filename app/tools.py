@@ -95,8 +95,12 @@ SUBMIT_ANSWER_SCHEMA: dict = {
                         "video_id": {"type": "string"},
                         "start_ts": {"type": "integer"},
                         "end_ts": {"type": "integer"},
+                        "reason": {
+                            "type": "string",
+                            "description": "One short phrase naming what this chunk contributes to the answer.",
+                        },
                     },
-                    "required": ["video_id", "start_ts", "end_ts"],
+                    "required": ["video_id", "start_ts", "end_ts", "reason"],
                     "additionalProperties": False,
                 },
             },
@@ -137,6 +141,7 @@ class Citation(BaseModel):
     video_id: str
     start_ts: int
     end_ts: int
+    reason: str  # one short phrase: what this chunk contributes to the answer
 
 
 class SubmittedAnswer(BaseModel):

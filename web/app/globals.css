@@ -7,7 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  /* Was `var(--font-sans)` (self-referential -> fell back to the browser serif).
+     Point it at the Geist sans the layout actually loads. */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -49,7 +51,8 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  /* Page canvas is a soft grey; cards stay pure white for figure/ground layering. */
+  --background: oklch(0.975 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -122,9 +125,70 @@
     @apply border-border outline-ring/50;
   }
   body {
+    /* Canvas comes from the --background token (soft grey); cards use --card (white). */
     @apply bg-background text-foreground;
   }
   html {
     @apply font-sans;
   }
+}
+
+/* Minimal readable styling for the rendered markdown answer. Tailwind's preflight
+   strips default heading/list styles, and no typography plugin is installed, so
+   we restore just enough here. */
+.markdown-answer {
+  font-size: 1rem;          /* same size as the user's question */
+  line-height: 1.7;
+  color: var(--foreground);
+}
+.markdown-answer p { margin: 0.9em 0; }
+/* Perplexity-style: minimal inline emphasis, no italics, short bold only. */
+.markdown-answer strong { font-weight: 600; }
+.markdown-answer em { font-style: normal; }
+.markdown-answer > :first-child { margin-top: 0; }
+.markdown-answer > :last-child { margin-bottom: 0; }
+.markdown-answer h1, .markdown-answer h2, .markdown-answer h3 {
+  font-weight: 600;
+  margin: 1.2em 0 0.5em;
+  line-height: 1.3;
+}
+.markdown-answer h1 { font-size: 1.4rem; }
+.markdown-answer h2 { font-size: 1.2rem; }
+.markdown-answer h3 { font-size: 1.05rem; }
+.markdown-answer ul { list-style: disc; padding-left: 1.4em; margin: 0.75em 0; }
+.markdown-answer ol { list-style: decimal; padding-left: 1.4em; margin: 0.75em 0; }
+.markdown-answer li { margin: 0.25em 0; }
+.markdown-answer a { color: oklch(0.51 0.18 277); text-decoration: underline; }
+/* Inline citation chips: [n] links to a Sources card. Rendered as a small
+   superscript indigo pill with bracket glyphs, not underlined like a normal link. */
+.markdown-answer a[href^="#source-"] {
+  text-decoration: none;
+  font-size: 0.72em;
+  font-weight: 600;
+  vertical-align: super;
+  padding: 0 0.1em;
+  color: oklch(0.51 0.18 277);
+}
+.markdown-answer a[href^="#source-"]::before { content: "["; }
+.markdown-answer a[href^="#source-"]::after { content: "]"; }
+.markdown-answer code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--muted);
+  padding: 0.1em 0.3em;
+  border-radius: 0.3em;
+}
+.markdown-answer pre {
+  background: var(--muted);
+  padding: 0.8em 1em;
+  border-radius: 0.5em;
+  overflow-x: auto;
+  margin: 0.75em 0;
+}
+.markdown-answer pre code { background: none; padding: 0; }
+.markdown-answer blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 1em;
+  color: var(--muted-foreground);
+  margin: 0.75em 0;
 }

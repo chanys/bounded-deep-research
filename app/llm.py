@@ -24,6 +24,7 @@ async def respond(
     input_items: list[dict],
     tools: list[dict] | None = None,
     tool_choice: str | dict = "auto",  # Model decides: either emit a text message, or call one (or more) of the tools.
+    on_event=None,
 ) -> Response:
     """Multi-turn call for the ReAct agent loop.
 
@@ -31,6 +32,11 @@ async def respond(
     function_call_output items); the caller owns conversation history.
     Returns the raw Response so the caller can iterate response.output
     to dispatch function_call items and read token usage.
+
+    If on_event is given, the call is run in streaming mode and on_event is
+    invoked with each raw streaming event as it arrives (used to stream the final
+    answer to the UI). The reconstructed final Response is still returned, so the
+    caller's logic is unchanged either way.
     """
     reasoning: dict = {"effort": settings.reasoning_effort}
     if settings.reasoning_summary:
@@ -46,7 +52,24 @@ async def respond(
     if tools:
         kwargs["tools"] = tools
         kwargs["tool_choice"] = tool_choice
-    return await client.responses.create(**kwargs)
+
+    if on_event is None:
+        return await client.responses.create(**kwargs)
+
+    # Streaming: forward every event to on_event, then return the final Response.
+    # We use create(stream=True) (a plain async iterator) rather than the higher-
+    # level .stream() context manager, which is broken in the langfuse-wrapped
+    # client on this SDK version. The terminal "response.completed" event carries
+    # the assembled final Response (output items, encrypted reasoning, usage).
+    final: Response | None = None
+    stream = await client.responses.create(**kwargs, stream=True)
+    async for event in stream:
+        on_event(event)
+        if getattr(event, "type", None) == "response.completed":
+            final = event.response
+    if final is None:
+        raise RuntimeError("Streaming response ended without a response.completed event.")
+    return final
 
 
 async def call_text_llm(system: str, user: str) -> str:
