@@ -50,8 +50,9 @@ class Settings(BaseSettings):
     embedding_dimensions: int = 1536
     title_boost: float = 1.0
 
-    # Ingestion
-    youtube_api_key: str
+    # Ingestion. Optional: only the offline ingest jobs need it. The serving app must
+    # start without it (prod drops this secret), so it defaults to None.
+    youtube_api_key: str | None = None
 
     # Observability
     langfuse_public_key: str | None = None

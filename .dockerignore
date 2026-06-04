@@ -1,0 +1,32 @@
+# Keep the build context small and secrets out of the image. The Dockerfile only
+# COPYs app/ and prompts/ (plus pyproject/uv.lock), but excluding the rest here makes
+# the context upload fast and is defense-in-depth against leaking .env.
+
+# Secrets / local env
+.env
+.env.*
+
+# Python caches / local venv
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+
+# Frontend (built and served separately as a static export)
+web
+
+# Data, traces, eval, ingestion-only code, docs, planning
+data
+traces
+eval
+ingest
+scripts
+docs
+planning_docs
+
+# VCS / IDE
+.git
+.gitignore
+.idea
+.vscode
