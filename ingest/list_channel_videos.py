@@ -10,8 +10,12 @@ from app.config import settings
 # HANDLE = "@code4AI"
 # OUT = Path("data/channel_manifests/code4AI.jsonl")
 
-HANDLE = "@DwarkeshPatel"
-OUT = Path("data/channel_manifests/DwarkeshPatel.jsonl")
+# HANDLE = "@DwarkeshPatel"
+# OUT = Path("data/channel_manifests/DwarkeshPatel.jsonl")
+
+HANDLE = "@TransGlobalTV"
+OUT = Path("data/channel_manifests/TransGlobalTV.jsonl")
+
 
 def parse_duration(iso: str) -> int:
     """PT1H2M3S -> seconds"""
@@ -68,7 +72,7 @@ def main():
 
     # Each item in `videos` is now a dict containing keys: id, title, publishedAt, duration_seconds, description, tags
 
-    videos = [v for v in videos if v.get("duration_seconds", 0) > 180]  # filter out shorts
+    # videos = [v for v in videos if v.get("duration_seconds", 0) > 180]  # filter out shorts
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     with OUT.open("w") as f:

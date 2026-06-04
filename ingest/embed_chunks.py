@@ -25,7 +25,11 @@ client = OpenAI(api_key=settings.openai_api_key)
     wait=wait_exponential(multiplier=1, min=2, max=30),
 )
 def embed_batch(texts: list[str]) -> list[list[float]]:
-    resp = client.embeddings.create(model=EMBEDDING_MODEL, input=texts)
+    resp = client.embeddings.create(
+        model=EMBEDDING_MODEL,
+        input=texts,
+        dimensions=EMBEDDING_DIMENSIONS,  # Matryoshka-reduced; must match the query embedder
+    )
     return [d.embedding for d in resp.data]
 
 

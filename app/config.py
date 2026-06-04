@@ -32,7 +32,12 @@ class Settings(BaseSettings):
     opensearch_url: str = "http://localhost:9200"
     opensearch_index_prefix: str = "chunks"
     embedding_model: str = "text-embedding-3-large"
-    embedding_dimensions: int = 3072
+    # text-embedding-3-large is natively 3072-dim. We request a Matryoshka-reduced
+    # 1536 via the `dimensions` API param: still high quality (MRL prefix + L2 renorm)
+    # while fitting under pgvector's 2000-dim HNSW limit for the production dense path.
+    # This value must be passed to BOTH the corpus embed job and the query embedder so
+    # stored vectors and query vectors share a space.
+    embedding_dimensions: int = 1536
     title_boost: float = 1.0
 
     # Ingestion

@@ -7,7 +7,7 @@ from app.config import settings
 1. psycopg.connect(settings.database_url, ...): opens connection to Postgres using the URL from settings
 2. row_factory=psycopg.rows.dict_row : sets how query results are shaped.
      - dict_row: query results are returned as dict, e.g. {"id": ..., "title": ...} instead of default ("...", "...") tuple.
-3. register_vector(conn): allow conversion between Python list[float] and Postgres vector(3072).
+3. register_vector(conn): allow conversion between Python list[float] and Postgres vector(1536).
                           without this, you will get raw bytes back from 'SELECT embedding' instead of Python list.
 """
 def get_conn():

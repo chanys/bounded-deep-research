@@ -6,7 +6,11 @@ client = OpenAI(api_key=settings.openai_api_key)
 os_client = OpenSearch(hosts=[{'host': 'localhost', 'port': 9200}])
 
 q = 'graph rag'
-vec = client.embeddings.create(model='text-embedding-3-large', input=[q]).data[0].embedding
+vec = client.embeddings.create(
+    model=settings.embedding_model,
+    input=[q],
+    dimensions=settings.embedding_dimensions,
+).data[0].embedding
 
 resp = os_client.search(
     index='chunks_code4ai',

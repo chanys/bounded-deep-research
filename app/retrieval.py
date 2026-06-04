@@ -38,6 +38,7 @@ async def _embed_query(query: str) -> list[float]:
     resp = await _openai_client.embeddings.create(
         model=EMBEDDING_MODEL,
         input=[query],
+        dimensions=settings.embedding_dimensions,  # must match the corpus embed job
     )
     return resp.data[0].embedding
 
