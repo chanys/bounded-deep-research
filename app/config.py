@@ -61,6 +61,15 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "postgresql://bdr:bdr_dev@localhost:5432/bdr"
 
+    # CORS: which browser origin(s) may call this API. Comma-separated.
+    # Local dev = the Next dev server; prod = the deployed frontend domain
+    # (set FRONTEND_ORIGIN=https://app.yeesengchan.com on AWS).
+    frontend_origin: str = "http://localhost:3000"
+
+    @property
+    def cors_allow_origins(self) -> list[str]:
+        return [o.strip() for o in self.frontend_origin.split(",") if o.strip()]
+
 
 settings = Settings()
 
