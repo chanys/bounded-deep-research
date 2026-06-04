@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException
@@ -8,6 +9,7 @@ from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
 
 from app.agent import run_agent
+from app.config import settings
 from app.db import transaction
 from app.events import AnswerComplete, ErrorEvent
 from app.evidence import RunEvidenceState, get_run, latest_run
@@ -52,11 +54,21 @@ Call chain:
               -> run_agent(...)
 """
 
-app = FastAPI(title="bounded-deep-research")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup/shutdown hook (the modern replacement for @app.on_event). Code before
+    `yield` runs on startup, code after runs on shutdown, e.g. when AWS stops the
+    container. We close the OpenSearch client here; it's a no-op under the pgvector
+    backend, where no client was ever opened."""
+    yield
+    await aclose()
+
+
+app = FastAPI(title="bounded-deep-research", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # let the frontend dev server (port 3000) call this backend
+    allow_origins=settings.cors_allow_origins,  # from env; localhost in dev, app domain in prod
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -67,13 +79,6 @@ app.add_middleware(
 def health():
     """Liveness check. `curl http://localhost:8000/health` returns {"status": "ok"}."""
     return {"status": "ok"}
-
-
-@app.on_event("shutdown")
-async def _shutdown():
-    """On server shutdown, close the async OpenSearch client's aiohttp session so
-    it doesn't leak / warn at exit."""
-    await aclose()
 
 
 # Read-only endpoints for the Run Audit panel. Each returns a stored

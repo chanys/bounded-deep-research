@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -27,7 +29,15 @@ class Settings(BaseSettings):
     reasoning_summary: str | None = "auto"
     agent_max_steps: int = 15
 
-    # Retrieval
+    # Retrieval engine for `app/retrieval.py`. This selects the backend by *consumer*,
+    # not by environment:
+    # - "pgvector": used by the serving app (the /query endpoint). Dense-only kNN over
+    #   the Postgres HNSW index; `mode` is forced to dense. This is the default so the
+    #   app runs the SAME retrieval code everywhere (laptop and AWS) -> you test what
+    #   you ship.
+    # - "opensearch": selected (via env) only by the offline eval/ablation scripts,
+    #   which need all three modes (bm25 / dense / hybrid). Never used to serve traffic.
+    retrieval_backend: Literal["pgvector", "opensearch"] = "pgvector"
     retrieval_k: int = 10
     opensearch_url: str = "http://localhost:9200"
     opensearch_index_prefix: str = "chunks"
@@ -40,8 +50,9 @@ class Settings(BaseSettings):
     embedding_dimensions: int = 1536
     title_boost: float = 1.0
 
-    # Ingestion
-    youtube_api_key: str
+    # Ingestion. Optional: only the offline ingest jobs need it. The serving app must
+    # start without it (prod drops this secret), so it defaults to None.
+    youtube_api_key: str | None = None
 
     # Observability
     langfuse_public_key: str | None = None
@@ -50,6 +61,15 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = "postgresql://bdr:bdr_dev@localhost:5432/bdr"
+
+    # CORS: which browser origin(s) may call this API. Comma-separated.
+    # Local dev = the Next dev server; prod = the deployed frontend domain
+    # (set FRONTEND_ORIGIN=https://app.yeesengchan.com on AWS).
+    frontend_origin: str = "http://localhost:3000"
+
+    @property
+    def cors_allow_origins(self) -> list[str]:
+        return [o.strip() for o in self.frontend_origin.split(",") if o.strip()]
 
 
 settings = Settings()
