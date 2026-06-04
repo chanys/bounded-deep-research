@@ -1,4 +1,13 @@
-"""Retrieval over indexed transcript chunks. Three modes: bm25, dense, hybrid."""
+"""Retrieval over indexed transcript chunks.
+
+Two backends, selected by `settings.retrieval_backend` (by consumer, not environment):
+- `pgvector`: used by the serving app (the /query endpoint), in every environment.
+  Dense-only kNN over the Postgres HNSW index; `mode` is forced to dense regardless
+  of what the caller asks.
+- `opensearch`: used only by the offline eval/ablation scripts, which need all three
+  modes (bm25 / dense / hybrid). Its client is built lazily so the serving app's
+  pgvector path never opens a connection to a host that isn't deployed.
+"""
 import asyncio
 from typing import Literal
 
@@ -6,27 +15,35 @@ from openai import AsyncOpenAI
 from opensearchpy import AsyncOpenSearch
 
 from app.config import settings
+from app.db import transaction
 
 Mode = Literal["bm25", "dense", "hybrid"]
 
 EMBEDDING_MODEL = settings.embedding_model
 
-_client = AsyncOpenSearch(
-    hosts=[{"host": "localhost", "port": 9200}],
-    use_ssl=False,
-    verify_certs=False,
-)
-
 _openai_client = AsyncOpenAI(api_key=settings.openai_api_key)
+
+# Built on first use, not at import, so a pgvector-backed prod process never opens an
+# aiohttp session to OpenSearch. Cached in this module global after the first call.
+_os_client: AsyncOpenSearch | None = None
+
+
+def _opensearch() -> AsyncOpenSearch:
+    """Lazily build (and cache) the async OpenSearch client from settings."""
+    global _os_client
+    if _os_client is None:
+        _os_client = AsyncOpenSearch(
+            hosts=[settings.opensearch_url],
+            verify_certs=False,
+        )
+    return _os_client
 
 
 async def aclose() -> None:
-    """Close the async OpenSearch client's aiohttp session. Call on shutdown.
-
-    AsyncOpenSearch holds an aiohttp ClientSession that, unlike the old sync
-    client, must be closed explicitly or aiohttp warns at interpreter exit.
-    """
-    await _client.close()
+    """Close the OpenSearch client's aiohttp session on shutdown, if one was ever
+    opened. No-op under the pgvector backend (the client was never created)."""
+    if _os_client is not None:
+        await _os_client.close()
 
 
 def _index_for(channel: str) -> str:
@@ -49,6 +66,30 @@ def _doc_key(hit: dict) -> str:
 
 
 async def chunk_exists(video_id: str, start_ts: int, channel: str) -> bool:
+    """Check whether a chunk with exact (video_id, start_ts) exists. Backend dispatch."""
+    if settings.retrieval_backend == "pgvector":
+        return await asyncio.to_thread(_pg_chunk_exists, video_id, start_ts, channel)
+    return await _os_chunk_exists(video_id, start_ts, channel)
+
+
+def _pg_chunk_exists(video_id: str, start_ts: int, channel: str) -> bool:
+    """Postgres existence check. start_ts maps to the `start_s` column; join videos
+    for the channel filter (video_chunks has no channel of its own)."""
+    with transaction() as conn:
+        row = conn.execute(
+            """
+            SELECT 1
+            FROM video_chunks c
+            JOIN videos v USING (video_id)
+            WHERE c.video_id = %(vid)s AND c.start_s = %(ts)s AND v.channel = %(ch)s
+            LIMIT 1
+            """,
+            {"vid": video_id, "ts": start_ts, "ch": channel},
+        ).fetchone()
+    return row is not None
+
+
+async def _os_chunk_exists(video_id: str, start_ts: int, channel: str) -> bool:
     """Check whether a chunk with exact (video_id, start_ts) exists.
     size: 1        # we only need to know whether any exists
     bool + filter  # combine multiple conditions with AND
@@ -64,11 +105,36 @@ async def chunk_exists(video_id: str, start_ts: int, channel: str) -> bool:
             }
         },
     }
-    res = await _client.search(index=_index_for(channel), body=body)
+    res = await _opensearch().search(index=_index_for(channel), body=body)
     return res["hits"]["total"]["value"] > 0
 
 
 async def read_video_segment(video_id: str, start_ts: int, channel: str) -> dict | None:
+    """Return the full chunk at (video_id, start_ts), or None if no match. Backend dispatch."""
+    if settings.retrieval_backend == "pgvector":
+        return await asyncio.to_thread(_pg_read_video_segment, video_id, start_ts, channel)
+    return await _os_read_video_segment(video_id, start_ts, channel)
+
+
+def _pg_read_video_segment(video_id: str, start_ts: int, channel: str) -> dict | None:
+    """Postgres single-chunk fetch. Aliases start_s/end_s -> start_ts/end_ts and joins
+    videos for title, so the dict matches the OpenSearch shape exactly."""
+    with transaction() as conn:
+        row = conn.execute(
+            """
+            SELECT c.video_id, v.title,
+                   c.start_s AS start_ts, c.end_s AS end_ts, c.text
+            FROM video_chunks c
+            JOIN videos v USING (video_id)
+            WHERE c.video_id = %(vid)s AND c.start_s = %(ts)s AND v.channel = %(ch)s
+            LIMIT 1
+            """,
+            {"vid": video_id, "ts": start_ts, "ch": channel},
+        ).fetchone()
+    return dict(row) if row else None
+
+
+async def _os_read_video_segment(video_id: str, start_ts: int, channel: str) -> dict | None:
     """Return the full chunk at (video_id, start_ts), or None if no match.
     """
     body = {
@@ -82,7 +148,7 @@ async def read_video_segment(video_id: str, start_ts: int, channel: str) -> dict
             }
         },
     }
-    res = await _client.search(index=_index_for(channel), body=body)
+    res = await _opensearch().search(index=_index_for(channel), body=body)
     hits = res["hits"]["hits"]
     if not hits:
         return None
@@ -126,6 +192,11 @@ async def search(
     }
     We unpack _source and overwrite score with _score (or fused RRF score).
     """
+    if settings.retrieval_backend == "pgvector":
+        # Production dense-only: no BM25 engine in prod, so ignore the requested mode
+        # and always run dense kNN over the Postgres HNSW index.
+        return await _pg_dense_search(query, channel, k)
+
     if mode == "bm25":
         return await _bm25_search(query, channel, k)
     if mode == "dense":
@@ -136,7 +207,41 @@ async def search(
 
 
 # ---------------------------------------------------------------------------
-# Mode implementations
+# pgvector backend (production dense-only)
+# ---------------------------------------------------------------------------
+
+
+async def _pg_dense_search(query: str, channel: str, k: int) -> list[dict]:
+    """Dense kNN via pgvector's HNSW index. Embeds the query (async), then runs the
+    SQL in a worker thread so the sync psycopg call doesn't block the event loop."""
+    vec = await _embed_query(query)
+    return await asyncio.to_thread(_pg_dense_search_sync, vec, channel, k)
+
+
+def _pg_dense_search_sync(vec: list[float], channel: str, k: int) -> list[dict]:
+    """Top-k by cosine distance (`<=>`). Score is cosine similarity (1 - distance) so
+    higher is better, matching the OpenSearch convention the rest of the app expects.
+    `ORDER BY embedding <=> :qvec LIMIT k` is the shape the HNSW index serves; the
+    query vector (a Python list) adapts to a pgvector param via register_vector()."""
+    with transaction() as conn:
+        rows = conn.execute(
+            """
+            SELECT c.video_id, v.title,
+                   c.start_s AS start_ts, c.end_s AS end_ts, c.text,
+                   1 - (c.embedding <=> %(qvec)s::vector) AS score
+            FROM video_chunks c
+            JOIN videos v USING (video_id)
+            WHERE v.channel = %(ch)s AND c.embedding IS NOT NULL
+            ORDER BY c.embedding <=> %(qvec)s::vector
+            LIMIT %(k)s
+            """,
+            {"qvec": vec, "ch": channel, "k": k},
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+# ---------------------------------------------------------------------------
+# OpenSearch backend (local / eval: bm25, dense, hybrid)
 # ---------------------------------------------------------------------------
 
 
@@ -187,7 +292,7 @@ async def _bm25_search(query: str, channel: str, k: int) -> list[dict]:
                            Best when you expect the query to match one field strongly.
           "most_fields" — sum across fields (rewards docs that match many fields a little)
     """
-    resp = await _client.search(
+    resp = await _opensearch().search(
         index=_index_for(channel),
         body={
             "size": k,
@@ -222,7 +327,7 @@ async def _dense_search(query: str, channel: str, k: int) -> list[dict]:
     - "explore enough graph to be confident the true top-10 is in my candidate pool of 100, then return only the 10 best of those 100."
     """
     vec = await _embed_query(query)
-    resp = await _client.search(
+    resp = await _opensearch().search(
         index=_index_for(channel),
         body={
             "size": k,
