@@ -1,13 +1,14 @@
 from contextlib import asynccontextmanager
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 import json
 from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
 
+from app import limits
 from app.agent import run_agent
 from app.config import settings
 from app.db import transaction
@@ -60,6 +61,7 @@ async def lifespan(app: FastAPI):
     `yield` runs on startup, code after runs on shutdown, e.g. when AWS stops the
     container. We close the OpenSearch client here; it's a no-op under the pgvector
     backend, where no client was ever opened."""
+    limits.ensure_tables()  # make sure the daily_spend table exists before serving
     yield
     await aclose()
 
@@ -143,6 +145,7 @@ class QueryRequest(BaseModel):
     query: str                  # the user's question
     channel: str = "code4AI"    # which corpus to search (one channel for now)
     mode: Literal["bm25", "dense", "hybrid"] = "hybrid"   # retrieval strategy
+    access_code: str | None = None  # a valid one unlocks the higher quota
 
 
 def sse(event: dict) -> str:
@@ -152,7 +155,7 @@ def sse(event: dict) -> str:
 
 
 @app.post("/query")
-async def query(req: QueryRequest):   # FastAPI parses the JSON body into a QueryRequest
+async def query(req: QueryRequest, request: Request):   # FastAPI parses the JSON body into a QueryRequest
     """Run the agent for one query and stream its progress back as SSE.
 
     The endpoint is async because it has to keep sending events while the agent is
@@ -160,12 +163,48 @@ async def query(req: QueryRequest):   # FastAPI parses the JSON body into a Quer
     agent (in run_and_signal) produces events into the queue, and the generator
     drains the queue and writes them to the response.
     """
+    # A one-event SSE error stream, used for the gate rejections below. The frontend
+    # renders these like any other error.
+    def error_stream(message: str) -> StreamingResponse:
+        async def gen():
+            yield sse(ErrorEvent(message=message).model_dump())
+        return StreamingResponse(gen(), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    # Determine the tier from the supplied code (the private owner code wins over the
+    # shared access code). Each tier draws on a budget bucket with its own daily cap.
+    code = req.access_code
+    if settings.owner_code and code == settings.owner_code:
+        tier, bucket, cap = "owner", "owner", settings.owner_spend_cap_usd
+    elif settings.access_code and code == settings.access_code:
+        tier, bucket, cap = "coded", "public", settings.daily_spend_cap_usd
+    else:
+        tier, bucket, cap = "anon", "public", settings.daily_spend_cap_usd
+
+    # Gate 1 - spend breaker for this tier's budget, before any paid work.
+    if await asyncio.to_thread(limits.over_cap, bucket, cap):
+        return error_stream("The demo's daily usage limit has been reached. Please try again tomorrow.")
+
+    # Gate 2 - per-IP daily quota (the owner code is exempt). Behind the load balancer the
+    # real client IP is the first entry of X-Forwarded-For.
+    if tier != "owner":
+        limit = settings.coded_daily_quota if tier == "coded" else settings.anon_daily_quota
+        xff = request.headers.get("x-forwarded-for")
+        client_ip = xff.split(",")[0].strip() if xff else (request.client.host if request.client else "unknown")
+        if not await asyncio.to_thread(limits.check_and_count, client_ip, limit):
+            hint = "" if tier == "coded" else " Enter the access code for a higher limit."
+            return error_stream(f"You've reached today's query limit.{hint}")
+
     queue: asyncio.Queue = asyncio.Queue()
+    run_id: str | None = None  # captured from run_started, used to record this run's cost
 
     def event_sink(event: dict) -> None:
         """Hand one agent event to the stream. run_agent is awaited on this same
         event loop (no worker thread), so we can enqueue directly without the
         call_soon_threadsafe hop the old threaded design needed."""
+        nonlocal run_id
+        if event.get("type") == "run_started":
+            run_id = event.get("run_id")
         queue.put_nowait(event)
 
     async def run_and_signal():
@@ -183,6 +222,10 @@ async def query(req: QueryRequest):   # FastAPI parses the JSON body into a Quer
                 answer=result.answer,
                 citations=[c.model_dump() for c in result.citations],
             ).model_dump())
+            # Record this run's cost against today's spend for the right budget bucket.
+            evidence = get_run(run_id) if run_id else latest_run()
+            if evidence is not None:
+                await asyncio.to_thread(limits.add_spend, bucket, evidence.usd_cost)
         except Exception as e:
             queue.put_nowait(ErrorEvent(message=f"{type(e).__name__}: {e}").model_dump())
         finally:
@@ -196,7 +239,14 @@ async def query(req: QueryRequest):   # FastAPI parses the JSON body into a Quer
         agent_task = asyncio.create_task(run_and_signal())
         try:
             while True:
-                event = await queue.get()   # wait until the next event is available
+                # Heartbeat: if no event arrives within 15s (e.g. the quiet synthesis
+                # turn), send an SSE comment line. The browser ignores it, but it keeps
+                # the connection alive so the load balancer's idle timeout never fires.
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=15)
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+                    continue
                 if event is None:           # sentinel: the run is done
                     break
                 yield sse(event)            # send one SSE record to the browser
@@ -206,5 +256,5 @@ async def query(req: QueryRequest):   # FastAPI parses the JSON body into a Quer
     return StreamingResponse(
         generator(),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache"},
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

@@ -1,0 +1,18 @@
+# Downloaded providers/modules (large, machine-specific; re-fetched by `terraform init`)
+.terraform/
+
+# Local state files. Bootstrap uses local state; these can contain sensitive values
+# and must never be committed.
+*.tfstate
+*.tfstate.*
+
+# Variable files that may hold secrets. Commit *.tfvars.example instead.
+*.tfvars
+!*.tfvars.example
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Note: .terraform.lock.hcl IS committed on purpose (it pins provider versions for
+# reproducible installs), so it is deliberately NOT ignored here.

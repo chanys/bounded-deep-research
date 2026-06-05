@@ -1,5 +1,5 @@
 # without the .PHONY, if a file named `up` existed, then `make up` would say "up is up to date" and do nothing
-.PHONY: up down logs reset api web smoke
+.PHONY: up down logs reset api web smoke corpus-dump corpus-restore
 
 up:
 	# starts Postgres + OpenSearch in the background, waits for healthy
@@ -32,3 +32,32 @@ web:
 smoke:
 	# runs the smoke bash script
 	bash scripts/smoke.sh
+
+# ----- corpus load (local -> RDS) -----
+# These move the embedded corpus from the local Postgres into RDS, so we never
+# re-ingest or re-embed. corpus-dump writes a compressed snapshot of the local DB;
+# corpus-restore loads it into a target DATABASE_URL (e.g. RDS via the SSM tunnel).
+
+# Local container that holds the corpus. We use ITS pg_dump/pg_restore (PG16) because
+# the Mac's host tools are newer (PG18) and inject settings like transaction_timeout
+# that the PG16 RDS target rejects. Using the container's matched tools avoids that.
+LOCAL_PG_CONTAINER ?= bdr-postgres
+
+# Target connection for the restore. Defaults point at the SSM tunnel (127.0.0.1:5455).
+# Pass the password via PGPASSWORD in the environment, NOT a URL.
+PGHOST     ?= 127.0.0.1
+PGPORT     ?= 5455
+PGUSER     ?= bdr
+PGDATABASE ?= bdr
+
+corpus-dump:
+	# Dump with the CONTAINER's PG16 pg_dump, written to a host file via stdout redirect.
+	@docker exec -e PGPASSWORD=bdr_dev $(LOCAL_PG_CONTAINER) pg_dump -Fc -U bdr -d bdr > corpus.dump
+	@echo "wrote corpus.dump ($$(du -h corpus.dump | cut -f1))"
+
+corpus-restore:
+	# Convert the dump to SQL with the container's PG16 pg_restore, then load via the host
+	# psql through the tunnel. Reads the password from PGPASSWORD in the environment.
+	@docker exec -i $(LOCAL_PG_CONTAINER) pg_restore --no-owner --no-acl -f - < corpus.dump \
+		| psql -h $(PGHOST) -p $(PGPORT) -U $(PGUSER) -d $(PGDATABASE)
+	@echo "restored corpus into $(PGHOST):$(PGPORT)/$(PGDATABASE)"

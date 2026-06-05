@@ -6,6 +6,7 @@
 
 import type { SseEvent } from "./events";
 import { API_BASE } from "./api";
+import { getAccessCode } from "./access-code";
 
 export type QueryRequest = {
   query: string;
@@ -17,10 +18,11 @@ export async function* streamQuery(
   req: QueryRequest,
   signal?: AbortSignal,
 ): AsyncGenerator<SseEvent> {
+  // Attach the stored access code (if any) so the backend can grant the higher quota.
   const res = await fetch(`${API_BASE}/query`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
+    body: JSON.stringify({ ...req, access_code: getAccessCode() }),
     signal,
   });
 

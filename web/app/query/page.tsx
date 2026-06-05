@@ -7,6 +7,7 @@ import { TracePanel, type TraceItem } from "@/components/TracePanel";
 import { Sources } from "@/components/Sources";
 import type { Citation, SseEvent } from "@/lib/events";
 import { streamQuery } from "@/lib/sse";
+import { captureAccessCode } from "@/lib/access-code";
 import { hydrateCitations, fetchLatestEvidence, type RunEvidence } from "@/lib/api";
 
 // The model marks citations inline, but the exact form varies: either
@@ -58,6 +59,12 @@ export default function QueryPage() {
   const [titles, setTitles] = useState<Record<string, string>>({}); // video_id -> title
   const [evidence, setEvidence] = useState<RunEvidence | null>(null); // fetched after the run
   const [error, setError] = useState<string | null>(null);
+
+  // On load, capture an access code from ?k=CODE (e.g. a resume link) into sessionStorage
+  // and scrub it from the URL. Subsequent queries send it for the higher quota.
+  useEffect(() => {
+    captureAccessCode();
+  }, []);
 
   // Auto-size the input so it hugs the query text instead of a fixed tall box.
   const taRef = useRef<HTMLTextAreaElement>(null);
