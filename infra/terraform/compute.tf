@@ -117,6 +117,8 @@ resource "aws_ecs_task_definition" "app" {
       environment = [
         { name = "RETRIEVAL_BACKEND", value = "pgvector" },
         { name = "FRONTEND_ORIGIN", value = "https://${var.domain}" },
+        { name = "DAILY_SPEND_CAP_USD", value = "5" },
+        { name = "OWNER_SPEND_CAP_USD", value = "25" },
         { name = "DB_HOST", value = aws_db_instance.main.address },
         { name = "DB_NAME", value = "bdr" },
         { name = "DB_USER", value = "bdr" },
@@ -127,6 +129,8 @@ resource "aws_ecs_task_definition" "app" {
       secrets = [
         { name = "OPENAI_API_KEY", valueFrom = aws_secretsmanager_secret.app["openai_api_key"].arn },
         { name = "DB_PASSWORD", valueFrom = aws_secretsmanager_secret.db_password.arn },
+        { name = "ACCESS_CODE", valueFrom = aws_secretsmanager_secret.app["access_code"].arn },
+        { name = "OWNER_CODE", valueFrom = aws_secretsmanager_secret.app["owner_code"].arn },
       ]
 
       logConfiguration = {

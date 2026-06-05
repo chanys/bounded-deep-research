@@ -15,7 +15,8 @@ locals {
     "openai_api_key",
     "langfuse_public_key",
     "langfuse_secret_key",
-    "passcode",
+    "access_code",
+    "owner_code",
   ]
 }
 

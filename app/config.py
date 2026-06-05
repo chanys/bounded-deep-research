@@ -71,6 +71,20 @@ class Settings(BaseSettings):
     db_user: str = "bdr"
     db_password: str | None = None
 
+    # Cost controls. Two SEPARATE daily budgets, so a live demo can never be blocked by
+    # (or block) public usage:
+    daily_spend_cap_usd: float = 5.0   # PUBLIC budget (anonymous + access-code visitors)
+    owner_spend_cap_usd: float = 25.0  # OWNER budget (the private demo code), kept apart
+
+    # Access control. Two codes, both supplied via ?k= / the request body:
+    # - access_code: on the resume; unlocks the higher per-IP quota, draws the public budget.
+    # - owner_code:  private (your live demos); NO per-IP limit, draws the owner budget, so
+    #                your demo is never blocked by public traffic and vice versa.
+    access_code: str | None = None
+    owner_code: str | None = None
+    anon_daily_quota: int = 5    # queries per IP per day without a code
+    coded_daily_quota: int = 50  # queries per IP per day with the access code
+
     @model_validator(mode="after")
     def _assemble_database_url(self):
         # Only override the default DATABASE_URL when the production parts are present.
