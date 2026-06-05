@@ -1,0 +1,108 @@
+# Continuous deployment: on every push to main, build + push the backend image (tagged by
+# git SHA), deploy it to ECS, then build + ship the frontend. Authenticates to AWS via
+# OIDC (no stored AWS keys); the IAM role it assumes is defined in infra/terraform/cicd.tf.
+name: deploy
+
+on:
+  push:
+    branches: [main]
+
+# OIDC needs permission to mint the id-token; checkout needs to read the repo.
+permissions:
+  id-token: write
+  contents: read
+
+# Avoid overlapping deploys; a newer push cancels an in-flight one.
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPO: 841798536002.dkr.ecr.us-east-1.amazonaws.com/bdr
+  ECS_CLUSTER: bdr
+  ECS_SERVICE: bdr
+  TASK_FAMILY: bdr
+  CONTAINER_NAME: app
+  FRONTEND_BUCKET: bdr-frontend-841798536002
+  API_BASE: https://api.answertrail.yeesengchan.com
+  DOMAIN: answertrail.yeesengchan.com
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04-arm # native ARM runner (free for public repos) -> no QEMU emulation
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Short git SHA (the immutable image tag)
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS credentials (OIDC, no stored keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::841798536002:role/bdr-github-actions
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Fargate runs ARM64, and so does this runner, so the build is native (no emulation).
+      # buildx + the GitHub Actions layer cache means a code-only change reuses the slow
+      # dependency layer and rebuilds in ~a minute.
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push the image (tagged :<sha> and :latest)
+        run: |
+          docker buildx build --platform linux/arm64 \
+            --build-arg GIT_SHA=${{ steps.sha.outputs.short }} \
+            --cache-from type=gha \
+            --cache-to type=gha,mode=max \
+            -t "$ECR_REPO:${{ steps.sha.outputs.short }}" \
+            -t "$ECR_REPO:latest" \
+            --push .
+
+      # Take the CURRENT (Terraform-managed) task definition, strip its read-only fields,
+      # swap in the new image, and deploy that revision. This picks up any env/secret
+      # changes Terraform made, plus the new immutable image tag.
+      - name: Fetch current task definition
+        run: |
+          aws ecs describe-task-definition --task-definition "$TASK_FAMILY" --query taskDefinition \
+            | jq 'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy)' \
+            > taskdef.json
+
+      - name: Render new image into the task definition
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: taskdef.json
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ env.ECR_REPO }}:${{ steps.sha.outputs.short }}
+
+      - name: Deploy to ECS (wait until healthy)
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      # Frontend: build the static site, upload it, and bust the CDN cache.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Build and ship the frontend
+        working-directory: web
+        run: |
+          pnpm install --frozen-lockfile
+          NEXT_PUBLIC_API_BASE="$API_BASE" pnpm build
+          aws s3 sync out/ "s3://$FRONTEND_BUCKET/" --delete
+          DIST_ID=$(aws cloudfront list-distributions \
+            --query "DistributionList.Items[?Aliases.Items[0]=='$DOMAIN'].Id" --output text)
+          aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"
