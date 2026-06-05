@@ -90,7 +90,7 @@ jobs:
       # Frontend: build the static site, upload it, and bust the CDN cache.
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10 # match local pnpm 10 (the workspace file uses a pnpm-10 setting)
       - uses: actions/setup-node@v4
         with:
           node-version: 20
