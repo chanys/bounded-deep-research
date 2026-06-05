@@ -168,8 +168,12 @@ resource "aws_lb_target_group" "app" {
   target_type = "ip" # Fargate (awsvpc networking) registers tasks by IP, not instance
 
   health_check {
-    path    = "/health"
-    matcher = "200"
+    path                = "/health"
+    matcher             = "200"
+    interval            = 15 # check every 15s (default is 30)
+    timeout             = 5
+    healthy_threshold   = 2 # mark healthy after 2 passes (~30s) -> faster deploys/failover
+    unhealthy_threshold = 3 # tolerate a couple of blips before replacing a task
   }
 }
 
