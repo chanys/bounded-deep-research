@@ -18,3 +18,9 @@ variable "app_port" {
   default     = 8000
   description = "Port the FastAPI container listens on (matches the Dockerfile)."
 }
+
+variable "domain" {
+  type        = string
+  default     = "answertrail.yeesengchan.com"
+  description = "Delegated subdomain. Frontend at the apex; API at api.<domain>."
+}

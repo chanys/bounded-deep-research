@@ -102,3 +102,27 @@ output "state_bucket" {
   value       = aws_s3_bucket.state.id
   description = "Name of the S3 bucket holding Terraform state."
 }
+
+# ---------------------------------------------------------------------------
+# DNS: the project's delegated subdomain
+# ---------------------------------------------------------------------------
+# A Route 53 hosted zone for this project's subdomain. It lives HERE (bootstrap), not in
+# the main stack, on purpose: its nameservers must stay stable across the main stack's
+# destroy/apply cycles, so you delegate it at Namecheap exactly ONCE. The main stack
+# looks this zone up by name and manages the cert-validation + app/api records inside it.
+
+variable "domain" {
+  type        = string
+  default     = "answertrail.yeesengchan.com"
+  description = "The delegated subdomain for this project (frontend lives at the apex)."
+}
+
+resource "aws_route53_zone" "project" {
+  name = var.domain
+}
+
+output "name_servers" {
+  value       = aws_route53_zone.project.name_servers
+  description = "Add these as NS records for the subdomain at Namecheap (one-time delegation)."
+}
+

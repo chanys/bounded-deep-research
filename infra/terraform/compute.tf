@@ -116,6 +116,7 @@ resource "aws_ecs_task_definition" "app" {
       # except the password, which is a secret below).
       environment = [
         { name = "RETRIEVAL_BACKEND", value = "pgvector" },
+        { name = "FRONTEND_ORIGIN", value = "https://${var.domain}" },
         { name = "DB_HOST", value = aws_db_instance.main.address },
         { name = "DB_NAME", value = "bdr" },
         { name = "DB_USER", value = "bdr" },
