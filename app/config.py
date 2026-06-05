@@ -1,5 +1,6 @@
 from typing import Literal
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -59,8 +60,26 @@ class Settings(BaseSettings):
     langfuse_secret_key: str | None = None
     langfuse_base_url: str | None = None
 
-    # Database
+    # Database. Locally we use DATABASE_URL directly (the default below). In production
+    # the password arrives on its own (DB_PASSWORD, injected from a secret) and the rest
+    # as plain env (DB_HOST etc.); we then assemble DATABASE_URL from the parts. Keeping
+    # the password separate avoids ever splicing a secret into a URL string by hand.
     database_url: str = "postgresql://bdr:bdr_dev@localhost:5432/bdr"
+    db_host: str | None = None
+    db_port: int = 5432
+    db_name: str = "bdr"
+    db_user: str = "bdr"
+    db_password: str | None = None
+
+    @model_validator(mode="after")
+    def _assemble_database_url(self):
+        # Only override the default DATABASE_URL when the production parts are present.
+        if self.db_host and self.db_password:
+            self.database_url = (
+                f"postgresql://{self.db_user}:{self.db_password}"
+                f"@{self.db_host}:{self.db_port}/{self.db_name}"
+            )
+        return self
 
     # CORS: which browser origin(s) may call this API. Comma-separated.
     # Local dev = the Next dev server; prod = the deployed frontend domain

@@ -28,3 +28,6 @@ node_modules/
 planning_docs
 CLAUDE.md
 traces
+
+# corpus snapshot for loading into RDS (large binary; never commit)
+corpus.dump
