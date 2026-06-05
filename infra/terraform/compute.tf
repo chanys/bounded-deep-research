@@ -215,6 +215,14 @@ resource "aws_ecs_service" "app" {
   }
 
   depends_on = [aws_lb_listener.http]
+
+  # CI/CD deploys new task-definition revisions (image tagged by git SHA). Ignore the
+  # task_definition here so Terraform doesn't revert the service to its own revision on the
+  # next apply. (Terraform still owns the task-def template; CI picks up env/secret changes
+  # the next time it renders + deploys.)
+  lifecycle {
+    ignore_changes = [task_definition]
+  }
 }
 
 output "alb_dns_name" {
