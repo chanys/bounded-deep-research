@@ -99,6 +99,10 @@ resource "aws_lb_listener" "https" {
 # ===========================================================================
 resource "aws_s3_bucket" "frontend" {
   bucket = "${var.project}-frontend-${data.aws_caller_identity.current.account_id}"
+
+  # The built site is synced into this bucket; force_destroy lets `terraform destroy`
+  # remove it (and its objects) cleanly for the destroy/apply reproducibility cycle.
+  force_destroy = true
 }
 
 # The bucket is private; only CloudFront reads it (via the access control below).
