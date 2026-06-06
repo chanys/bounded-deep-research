@@ -5,6 +5,26 @@ import type { TokenUsage } from "./events";
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 
+// Mirror of app/channels.py Channel (minus its server-side prompt directive).
+export type Channel = {
+  id: string;
+  display_name: string;
+  language: string;
+  example_prompts: string[];
+};
+
+// Fetch the channel registry for the picker. Best-effort: on any failure returns
+// [] and the caller keeps its built-in fallback, so the page works without it.
+export async function fetchChannels(): Promise<Channel[]> {
+  try {
+    const res = await fetch(`${API_BASE}/channels`);
+    if (!res.ok) return [];
+    return (await res.json()) as Channel[];
+  } catch {
+    return [];
+  }
+}
+
 // Mirror of app/evidence.py RunEvidenceState. Python sets serialize to JSON
 // arrays, so seen/read/cited chunks come over as string[].
 export type SearchEventRecord = {

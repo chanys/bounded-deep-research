@@ -10,6 +10,7 @@ from fastapi.responses import StreamingResponse
 
 from app import limits
 from app.agent import run_agent
+from app.channels import CHANNELS
 from app.config import settings
 from app.db import transaction
 from app.events import AnswerComplete, ErrorEvent
@@ -83,6 +84,15 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/channels")
+def channels() -> list[dict]:
+    """The channel registry, in display order, for the UI's channel picker.
+
+    `output_directive` is a prompt-engineering detail, so it stays server-side.
+    """
+    return [c.model_dump(exclude={"output_directive"}) for c in CHANNELS.values()]
+
+
 # Read-only endpoints for the Run Audit panel. Each returns a stored
 # RunEvidenceState exactly as it was saved, without adding anything to it.
 #
@@ -143,7 +153,7 @@ class QueryRequest(BaseModel):
     """JSON body of a POST /query request."""
 
     query: str                  # the user's question
-    channel: str = "code4AI"    # which corpus to search (one channel for now)
+    channel: str = "code4AI"    # which corpus to search; must be a key of app.channels.CHANNELS
     mode: Literal["bm25", "dense", "hybrid"] = "hybrid"   # retrieval strategy
     access_code: str | None = None  # a valid one unlocks the higher quota
 
@@ -170,6 +180,11 @@ async def query(req: QueryRequest, request: Request):   # FastAPI parses the JSO
             yield sse(ErrorEvent(message=message).model_dump())
         return StreamingResponse(gen(), media_type="text/event-stream",
                                  headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+    # Gate 0 - the channel must exist in the registry. Checked before the paid gates:
+    # an unknown channel would silently search an empty corpus and still burn budget.
+    if req.channel not in CHANNELS:
+        return error_stream(f"Unknown channel: {req.channel}")
 
     # Determine the tier from the supplied code (the private owner code wins over the
     # shared access code). Each tier draws on a budget bucket with its own daily cap.

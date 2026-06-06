@@ -2,13 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import { TracePanel, type TraceItem } from "@/components/TracePanel";
 import { Sources } from "@/components/Sources";
 import type { Citation, SseEvent } from "@/lib/events";
 import { streamQuery } from "@/lib/sse";
 import { captureAccessCode } from "@/lib/access-code";
-import { hydrateCitations, fetchLatestEvidence, type RunEvidence } from "@/lib/api";
+import {
+  hydrateCitations,
+  fetchLatestEvidence,
+  fetchChannels,
+  type Channel,
+  type RunEvidence,
+} from "@/lib/api";
 
 // The model marks citations inline, but the exact form varies: either
 // (video_id, start, end) tuples or [start-end] timestamp ranges (any dash). We
@@ -42,14 +48,25 @@ function withCitationChips(text: string, citations: Citation[]): string {
     });
 }
 
-// One-click examples: a comparative question and a longitudinal one.
-const EXAMPLE_PROMPTS = [
-  "How does the creator distinguish RAG from the broader 'AI harness', and what role does each play?",
-  "How has the creator's view of LLM reasoning evolved over 2025-2026?",
+// Shown until GET /channels responds (and kept if it never does), so the page
+// works even when the registry fetch fails. Mirrors the default (first) entry
+// of app/channels.py; its id seeds the channel selection.
+const FALLBACK_CHANNELS: Channel[] = [
+  {
+    id: "TransGlobalTV",
+    display_name: "TransGlobal TV (泛宇財經頻道)",
+    language: "zh",
+    example_prompts: [
+      "頻道如何比較年金與人壽保險在退休規劃中的角色？",
+      "頻道對聯準會降息的看法在2025到2026年間有何變化？",
+    ],
+  },
 ];
 
 export default function QueryPage() {
   const [query, setQuery] = useState("");
+  const [channels, setChannels] = useState<Channel[]>(FALLBACK_CHANNELS);
+  const [channelId, setChannelId] = useState(FALLBACK_CHANNELS[0].id);
   const [isRunning, setIsRunning] = useState(false);
   const [trace, setTrace] = useState<TraceItem[]>([]);
   const [tokens, setTokens] = useState(0); // accumulated across turns
@@ -62,9 +79,18 @@ export default function QueryPage() {
 
   // On load, capture an access code from ?k=CODE (e.g. a resume link) into sessionStorage
   // and scrub it from the URL. Subsequent queries send it for the higher quota.
+  // Also load the channel registry; keep the selection if it survives the refresh.
   useEffect(() => {
     captureAccessCode();
+    fetchChannels().then((list) => {
+      if (list.length === 0) return; // fetch failed; stay on the fallback
+      setChannels(list);
+      setChannelId((id) => (list.some((c) => c.id === id) ? id : list[0].id));
+    });
   }, []);
+
+  // The selected channel drives the picker label and the example prompt cards.
+  const channel = channels.find((c) => c.id === channelId) ?? channels[0];
 
   // Auto-size the input so it hugs the query text instead of a fixed tall box.
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -160,7 +186,7 @@ export default function QueryPage() {
     setEvidence(null);
     setError(null);
     try {
-      for await (const event of streamQuery({ query: q })) {
+      for await (const event of streamQuery({ query: q, channel: channelId })) {
         handleEvent(event);
       }
     } catch (e) {
@@ -198,9 +224,24 @@ export default function QueryPage() {
           placeholder="Ask a question about the corpus…"
           disabled={isRunning}
         />
-        <span className="absolute bottom-3 left-3 rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
-          Discover AI transcript corpus
-        </span>
+        {/* Channel picker: the old corpus pill, now a select. Choosing a channel only
+            affects the next run; it also swaps the example cards below. */}
+        <div className="absolute bottom-3 left-3">
+          <select
+            aria-label="Channel to search"
+            className="appearance-none rounded-full bg-muted py-1 pl-2.5 pr-7 text-xs text-muted-foreground outline-none hover:cursor-pointer disabled:opacity-50"
+            value={channelId}
+            onChange={(e) => setChannelId(e.target.value)}
+            disabled={isRunning}
+          >
+            {channels.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.display_name}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
+        </div>
         <button
           aria-label="Ask"
           className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
@@ -211,9 +252,9 @@ export default function QueryPage() {
         </button>
       </div>
 
-      {/* Two example cards, spanning the same width as the input. */}
+      {/* Example cards for the selected channel, spanning the same width as the input. */}
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {EXAMPLE_PROMPTS.map((p) => (
+        {channel.example_prompts.map((p) => (
           <button
             key={p}
             className="rounded-xl border border-border bg-card p-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
