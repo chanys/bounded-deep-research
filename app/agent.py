@@ -21,6 +21,7 @@ from app.events import (
     SearchStart, SearchComplete, ReadStart, ReadComplete, AnswerDelta, usage_dict,
 )
 from app.llm import respond, to_input_item
+from app.channels import CHANNELS
 from app.prompts import load_recipe
 from app.retrieval import Mode
 from app.tools import EXPLORE_TOOLS, SUBMIT_TOOLS, dispatch, SubmittedAnswer
@@ -154,10 +155,19 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
                   "recipe_version": _RECIPE_METADATA.version},
     )
 
+    # The system prompt is the shared English recipe, plus the channel's output
+    # directive when it has one (e.g. "answer in Traditional Chinese" for the zh
+    # channel). The recipe itself is never forked per channel; only the output
+    # language is steered. Unknown channels (offline scripts) get the recipe as-is.
+    channel_cfg = CHANNELS.get(channel)
+    system_prompt = SYSTEM_PROMPT
+    if channel_cfg and channel_cfg.output_directive:
+        system_prompt += f"\n\n## Channel directive\n\n{channel_cfg.output_directive}"
+
     # The conversation history. The loop appends to it every turn; the model is
     # stateless (store=False), so this list is the only memory of the run.
     input_items: list[dict] = [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         {"role": "user",   "content": query},
     ]
 

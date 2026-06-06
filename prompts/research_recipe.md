@@ -1,5 +1,5 @@
 ---
-version: "0.5.0"
+version: "0.6.0"
 ---
 
 # Research Recipe
@@ -57,14 +57,7 @@ Two queries are distinct only if they would return substantially different chunk
 
 ## Critical Failure Policy
 
-If retrieval returns no supporting chunks after reasonable effort, do NOT fabricate a synthesis. "Reasonable effort" = at least 3 distinct reformulations of the same aspect, all returning 0 useful chunks. Call `mark_ready` anyway; when prompted to write the final answer, use this `submit_answer` template with empty citations:
-
-```
-{
-  "answer": "Unable to answer from the corpus. The available transcripts do not appear to contain evidence about [X]. Searches issued: [list]. Top results were about: [adjacent topics, if any].",
-  "citations": []
-}
-```
+If retrieval returns no supporting chunks after reasonable effort, do NOT fabricate a synthesis. "Reasonable effort" = at least 3 distinct reformulations of the same aspect, all returning 0 useful chunks. Call `mark_ready` anyway; when prompted to write the final answer, call `submit_answer` with empty citations and an answer that states, in order: that the corpus cannot answer the question, the specific topic the transcripts lack evidence about, the searches you issued, and what the top results were about instead (if anything). Write it in the same language as a normal answer.
 
 Tangential evidence does not justify a confident answer. If you have chunks near-the-question but none about the actual question, halt rather than construct an answer from them. Halting and reporting is the **correct** outcome when the corpus lacks evidence.
 
