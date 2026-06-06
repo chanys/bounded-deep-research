@@ -24,3 +24,14 @@ variable "domain" {
   default     = "answertrail.yeesengchan.com"
   description = "Delegated subdomain. Frontend at the apex; API at api.<domain>."
 }
+
+variable "alert_email" {
+  type        = string
+  description = "Email for AWS budget alerts. Set in a gitignored terraform.tfvars (the repo is public)."
+}
+
+variable "monthly_budget_usd" {
+  type        = number
+  default     = 30
+  description = "Monthly AWS spend (USD) that triggers a budget alert email."
+}
