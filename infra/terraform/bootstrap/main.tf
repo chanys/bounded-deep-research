@@ -43,6 +43,16 @@ terraform {
 
 provider "aws" {
   region = var.region
+
+  # Tag the persistent bootstrap resources (state bucket + DNS zone) the same way as the
+  # main stack, so they show up in the project's tag/Resource Group view too.
+  default_tags {
+    tags = {
+      Project   = "bounded-deep-research"
+      ManagedBy = "terraform"
+      Env       = "prod"
+    }
+  }
 }
 
 variable "region" {
