@@ -6,6 +6,7 @@ name: deploy
 on:
   push:
     branches: [main]
+  workflow_dispatch: {} # adds a "Run workflow" button in the Actions tab (manual deploy, no commit)
 
 # OIDC needs permission to mint the id-token; checkout needs to read the repo.
 permissions:
