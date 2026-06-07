@@ -9,6 +9,8 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:80
 export type Channel = {
   id: string;
   display_name: string;
+  title: string;
+  placeholder: string;
   language: string;
   example_prompts: string[];
 };
