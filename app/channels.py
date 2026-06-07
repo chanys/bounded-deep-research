@@ -12,7 +12,9 @@ from pydantic import BaseModel
 
 class Channel(BaseModel):
     id: str                      # the `videos.channel` value in the DB (the YouTube handle)
-    display_name: str            # what the UI shows (the channel's display name, not the handle)
+    display_name: str            # what the UI picker shows (the channel's display name, not the handle)
+    title: str                   # the page heading while this channel is selected
+    placeholder: str             # the ask-box placeholder text
     language: str                # language of the transcripts and the answer ("en" | "zh")
     example_prompts: list[str]   # the one-click example cards under the ask box
     # Appended to the system prompt for this channel. None = recipe as-is (English).
@@ -26,10 +28,12 @@ CHANNELS: dict[str, Channel] = {
         Channel(
             id="TransGlobalTV",
             display_name="TransGlobal TV (泛宇財經頻道)",
+            title="Ask TransGlobal TV",
+            placeholder="Ask a question about retirement, insurance, tax, or estate planning…",
             language="zh",
             example_prompts=[
-                "頻道如何比較年金與人壽保險在退休規劃中的角色？",
-                "頻道對聯準會降息的看法在2025到2026年間有何變化？",
+                "年金和人壽保險在退休規劃中各自扮演什麼角色？",
+                "退休後要怎麼規劃才能少繳稅？",
             ],
             output_directive=(
                 "The transcripts in this corpus are in Traditional Chinese. Phrase your "
@@ -40,6 +44,8 @@ CHANNELS: dict[str, Channel] = {
         Channel(
             id="code4AI",
             display_name="Discover AI",
+            title="AnswerTrail",
+            placeholder="Ask a question about the corpus…",
             language="en",
             example_prompts=[
                 "How does the creator distinguish RAG from the broader 'AI harness', and what role does each play?",

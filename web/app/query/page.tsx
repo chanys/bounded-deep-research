@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { ArrowRight, ChevronDown } from "lucide-react";
+import { ArrowRight, Check, ChevronDown } from "lucide-react";
 import { TracePanel, type TraceItem } from "@/components/TracePanel";
 import { Sources } from "@/components/Sources";
 import type { Citation, SseEvent } from "@/lib/events";
@@ -55,10 +55,12 @@ const FALLBACK_CHANNELS: Channel[] = [
   {
     id: "TransGlobalTV",
     display_name: "TransGlobal TV (泛宇財經頻道)",
+    title: "Ask TransGlobal TV",
+    placeholder: "Ask a question about retirement, insurance, tax, or estate planning…",
     language: "zh",
     example_prompts: [
-      "頻道如何比較年金與人壽保險在退休規劃中的角色？",
-      "頻道對聯準會降息的看法在2025到2026年間有何變化？",
+      "年金和人壽保險在退休規劃中各自扮演什麼角色？",
+      "退休後要怎麼規劃才能少繳稅？",
     ],
   },
 ];
@@ -91,6 +93,21 @@ export default function QueryPage() {
 
   // The selected channel drives the picker label and the example prompt cards.
   const channel = channels.find((c) => c.id === channelId) ?? channels[0];
+
+  // Channel dropdown: open/closed state plus a click-outside listener to close it.
+  // Custom (not a native <select>) because options render a logo image.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const onMouseDown = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setPickerOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [pickerOpen]);
 
   // Auto-size the input so it hugs the query text instead of a fixed tall box.
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -198,16 +215,82 @@ export default function QueryPage() {
 
   const started = isRunning || !!answerText || trace.length > 0;
 
+  // w-full on <main> matters: body is a flex column, so without an explicit
+  // width this flex item would shrink-wrap to its content and the pane width
+  // would vary with the (channel-dependent) text.
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
+    <main className="mx-auto w-full max-w-7xl px-6 py-10 lg:grid lg:grid-cols-[230px_minmax(0,1fr)] lg:items-start lg:gap-8">
+      {/* Channel rail: pick on the left, results in the center pane. Selecting only
+          affects the next run; it also swaps the title, placeholder, and example
+          cards. On small screens the rail becomes a horizontal row above the box. */}
+      <aside className="mb-6 lg:sticky lg:top-6 lg:mb-0">
+        <div className="mb-3 text-sm font-semibold text-foreground">Channel</div>
+        <div ref={pickerRef} className="relative">
+          <button
+            aria-haspopup="listbox"
+            aria-expanded={pickerOpen}
+            className="flex w-full items-center gap-3 rounded-xl border border-border bg-card p-2.5 text-left text-sm shadow-sm transition-colors hover:bg-muted disabled:opacity-50"
+            onClick={() => setPickerOpen((o) => !o)}
+            disabled={isRunning}
+          >
+            <img
+              src={`/channels/${channel.id}.jpg`}
+              alt=""
+              className="h-9 w-9 shrink-0 rounded-full object-cover"
+            />
+            <span className="min-w-0 flex-1">{channel.display_name}</span>
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${pickerOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+          {pickerOpen && (
+            <div
+              role="listbox"
+              aria-label="Channel to search"
+              className="absolute z-10 mt-2 w-full overflow-hidden rounded-xl border border-border bg-card shadow-md"
+            >
+              {channels.map((c) => (
+                <button
+                  key={c.id}
+                  role="option"
+                  aria-selected={c.id === channelId}
+                  className={`flex w-full items-center gap-3 p-2.5 text-left text-sm transition-colors hover:bg-muted ${
+                    c.id === channelId ? "bg-muted" : ""
+                  }`}
+                  onClick={() => {
+                    setChannelId(c.id);
+                    setPickerOpen(false);
+                  }}
+                >
+                  <img
+                    src={`/channels/${c.id}.jpg`}
+                    alt=""
+                    className="h-9 w-9 shrink-0 rounded-full object-cover"
+                  />
+                  <span className="min-w-0 flex-1">{c.display_name}</span>
+                  {c.id === channelId && <Check className="h-4 w-4 shrink-0" />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </aside>
+
+      <div className="min-w-0">
       <header className="mb-8">
-        <h1 className="text-3xl font-semibold tracking-tight">AnswerTrail</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">{channel.title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Deep research over YouTube channels
+          Ask questions. Jump to the right video moment.
         </p>
       </header>
 
-      {/* Ask box: auto-sizing textarea with a corpus pill and a round submit button. */}
+      {/* Persistent two-column split under the header: everything the user reads
+          or writes (ask box, examples, answer, sources) shares the left column's
+          width; the audit rail owns the right column from the start, so nothing
+          changes width or jumps when a run starts. */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="min-w-0">
+      {/* Ask box: auto-sizing textarea with a round submit button. */}
       <div className="relative rounded-2xl border border-border bg-card shadow-sm">
         <textarea
           ref={taRef}
@@ -221,27 +304,9 @@ export default function QueryPage() {
               runQuery(query);
             }
           }}
-          placeholder="Ask a question about the corpus…"
+          placeholder={channel.placeholder}
           disabled={isRunning}
         />
-        {/* Channel picker: the old corpus pill, now a select. Choosing a channel only
-            affects the next run; it also swaps the example cards below. */}
-        <div className="absolute bottom-3 left-3">
-          <select
-            aria-label="Channel to search"
-            className="appearance-none rounded-full bg-muted py-1 pl-2.5 pr-7 text-xs text-muted-foreground outline-none hover:cursor-pointer disabled:opacity-50"
-            value={channelId}
-            onChange={(e) => setChannelId(e.target.value)}
-            disabled={isRunning}
-          >
-            {channels.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.display_name}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
-        </div>
         <button
           aria-label="Ask"
           className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
@@ -260,7 +325,7 @@ export default function QueryPage() {
             className="rounded-xl border border-border bg-card p-3 text-left text-sm text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
             onClick={() => {
               setQuery(p);
-              runQuery(p);
+              taRef.current?.focus(); // let the user edit or confirm; submit stays manual
             }}
             disabled={isRunning}
           >
@@ -275,44 +340,54 @@ export default function QueryPage() {
         </div>
       )}
 
-      {/* Once a run starts: answer + sources in the main column, the audit rail on the right. */}
+      {/* Once a run starts: answer + sources appear below the ask box, same column, same width. */}
       {started && (
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_320px]">
-          <div className="min-w-0 space-y-6">
+        <div className="mt-8 space-y-6">
+          <section>
+            <div className="mb-3 text-sm font-semibold text-foreground">Answer</div>
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+              {answerText ? (
+                <div className="markdown-answer">
+                  <ReactMarkdown>{withCitationChips(answerText, citations)}</ReactMarkdown>
+                </div>
+              ) : (
+                <p className="animate-pulse text-sm text-muted-foreground">Researching the corpus…</p>
+              )}
+            </div>
+          </section>
+
+          {citations.length > 0 && (
             <section>
-              <div className="mb-3 text-sm font-semibold text-foreground">Answer</div>
-              <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-                {answerText ? (
-                  <div className="markdown-answer">
-                    <ReactMarkdown>{withCitationChips(answerText, citations)}</ReactMarkdown>
-                  </div>
-                ) : (
-                  <p className="animate-pulse text-sm text-muted-foreground">Researching the corpus…</p>
-                )}
-              </div>
+              <div className="mb-3 text-sm font-semibold text-foreground">Sources</div>
+              <Sources citations={citations} titles={titles} />
             </section>
-
-            {citations.length > 0 && (
-              <section>
-                <div className="mb-3 text-sm font-semibold text-foreground">Sources</div>
-                <Sources citations={citations} titles={titles} />
-              </section>
-            )}
-          </div>
-
-          <div className="lg:sticky lg:top-6 lg:self-start">
-            <TracePanel
-              trace={trace}
-              isRunning={isRunning}
-              answering={!!answerText}
-              citations={citations}
-              evidence={evidence}
-              elapsedMs={elapsedMs}
-              tokens={tokens}
-            />
-          </div>
+          )}
         </div>
       )}
+      </div>
+
+      {/* The audit rail. Before the first run it's a placeholder (desktop only:
+          on small screens the rail stacks below the content, where an empty box
+          would just be clutter); during/after a run, the real panel. */}
+      <div className="lg:sticky lg:top-6 lg:self-start">
+        {started ? (
+          <TracePanel
+            trace={trace}
+            isRunning={isRunning}
+            answering={!!answerText}
+            citations={citations}
+            evidence={evidence}
+            elapsedMs={elapsedMs}
+            tokens={tokens}
+          />
+        ) : (
+          <div className="hidden rounded-2xl border border-dashed border-border p-5 text-sm text-muted-foreground lg:block">
+            Research steps and run details will appear here when you ask a question.
+          </div>
+        )}
+      </div>
+      </div>
+      </div>
     </main>
   );
 }

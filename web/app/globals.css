@@ -130,6 +130,11 @@
   }
   html {
     @apply font-sans;
+    /* Reserve the scrollbar gutter even when the page fits the viewport. Without
+       this, content-height changes (e.g. switching channels swaps short Chinese
+       example cards for long English ones) toggle the scrollbar, the viewport
+       width changes, and the whole centered layout jumps horizontally. */
+    scrollbar-gutter: stable;
   }
 }
 
