@@ -63,7 +63,7 @@ export function VideoModal({
         <div className="aspect-video bg-black">
           <iframe
             className="h-full w-full"
-            src={`https://www.youtube-nocookie.com/embed/${videoId}?start=${startTs}&autoplay=1`}
+            src={`https://www.youtube.com/embed/${videoId}?start=${startTs}&autoplay=1`}
             title={title}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
