@@ -4,7 +4,7 @@ Runs the full ReAct agent on a single query so the Phase 2 step 1 wiring can be
 verified in the Langfuse trace:
   - system message contains "Critical Failure Policy" (load_recipe is active)
   - at least one read_video_segment call appears in the tool calls
-  - recipe_version: "0.1.0" is in the trace metadata
+  - recipe_version in the trace metadata matches the active recipe frontmatter
 
 The run may take 30-60s (multiple searches, reads, then submit). The trace is
 flushed to Langfuse on exit; open the Langfuse console to inspect it.

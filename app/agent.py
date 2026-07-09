@@ -15,7 +15,8 @@ from uuid import uuid4
 from langfuse import observe, get_client
 
 from app.config import settings
-from app.evidence import EvidenceCollector, put_run
+from app.evidence import EvidenceCollector, put_run, RunProvenance, AgentConfig
+from app.provenance import PROVENANCE
 from app.events import (
     RunStarted, TurnStart, TurnComplete,
     SearchStart, SearchComplete, ReadStart, ReadComplete, AnswerDelta, usage_dict,
@@ -176,11 +177,34 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
     run_id = langfuse.get_current_trace_id() or uuid4().hex
     trace_url = langfuse.get_trace_url()
 
+    # Provenance stamped on the run: the repo fingerprint plus the effective knobs.
+    # The effective retrieval mode is dense whenever the pgvector backend is active,
+    # since that path forces dense regardless of the requested mode.
+    effective_mode = "dense" if settings.retrieval_backend == "pgvector" else mode
+    provenance = RunProvenance(
+        git_sha=PROVENANCE.git_sha,
+        git_dirty=PROVENANCE.git_dirty,
+        recipe_version=_RECIPE_METADATA.version,
+    )
+    agent_config = AgentConfig(
+        model=settings.agent_model,
+        exploration_effort=settings.reasoning_effort,
+        synthesis_effort=settings.synthesis_reasoning_effort,
+        max_steps=settings.agent_max_steps,
+        retrieval_backend=settings.retrieval_backend,
+        retrieval_mode=effective_mode,
+        retrieval_k=settings.retrieval_k,
+        embedding_model=settings.embedding_model,
+        embedding_dimensions=settings.embedding_dimensions,
+        output_directive=channel_cfg.output_directive if channel_cfg else None,
+    )
+
     # Folds the same event stream the SSE emits into RunEvidenceState for the audit.
     collector = EvidenceCollector(
         run_id=run_id, query=query, channel=channel,
         recipe_version=_RECIPE_METADATA.version, retrieval_mode=mode,
         trace_url=trace_url, model=settings.agent_model,
+        provenance=provenance, agent_config=agent_config,
     )
 
     def emit(event: dict) -> None:
