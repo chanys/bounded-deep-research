@@ -15,6 +15,9 @@ node_modules/
 .idea/
 .vscode/
 
+# Claude Code (commit .claude/settings.json; keep personal overrides local)
+.claude/settings.local.json
+
 # Env
 .env
 .env.local
@@ -25,9 +28,10 @@ node_modules/
 
 # OS
 .DS_Store
-planning_docs
-CLAUDE.md
 traces
+
+# Private planning notes (not shared)
+planning_docs
 
 # corpus snapshot for loading into RDS (large binary; never commit)
 corpus.dump
