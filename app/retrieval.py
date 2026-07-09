@@ -166,10 +166,13 @@ async def _os_read_video_segment(video_id: str, start_ts: int, channel: str) -> 
 async def search(
     query: str,
     channel: str,
-    k: int = 10,
+    k: int | None = None,
     mode: Mode = "hybrid",
 ) -> list[dict]:
     """Search transcripts. Returns list of {video_id, title, start_ts, end_ts, text, score}.
+
+    `k` defaults to `settings.retrieval_k` when not given, so that value is the single
+    source of truth for result count across the agent path and offline callers alike.
 
     Mode determines retrieval strategy:
     - bm25:   lexical match via OpenSearch BM25 against `text`
@@ -192,6 +195,9 @@ async def search(
     }
     We unpack _source and overwrite score with _score (or fused RRF score).
     """
+    if k is None:
+        k = settings.retrieval_k
+
     if settings.retrieval_backend == "pgvector":
         # Production dense-only: no BM25 engine in prod, so ignore the requested mode
         # and always run dense kNN over the Postgres HNSW index.

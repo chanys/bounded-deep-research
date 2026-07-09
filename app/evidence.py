@@ -47,6 +47,33 @@ class ReadEvent(BaseModel):
     end_ts: int                     # chunk end time in seconds
 
 
+class RunProvenance(BaseModel):
+    """Which repo snapshot produced the run. git_sha fingerprints every tracked file
+    (recipe, tool prompts, loop code) at once and cannot be edited without changing,
+    so it is the real identifier; recipe_version rides along as a human label."""
+
+    git_sha: str                    # commit SHA, or a build-time env / "unknown" fallback
+    git_dirty: bool                 # True if the working tree had uncommitted changes
+    recipe_version: str             # human-friendly label from the recipe frontmatter
+
+
+class AgentConfig(BaseModel):
+    """The effective runtime knobs the run used. These are the values a Phase 6
+    ablation varies, recorded verbatim (not versioned) so each run states its own
+    conditions. Access/infra gates (spend caps, quotas) are deliberately excluded."""
+
+    model: str                      # settings.agent_model
+    exploration_effort: str         # settings.reasoning_effort (search/read turns)
+    synthesis_effort: str           # settings.synthesis_reasoning_effort (submit turn)
+    max_steps: int                  # settings.agent_max_steps (step budget)
+    retrieval_backend: str          # settings.retrieval_backend (pgvector | opensearch)
+    retrieval_mode: str             # effective mode (pgvector forces dense)
+    retrieval_k: int                # settings.retrieval_k default; model may override per search
+    embedding_model: str            # settings.embedding_model
+    embedding_dimensions: int       # settings.embedding_dimensions (1536 Matryoshka)
+    output_directive: str | None    # channel's appended directive, or None
+
+
 class RunEvidenceState(BaseModel):
     """The complete harness record for one run: what the agent retrieved, read, and
     cited, plus behavioral metrics, token cost, and the run's outcome. This is what
@@ -60,6 +87,10 @@ class RunEvidenceState(BaseModel):
     recipe_version: str             # prompt recipe version used
     retrieval_mode: str             # bm25 | dense | hybrid
     model: str                      # model that ran the agent
+
+    # --- provenance (which agent, under what conditions) ---
+    provenance: RunProvenance       # repo fingerprint + recipe label
+    agent_config: AgentConfig       # the effective behavior knobs for this run
 
     # --- raw activity logs ---
     search_events: list[SearchEvent]   # every search, in order
@@ -105,7 +136,8 @@ class EvidenceCollector:
     """Folds a run's event stream into a RunEvidenceState. Create one per run, feed
     it every event via handle(), then call finalize() once the run succeeds."""
 
-    def __init__(self, *, run_id, query, channel, recipe_version, retrieval_mode, trace_url, model):
+    def __init__(self, *, run_id, query, channel, recipe_version, retrieval_mode,
+                 trace_url, model, provenance, agent_config):
         """Store the run's fixed configuration and set up empty accumulators."""
         # fixed config, copied straight into the final state
         self.run_id = run_id
@@ -115,6 +147,8 @@ class EvidenceCollector:
         self.retrieval_mode = retrieval_mode
         self.trace_url = trace_url
         self.model = model
+        self.provenance = provenance      # RunProvenance, built by the caller
+        self.agent_config = agent_config  # AgentConfig, built by the caller
 
         # accumulators, filled in as events arrive
         self.search_events: list[SearchEvent] = []   # one per search_complete
@@ -199,6 +233,8 @@ class EvidenceCollector:
             recipe_version=self.recipe_version,
             retrieval_mode=self.retrieval_mode,
             model=self.model,
+            provenance=self.provenance,
+            agent_config=self.agent_config,
             search_events=self.search_events,
             read_events=self.read_events,
             seen_chunks=self.seen,
