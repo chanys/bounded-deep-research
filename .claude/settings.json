@@ -27,6 +27,7 @@
       "Bash(git log:*)",
       "Bash(git show:*)",
       "Bash(git branch:*)",
+      "Bash(git push:*)",
       "Bash(ps:*)",
       "Bash(ls:*)",
       "Bash(grep:*)",
@@ -38,10 +39,12 @@
       "Bash(aws logs:*)",
       "Bash(./scripts/aws-cost-check.sh:*)",
       "Read(.env.example)",
-      "WebFetch(domain:developers.openai.com)"
+      "WebFetch(domain:developers.openai.com)",
+      "mcp__plugin_github_github__get_me",
+      "mcp__plugin_github_github__list_pull_requests",
+      "mcp__plugin_github_github__create_pull_request"
     ],
     "ask": [
-      "Bash(git push:*)",
       "Bash(terraform apply:*)",
       "Bash(terraform destroy:*)",
       "Bash(make corpus-restore:*)"
@@ -60,6 +63,7 @@
       "Bash(sudo:*)",
       "Bash(git push --force:*)",
       "Bash(git reset --hard:*)",
+      "mcp__plugin_github_github__merge_pull_request",
       "Bash(make reset:*)",
       "Bash(docker compose down -v:*)"
     ]
