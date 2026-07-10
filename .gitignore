@@ -35,3 +35,8 @@ planning_docs
 
 # corpus snapshot for loading into RDS (large binary; never commit)
 corpus.dump
+
+# Bulk generated eval data (per-video summaries, question pool, machine inventory)
+# belongs in S3/backup, not core git; only the small human-readable inventory .md is tracked.
+/eval/artifacts/*.jsonl
+/eval/artifacts/*.json
