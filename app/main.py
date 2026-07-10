@@ -11,8 +11,8 @@ from fastapi.responses import StreamingResponse
 from app import limits
 from app.agent import run_agent
 from app.channels import CHANNELS
-from app.config import settings
-from app.db import transaction
+from core.config import settings
+from core.db import transaction
 from app.events import AnswerComplete, ErrorEvent
 from app.evidence import RunEvidenceState, get_run, latest_run
 from app.retrieval import aclose

@@ -14,14 +14,14 @@ from uuid import uuid4
 
 from langfuse import observe, get_client
 
-from app.config import settings
+from core.config import settings
 from app.evidence import EvidenceCollector, put_run, RunProvenance, AgentConfig
-from app.provenance import PROVENANCE
+from core.provenance import PROVENANCE
 from app.events import (
     RunStarted, TurnStart, TurnComplete,
     SearchStart, SearchComplete, ReadStart, ReadComplete, AnswerDelta, usage_dict,
 )
-from app.llm import respond, to_input_item
+from core.llm import respond, to_input_item
 from app.channels import CHANNELS
 from app.prompts import load_recipe
 from app.retrieval import Mode

@@ -11,7 +11,7 @@ import asyncio
 from pathlib import Path
 
 # Import config first so Langfuse keys land in the environment before the SDK initializes.
-from app.config import settings  # noqa: F401
+from core.config import settings  # noqa: F401
 from langfuse import get_client
 
 from app.agent import run_agent

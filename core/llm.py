@@ -13,7 +13,7 @@ from langfuse.openai import AsyncOpenAI
 from openai.types.responses import Response
 from pydantic import BaseModel
 
-from app.config import settings
+from core.config import settings
 
 client = AsyncOpenAI(api_key=settings.openai_api_key)
 

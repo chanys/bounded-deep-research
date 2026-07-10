@@ -1,11 +1,13 @@
-"""Single source of truth for prompt versions used in production runs."""
+"""Version + loader for the ingest ASR-cleanup prompt.
+
+(The agent's research recipe is loaded separately by app/prompts.py, which
+reads frontmatter-versioned markdown; this module serves the cleanup prompt.)
+"""
 from pathlib import Path
 
 PROMPTS_DIR = Path(__file__).parent
 
 CLEANUP_VERSION = "cleanup_v1"
-RESEARCH_RECIPE_VERSION = "research_recipe_v1"  # Phase 2
-JUDGE_VERSION = "judge_v1"  # Phase 4
 
 
 def load(version: str) -> str:

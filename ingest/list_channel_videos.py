@@ -5,7 +5,7 @@ from pathlib import Path
 
 from googleapiclient.discovery import build
 
-from app.config import settings
+from core.config import settings
 
 # HANDLE = "@code4AI"
 # OUT = Path("data/channel_manifests/code4AI.jsonl")

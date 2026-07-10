@@ -7,8 +7,8 @@ import argparse
 import json
 from pathlib import Path
 
-from app.config import settings
-from app.db import transaction
+from core.config import settings
+from core.db import transaction
 
 
 def main():

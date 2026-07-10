@@ -7,7 +7,7 @@ reaches a cap. This is the absolute ceiling that makes the URL safe to share.
 """
 from datetime import datetime, timezone, date
 
-from app.db import transaction
+from core.db import transaction
 
 
 def ensure_tables() -> None:

@@ -7,7 +7,7 @@ import argparse
 import json
 from pathlib import Path
 
-from app.db import transaction
+from core.db import transaction
 
 
 def chunk_segments(segments, window_seconds):

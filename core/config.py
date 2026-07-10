@@ -110,7 +110,7 @@ settings = Settings()
 
 """
 Langfuse reads os.environ, not .env directly.
-The above app.config.settings loads .env via pydantic-settings, 
+The above core.config.settings loads .env via pydantic-settings, 
 but that loads into settings.langfuse_public_key, not into os.environ.
 So when Langfuse's SDK looks at os.environ["LANGFUSE_PUBLIC_KEY"], it finds nothing.
 So we add the following.

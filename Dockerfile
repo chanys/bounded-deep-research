@@ -72,8 +72,9 @@ WORKDIR /app
 #                               put it (in this image); same location in both
 COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
 
-# Copy only what the running app needs: our code (app/) and the prompt files it reads.
+# Copy only what the running app needs: our code (app/ + shared core/) and the prompt files it reads.
 COPY --chown=appuser:appuser app/ ./app/
+COPY --chown=appuser:appuser core/ ./core/
 COPY --chown=appuser:appuser prompts/ ./prompts/
 
 # Record which version of the code this image was built from. The build passes in the

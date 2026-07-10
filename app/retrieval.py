@@ -14,8 +14,8 @@ from typing import Literal
 from openai import AsyncOpenAI
 from opensearchpy import AsyncOpenSearch
 
-from app.config import settings
-from app.db import transaction
+from core.config import settings
+from core.db import transaction
 
 Mode = Literal["bm25", "dense", "hybrid"]
 

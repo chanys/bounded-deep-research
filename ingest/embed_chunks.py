@@ -9,8 +9,8 @@ from openai import OpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
 from tqdm import tqdm
 
-from app.config import settings
-from app.db import transaction
+from core.config import settings
+from core.db import transaction
 
 EMBEDDING_MODEL = settings.embedding_model
 EMBEDDING_DIMENSIONS = settings.embedding_dimensions
