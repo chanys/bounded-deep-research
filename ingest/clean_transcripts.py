@@ -17,8 +17,8 @@ from pathlib import Path
 from pydantic import BaseModel
 from langfuse.openai import AsyncOpenAI
 
-from app.config import settings
-from app.db import transaction
+from core.config import settings
+from core.db import transaction
 from prompts import CLEANUP_VERSION, load
 
 import warnings

@@ -7,7 +7,7 @@ Usage: uv run python -m scripts.token_breakdown
 """
 import asyncio
 
-from app.config import settings  # noqa: F401  (loads Langfuse env before SDK init)
+from core.config import settings  # noqa: F401  (loads Langfuse env before SDK init)
 from langfuse import get_client
 
 from app.agent import run_agent, SYSTEM_PROMPT

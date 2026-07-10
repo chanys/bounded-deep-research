@@ -12,8 +12,8 @@ import argparse
 from opensearchpy import OpenSearch, helpers
 from tqdm import tqdm
 
-from app.config import settings
-from app.db import transaction
+from core.config import settings
+from core.db import transaction
 
 """
 When you query, hits come back as documents: _id, _score, _source.

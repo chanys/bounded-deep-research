@@ -17,7 +17,7 @@ import argparse
 import json
 from pathlib import Path
 
-from app.db import transaction
+from core.db import transaction
 
 DATA = Path("data")
 

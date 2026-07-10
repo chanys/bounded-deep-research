@@ -1,7 +1,7 @@
 import psycopg
 from contextlib import contextmanager
 from pgvector.psycopg import register_vector
-from app.config import settings
+from core.config import settings
 
 """
 1. psycopg.connect(settings.database_url, ...): opens connection to Postgres using the URL from settings

@@ -37,7 +37,7 @@ from typing import Any
 from pydantic import BaseModel, ValidationError
 from langfuse import observe
 
-from app.config import settings
+from core.config import settings
 from app.retrieval import search, read_video_segment, Mode
 
 # ---------------------------------------------------------------------------

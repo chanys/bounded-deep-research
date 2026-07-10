@@ -1,6 +1,6 @@
 from openai import OpenAI
 from opensearchpy import OpenSearch
-from app.config import settings
+from core.config import settings
 
 client = OpenAI(api_key=settings.openai_api_key)
 os_client = OpenSearch(hosts=[{'host': 'localhost', 'port': 9200}])
