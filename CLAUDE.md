@@ -28,6 +28,8 @@ Start with its `README.md`, which indexes every file. The ones you will reach fo
 Concise. Prose over bullets unless 3+ parallel items genuinely need separating.
 Explain decisions briefly as you code; I want to understand, not just have it done.
 Don't run install/setup commands unsolicited, and don't ask permission for obvious things (web search, reading files, smoke tests); just do them.
+As Phase 4 is built, document each eval stage at methods grade in its notes build log (`../bounded-deep-research-notes/eval/phase4_*_build_log.md`): the exact inputs, prompts, hyperparameters, the rationale a reviewer would probe, and honest human-versus-AI attribution of decisions.
+Do this when a stage produces artifacts, not at write-up time; reconstructing it later is miserable and several items are paper methods.
 (Global style rules, uv/pnpm, and git conventions live in `~/.claude/CLAUDE.md` and are not repeated here.)
 
 ## Commands
@@ -105,6 +107,8 @@ Read the relevant guide under `web/node_modules/next/dist/docs/` before writing 
 `prompts/research_recipe.md` is versioned (currently 0.6.0).
 Bump `version` on behavioral changes: minor for tweaks, major for a restructure.
 When Phase 4 lands, gold-set files and judge prompts get the same discipline: versioned artifacts, never edited in place without a commit.
+
+Rule of thumb for eval artifacts: methodology and small reviewed outputs (the gold set, prompts, induced criteria, `hypotheses.md`, small human-readable outputs like the corpus inventory) go in git; bulk generated data (per-video summaries, run outputs, large intermediates) goes to S3 or a durable backup, not core git, provenance-stamped either way.
 
 ## Do not touch
 
