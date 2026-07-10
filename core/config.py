@@ -20,6 +20,9 @@ class Settings(BaseSettings):
 
     # LLM
     openai_api_key: str
+    # Anthropic key for the eval side only (Claude summaries + judges). Optional:
+    # the serving app never calls Claude, so production starts without it.
+    anthropic_api_key: str | None = None
     agent_model: str = "gpt-5.4"
     reasoning_effort: str = "none"  # exploration turns (search / read)
     # Reasoning effort for the final synthesis (the submit_answer turn) only, where
