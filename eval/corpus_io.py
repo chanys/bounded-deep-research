@@ -70,6 +70,26 @@ def transcript_text(video_id: str) -> str:
     return " ".join(seg["text"].strip() for seg in segments if seg.get("text"))
 
 
+def read_inventory(path: Path) -> dict:
+    """Load the machine-readable inventory JSON produced by build_inventory."""
+    return json.loads(path.read_text())
+
+
+def video_chunks(video_id: str) -> list[dict]:
+    """Ordered DB chunks for one video: [{chunk_id, start_s, end_s, text}, ...].
+
+    chunk_id is the DB primary key `video_id:start_s` (zero-padded), which is also
+    the retrieval join key. Raises if the DB is down.
+    """
+    sql = (
+        "SELECT chunk_id, start_s, end_s, text "
+        "FROM video_chunks WHERE video_id = %s ORDER BY start_s"
+    )
+    with transaction() as conn:
+        rows = conn.execute(sql, (video_id,)).fetchall()
+    return [dict(r) for r in rows]
+
+
 def db_chunk_counts() -> dict[str, int]:
     """video_id -> chunk count for the channel, from Postgres. Raises if the DB is down."""
     sql = (

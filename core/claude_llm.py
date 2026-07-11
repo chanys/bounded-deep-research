@@ -34,7 +34,11 @@ def _get_client() -> AsyncAnthropic:
                 "ANTHROPIC_API_KEY is not set; it is required for the eval-side "
                 "Claude calls (summaries, judges). Add it to .env."
             )
-        _client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+        # Higher retry budget than the SDK default (2): the eval batches make
+        # hundreds of calls, and a transient 429/5xx that slips through would
+        # otherwise surface as a wrong result (e.g. a query wrongly judged
+        # unanswerable during grounding).
+        _client = AsyncAnthropic(api_key=settings.anthropic_api_key, max_retries=5)
     return _client
 
 

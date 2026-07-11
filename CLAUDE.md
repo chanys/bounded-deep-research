@@ -30,6 +30,7 @@ Explain decisions briefly as you code; I want to understand, not just have it do
 Don't run install/setup commands unsolicited, and don't ask permission for obvious things (web search, reading files, smoke tests); just do them.
 As Phase 4 is built, document each eval stage at methods grade in its notes build log (`../bounded-deep-research-notes/eval/phase4_*_build_log.md`): the exact inputs, prompts, hyperparameters, the rationale a reviewer would probe, and honest human-versus-AI attribution of decisions.
 Do this when a stage produces artifacts, not at write-up time; reconstructing it later is miserable and several items are paper methods.
+Gate expensive fan-outs on a cheap human content check. Every eval stage has the shape cheap-generation then expensive-downstream (grounding, judging, big batches); after a generation step, surface a small sample of the actual generated content and get a human look before launching the costly downstream pass, so a prompt-level quality problem is caught while it is still a prompt fix rather than after a full run. Smoke-testing the mechanics is not the same as reviewing the content.
 (Global style rules, uv/pnpm, and git conventions live in `~/.claude/CLAUDE.md` and are not repeated here.)
 
 ## Commands
