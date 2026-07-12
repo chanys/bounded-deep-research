@@ -499,11 +499,29 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
         no_tool_failures = 0
 
     # Step budget exhausted without the model signaling ready: force synthesis now.
-    input_items.append({
-        "role": "user",
-        "content": (
-            "Step budget exhausted. Submit your best answer now from the evidence "
-            "gathered so far; if evidence is insufficient, say so in the answer."
-        ),
-    })
+    # Summarize what was gathered so the low-effort synthesis turn can hedge about
+    # coverage gaps without re-deriving them from the raw history.
+    distinct = collector.distinct_queries()
+    reads_by_video = collector.reads_by_video()
+    zero_hits = collector.zero_hit_queries()
+    summary = [
+        "Step budget exhausted. Submit your best answer now from the evidence gathered "
+        "so far; if evidence is insufficient, say so in the answer.",
+        "",
+        f"Evidence gathered: {collector.search_count()} searches "
+        f"({len(distinct)} distinct queries).",
+    ]
+    if distinct:
+        summary.append("Queries issued: " + "; ".join(distinct))
+    if reads_by_video:
+        read_desc = ", ".join(
+            f"{vid} ({len(starts)} chunk{'s' if len(starts) != 1 else ''})"
+            for vid, starts in reads_by_video.items()
+        )
+        summary.append(f"Chunks read from {len(reads_by_video)} video(s): {read_desc}.")
+    else:
+        summary.append("No chunks were read.")
+    if zero_hits:
+        summary.append("Queries that returned no results: " + "; ".join(zero_hits))
+    input_items.append({"role": "user", "content": "\n".join(summary)})
     return _finish(await _synthesize(settings.agent_max_steps, budget_exhausted=True))
