@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     # the serving app never calls Claude, so production starts without it.
     anthropic_api_key: str | None = None
     agent_model: str = "gpt-5.4"
-    reasoning_effort: str = "none"  # exploration turns (search / read)
+    reasoning_effort: str = "low"  # exploration turns (search / read)
     # Reasoning effort for the final synthesis (the submit_answer turn) only, where
     # reasoning helps answer quality. Exploration stays at `reasoning_effort`.
     synthesis_reasoning_effort: str = "low"
