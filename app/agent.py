@@ -355,23 +355,30 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
     async def _synthesize(steps_used: int, budget_exhausted: bool) -> AgentResult:
         """Produce the final answer as a dedicated forced submit_answer turn, run at
         `synthesis_reasoning_effort` (low) rather than the exploration effort (none).
-        This is the only turn whose answer is streamed to the UI."""
-        response = await _respond_turn(
-            steps_used,
-            tools=SUBMIT_TOOLS,
-            tool_choice={"type": "function", "name": "submit_answer"},
-            effort=settings.synthesis_reasoning_effort,
-            stream_answer=True,
-        )
-        for item in response.output:
-            input_items.append(to_input_item(item))
-        for item in response.output:
-            if item.type == "function_call":
-                result = await dispatch(to_input_item(item), channel=channel, mode=effective_mode)
-                input_items.append(result.output_item)
-                if result.terminal:
-                    return _finalize(result.submitted, steps_used, budget_exhausted)
-        raise RuntimeError("Forced submit_answer synthesis failed.")
+        This is the only turn whose answer is streamed to the UI.
+
+        submit_answer validates every citation against the index; a fabricated one
+        comes back as a non-terminal error output rather than accepting the answer.
+        When that happens we append the error to the conversation and re-issue the
+        forced submit turn so the model can correct its citations, up to two retries.
+        Each retry is a normal turn, so its usage and cost are counted."""
+        for _ in range(3):   # one initial attempt plus up to two retries
+            response = await _respond_turn(
+                steps_used,
+                tools=SUBMIT_TOOLS,
+                tool_choice={"type": "function", "name": "submit_answer"},
+                effort=settings.synthesis_reasoning_effort,
+                stream_answer=True,
+            )
+            for item in response.output:
+                input_items.append(to_input_item(item))
+            for item in response.output:
+                if item.type == "function_call":
+                    result = await dispatch(to_input_item(item), channel=channel, mode=effective_mode)
+                    input_items.append(result.output_item)   # accepted, or the validation error to correct
+                    if result.terminal:
+                        return _finalize(result.submitted, steps_used, budget_exhausted)
+        raise RuntimeError("Forced submit_answer synthesis failed after retries.")
 
     for step in range(settings.agent_max_steps):
         # Exploration turn: search/read/mark_ready at the global effort (no answer
