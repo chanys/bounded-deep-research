@@ -14,7 +14,7 @@ from app.channels import CHANNELS
 from core.config import settings
 from core.db import transaction
 from app.events import AnswerComplete, ErrorEvent
-from app.evidence import RunEvidenceState, get_run, latest_run
+from app.evidence import RunEvidenceState, get_run, latest_run, take_partial_cost
 from app.retrieval import aclose
 
 """
@@ -243,6 +243,14 @@ async def query(req: QueryRequest, request: Request):   # FastAPI parses the JSO
                 await asyncio.to_thread(limits.add_spend, bucket, evidence.usd_cost)
         except Exception as e:
             queue.put_nowait(ErrorEvent(message=f"{type(e).__name__}: {e}").model_dump())
+            # A run that raised never recorded its cost, so charge whatever it spent
+            # before dying against today's budget; without this the breaker undercounts
+            # exactly the failed runs that burned tokens. Zero if it died before any
+            # model call. run_id is None only if run_started never fired.
+            if run_id:
+                partial = take_partial_cost(run_id)
+                if partial > 0:
+                    await asyncio.to_thread(limits.add_spend, bucket, partial)
         finally:
             queue.put_nowait(None)
 

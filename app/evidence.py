@@ -201,6 +201,9 @@ class EvidenceCollector:
 
         elif t == "turn_complete":
             self.per_turn_usage.append(TokenUsage(**event["usage"]))
+            # Keep a live partial cost so a run that dies mid-flight can still be
+            # charged to the spend breaker (the failure path never reaches finalize).
+            _PARTIAL_COST[self.run_id] = self.partial_cost_usd()
 
     # --- read surface over the running accumulators ---------------------------
     # These let the agent loop and the /query failure path inspect what the
@@ -261,6 +264,10 @@ class EvidenceCollector:
         AgentResult, which supplies the citations and the run outcome."""
         cited = {_chunk_key(c.video_id, c.start_ts) for c in result.citations}
 
+        # This run finalized, so its full cost is on the RunEvidenceState below; drop
+        # any live partial estimate so the failure path can never double-charge it.
+        _PARTIAL_COST.pop(self.run_id, None)
+
         # Sum per-turn usage into run totals, then price it.
         total = self._total_usage()
         usd, breakdown = pricing.cost_usd(
@@ -309,6 +316,17 @@ class EvidenceCollector:
 # fine for a live demo. Keyed by run_id, with a pointer to the most recent run.
 _RUNS: dict[str, RunEvidenceState] = {}
 _LATEST: str | None = None
+
+# Live partial cost per run_id, updated each turn. A run that raises before it can
+# finalize leaves its last estimate here; the /query failure path consumes it to
+# charge the spend breaker, so a run that burned budget before dying still counts.
+_PARTIAL_COST: dict[str, float] = {}
+
+
+def take_partial_cost(run_id: str) -> float:
+    """Return and clear the last recorded partial cost for a run (0.0 if none).
+    Consumed once by the failure path; finalize() clears it on the success path."""
+    return _PARTIAL_COST.pop(run_id, 0.0)
 
 
 def put_run(state: RunEvidenceState) -> None:
