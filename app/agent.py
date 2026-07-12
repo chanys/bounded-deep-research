@@ -266,6 +266,9 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
     # accepts unconditionally so a stubborn run still terminates.
     mark_ready_rejections = 0
 
+    # Bounds the no-tool-call retry: raise only on the second consecutive empty turn.
+    no_tool_failures = 0
+
     async def _respond_turn(step, tools, tool_choice, effort=None, stream_answer=True):
         """Run one model call (one "turn") and bracket it with two events:
         turn_start just before, and turn_complete just after (the latter carries
@@ -477,12 +480,23 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
             input_items.append(_call_output(ready_call_id, {"error": reason}))
             continue
 
-        # No tool call at all is unexpected, since tool_choice is "required".
+        # No tool call at all despite tool_choice="required". Nudge once and retry;
+        # raise only if the very next turn is empty again.
         if not call_items:
-            raise RuntimeError(
-                f"Agent emitted no tool call at step {step + 1}. "
-                f"Output: {response.output_text!r}"
-            )
+            no_tool_failures += 1
+            if no_tool_failures >= 2:
+                raise RuntimeError(
+                    f"Agent emitted no tool call at step {step + 1} even after a retry. "
+                    f"Output: {response.output_text!r}"
+                )
+            input_items.append({
+                "role": "user",
+                "content": "You must call a tool: search_transcripts, read_video_segment, or mark_ready.",
+            })
+            continue
+
+        # A real tool call this turn: the no-progress streak is broken.
+        no_tool_failures = 0
 
     # Step budget exhausted without the model signaling ready: force synthesis now.
     input_items.append({
