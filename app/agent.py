@@ -120,6 +120,39 @@ def _finalize(submitted: SubmittedAnswer, steps_used: int, budget_exhausted: boo
     return result
 
 
+def _call_output(call_id: str, payload: dict) -> dict:
+    """Build a function_call_output item for one call, carrying a JSON payload.
+    Used for the mark_ready gate's accept/reject acknowledgements, which the loop
+    appends by hand (mark_ready is not routed through the tool dispatcher)."""
+    return {"type": "function_call_output", "call_id": call_id, "output": json.dumps(payload)}
+
+
+def _mark_ready_gate(search_count: int, distinct_queries: int, read_count: int) -> tuple[bool, str]:
+    """Decide whether a mark_ready is acceptable from the run's evidence so far.
+
+    Returns (accepted, reason). The recipe's pre-submit checklist is honor-system;
+    this enforces the code-checkable subset. Accept when the model has genuinely
+    explored (at least 2 distinct-query searches AND at least 1 successful read), or
+    when it has hit the critical-failure path (at least 3 searches and still 0 reads:
+    the corpus most likely cannot answer, so let it proceed and say so). Otherwise
+    reject with a specific, actionable reason.
+    """
+    if distinct_queries >= 2 and read_count >= 1:
+        return True, ""
+    if search_count >= 3 and read_count == 0:
+        return True, ""
+    if distinct_queries < 2:
+        noun = "query" if distinct_queries == 1 else "queries"
+        return False, (
+            f"rejected: only {distinct_queries} distinct search {noun} issued so far - "
+            "run at least 2 searches with different queries before marking ready."
+        )
+    return False, (
+        "rejected: no chunks read yet - read the chunks you intend to cite (or search "
+        "more if the corpus lacks the answer) before marking ready."
+    )
+
+
 @observe(name="run_agent")
 async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump_dir=None) -> AgentResult:
     """Run the agent on one query and return its answer.
@@ -146,13 +179,22 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
         actually submit.
     """
     langfuse = get_client()
+
+    # The effective retrieval mode is what the run actually uses: dense whenever the
+    # pgvector backend is active (that path forces dense regardless of the requested
+    # mode). Compute it once here and use it for every event, the collector, and the
+    # trace dump, so a run never asserts two different modes. `mode` is the requested
+    # mode and is kept only for the requested_mode provenance field below.
+    effective_mode = "dense" if settings.retrieval_backend == "pgvector" else mode
+
     langfuse.update_current_span(
         input={"query": query, "channel": channel},
         metadata={"agent_model": settings.agent_model,
                   "reasoning_effort": settings.reasoning_effort,
                   "max_steps": settings.agent_max_steps,
                   "channel": channel,
-                  "mode": mode,
+                  "mode": effective_mode,
+                  "requested_mode": mode,
                   "recipe_version": _RECIPE_METADATA.version},
     )
 
@@ -178,9 +220,6 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
     trace_url = langfuse.get_trace_url()
 
     # Provenance stamped on the run: the repo fingerprint plus the effective knobs.
-    # The effective retrieval mode is dense whenever the pgvector backend is active,
-    # since that path forces dense regardless of the requested mode.
-    effective_mode = "dense" if settings.retrieval_backend == "pgvector" else mode
     provenance = RunProvenance(
         git_sha=PROVENANCE.git_sha,
         git_dirty=PROVENANCE.git_dirty,
@@ -202,7 +241,7 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
     # Folds the same event stream the SSE emits into RunEvidenceState for the audit.
     collector = EvidenceCollector(
         run_id=run_id, query=query, channel=channel,
-        recipe_version=_RECIPE_METADATA.version, retrieval_mode=mode,
+        recipe_version=_RECIPE_METADATA.version, retrieval_mode=effective_mode,
         trace_url=trace_url, model=settings.agent_model,
         provenance=provenance, agent_config=agent_config,
     )
@@ -213,7 +252,7 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
         event_sink(event)
         collector.handle(event)
 
-    emit(RunStarted(run_id=run_id, query=query, channel=channel, mode=mode,
+    emit(RunStarted(run_id=run_id, query=query, channel=channel, mode=effective_mode,
                     recipe_version=_RECIPE_METADATA.version,
                     max_steps=settings.agent_max_steps).model_dump())
 
@@ -222,6 +261,13 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
     # an id is fixed before its coroutine starts, regardless of finish order.
     search_id_counter = 0
     read_id_counter = 0
+
+    # Drives the mark_ready gate's livelock escape: after 3 rejections the gate
+    # accepts unconditionally so a stubborn run still terminates.
+    mark_ready_rejections = 0
+
+    # Bounds the no-tool-call retry: raise only on the second consecutive empty turn.
+    no_tool_failures = 0
 
     async def _respond_turn(step, tools, tool_choice, effort=None, stream_answer=True):
         """Run one model call (one "turn") and bracket it with two events:
@@ -293,13 +339,13 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
         """
         if kind == "search":
             args = json.loads(call_item.get("arguments", "{}"))
-            emit(SearchStart(search_id=ev_id, query=args.get("query", ""), mode=mode).model_dump())
+            emit(SearchStart(search_id=ev_id, query=args.get("query", ""), mode=effective_mode).model_dump())
         elif kind == "read":
             args = json.loads(call_item.get("arguments", "{}"))
             emit(ReadStart(read_id=ev_id, video_id=args.get("video_id", ""),
                            start_ts=int(args.get("start_ts", 0))).model_dump())
 
-        result = await dispatch(call_item, channel=channel, mode=mode)
+        result = await dispatch(call_item, channel=channel, mode=effective_mode)
 
         if kind == "search":
             # Rebuild the canonical chunk_ids from the hits for the evidence fold.
@@ -337,7 +383,7 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
                 dump_dir,
                 query=query,
                 channel=channel,
-                mode=mode,
+                mode=effective_mode,
                 recipe_version=_RECIPE_METADATA.version,
                 trace_id=run_id,
                 trace_url=trace_url,
@@ -349,23 +395,30 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
     async def _synthesize(steps_used: int, budget_exhausted: bool) -> AgentResult:
         """Produce the final answer as a dedicated forced submit_answer turn, run at
         `synthesis_reasoning_effort` (low) rather than the exploration effort (none).
-        This is the only turn whose answer is streamed to the UI."""
-        response = await _respond_turn(
-            steps_used,
-            tools=SUBMIT_TOOLS,
-            tool_choice={"type": "function", "name": "submit_answer"},
-            effort=settings.synthesis_reasoning_effort,
-            stream_answer=True,
-        )
-        for item in response.output:
-            input_items.append(to_input_item(item))
-        for item in response.output:
-            if item.type == "function_call":
-                result = await dispatch(to_input_item(item), channel=channel, mode=mode)
-                input_items.append(result.output_item)
-                if result.terminal:
-                    return _finalize(result.submitted, steps_used, budget_exhausted)
-        raise RuntimeError("Forced submit_answer synthesis failed.")
+        This is the only turn whose answer is streamed to the UI.
+
+        submit_answer validates every citation against the index; a fabricated one
+        comes back as a non-terminal error output rather than accepting the answer.
+        When that happens we append the error to the conversation and re-issue the
+        forced submit turn so the model can correct its citations, up to two retries.
+        Each retry is a normal turn, so its usage and cost are counted."""
+        for _ in range(3):   # one initial attempt plus up to two retries
+            response = await _respond_turn(
+                steps_used,
+                tools=SUBMIT_TOOLS,
+                tool_choice={"type": "function", "name": "submit_answer"},
+                effort=settings.synthesis_reasoning_effort,
+                stream_answer=True,
+            )
+            for item in response.output:
+                input_items.append(to_input_item(item))
+            for item in response.output:
+                if item.type == "function_call":
+                    result = await dispatch(to_input_item(item), channel=channel, mode=effective_mode)
+                    input_items.append(result.output_item)   # accepted, or the validation error to correct
+                    if result.terminal:
+                        return _finalize(result.submitted, steps_used, budget_exhausted)
+        raise RuntimeError("Forced submit_answer synthesis failed after retries.")
 
     for step in range(settings.agent_max_steps):
         # Exploration turn: search/read/mark_ready at the global effort (no answer
@@ -373,15 +426,17 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
         response = await _respond_turn(step, tools=EXPLORE_TOOLS, tool_choice="required",
                                        stream_answer=False)
 
-        # Append reasoning/messages and search/read calls. A mark_ready call is the
-        # model's "ready" signal: skip it (no args, no answer, nothing wasted) and
-        # synthesize below at the synthesis effort.
+        # Append reasoning/messages and every function call, including mark_ready.
+        # mark_ready is the model's "ready" signal; we record the call here (in the
+        # calls group) and append its accept/reject acknowledgement after dispatch,
+        # so the conversation stays well-formed whether the gate below passes or not.
         ready = False
+        ready_call_id: str | None = None
         for item in response.output:
+            input_items.append(to_input_item(item))
             if item.type == "function_call" and item.name == "mark_ready":
                 ready = True
-                continue
-            input_items.append(to_input_item(item))
+                ready_call_id = to_input_item(item)["call_id"]
 
         # Collect this turn's search/read calls and assign ids in a sync pre-pass,
         # so ids are fixed before the parallel dispatch.
@@ -406,23 +461,67 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
         for result in results:
             input_items.append(result.output_item)
 
-        # Model signaled ready -> synthesize the final answer at the synthesis effort.
+        # Model signaled ready -> gate it against the run's evidence, then either
+        # synthesize the final answer or send it back to keep exploring. The
+        # collector already reflects this turn's searches/reads (folded during the
+        # dispatch above), so the counts include the current turn.
         if ready:
-            return _finish(await _synthesize(step + 1, budget_exhausted=False))
-
-        # No tool call at all is unexpected, since tool_choice is "required".
-        if not call_items:
-            raise RuntimeError(
-                f"Agent emitted no tool call at step {step + 1}. "
-                f"Output: {response.output_text!r}"
+            accepted, reason = _mark_ready_gate(
+                collector.search_count(),
+                len(collector.distinct_queries()),
+                collector.read_count(),
             )
+            if accepted or mark_ready_rejections >= 3:
+                input_items.append(_call_output(ready_call_id, {"status": "accepted"}))
+                return _finish(await _synthesize(step + 1, budget_exhausted=False))
+            # Reject: tell the model why, and let it gather more before trying again.
+            # After 3 rejections the branch above accepts unconditionally (livelock guard).
+            mark_ready_rejections += 1
+            input_items.append(_call_output(ready_call_id, {"error": reason}))
+            continue
+
+        # No tool call at all despite tool_choice="required". Nudge once and retry;
+        # raise only if the very next turn is empty again.
+        if not call_items:
+            no_tool_failures += 1
+            if no_tool_failures >= 2:
+                raise RuntimeError(
+                    f"Agent emitted no tool call at step {step + 1} even after a retry. "
+                    f"Output: {response.output_text!r}"
+                )
+            input_items.append({
+                "role": "user",
+                "content": "You must call a tool: search_transcripts, read_video_segment, or mark_ready.",
+            })
+            continue
+
+        # A real tool call this turn: the no-progress streak is broken.
+        no_tool_failures = 0
 
     # Step budget exhausted without the model signaling ready: force synthesis now.
-    input_items.append({
-        "role": "user",
-        "content": (
-            "Step budget exhausted. Submit your best answer now from the evidence "
-            "gathered so far; if evidence is insufficient, say so in the answer."
-        ),
-    })
+    # Summarize what was gathered so the low-effort synthesis turn can hedge about
+    # coverage gaps without re-deriving them from the raw history.
+    distinct = collector.distinct_queries()
+    reads_by_video = collector.reads_by_video()
+    zero_hits = collector.zero_hit_queries()
+    summary = [
+        "Step budget exhausted. Submit your best answer now from the evidence gathered "
+        "so far; if evidence is insufficient, say so in the answer.",
+        "",
+        f"Evidence gathered: {collector.search_count()} searches "
+        f"({len(distinct)} distinct queries).",
+    ]
+    if distinct:
+        summary.append("Queries issued: " + "; ".join(distinct))
+    if reads_by_video:
+        read_desc = ", ".join(
+            f"{vid} ({len(starts)} chunk{'s' if len(starts) != 1 else ''})"
+            for vid, starts in reads_by_video.items()
+        )
+        summary.append(f"Chunks read from {len(reads_by_video)} video(s): {read_desc}.")
+    else:
+        summary.append("No chunks were read.")
+    if zero_hits:
+        summary.append("Queries that returned no results: " + "; ".join(zero_hits))
+    input_items.append({"role": "user", "content": "\n".join(summary)})
     return _finish(await _synthesize(settings.agent_max_steps, budget_exhausted=True))
