@@ -202,6 +202,59 @@ class EvidenceCollector:
         elif t == "turn_complete":
             self.per_turn_usage.append(TokenUsage(**event["usage"]))
 
+    # --- read surface over the running accumulators ---------------------------
+    # These let the agent loop and the /query failure path inspect what the
+    # collector has seen so far, without duplicating the folding logic. They read
+    # only already-accumulated state, so they are safe to call mid-run.
+
+    def search_count(self) -> int:
+        """How many searches have completed so far."""
+        return len(self.search_events)
+
+    def read_count(self) -> int:
+        """How many successful reads have completed so far."""
+        return len(self.read_events)
+
+    def distinct_queries(self) -> list[str]:
+        """Distinct search query strings issued so far, in first-seen order."""
+        ordered: dict[str, None] = {}
+        for s in self.search_events:
+            ordered.setdefault(s.query, None)
+        return list(ordered)
+
+    def zero_hit_queries(self) -> list[str]:
+        """Query strings whose search returned no hits."""
+        return [s.query for s in self.search_events if s.result_count == 0]
+
+    def reads_by_video(self) -> dict[str, list[int]]:
+        """Successfully read chunks as video_id -> sorted list of start_ts."""
+        by_video: dict[str, list[int]] = {}
+        for r in self.read_events:
+            by_video.setdefault(r.video_id, []).append(r.start_ts)
+        for starts in by_video.values():
+            starts.sort()
+        return by_video
+
+    def _total_usage(self) -> TokenUsage:
+        """Sum the per-turn usage seen so far into a single run total."""
+        return TokenUsage(
+            input_tokens=sum(u.input_tokens for u in self.per_turn_usage),
+            cached_input_tokens=sum(u.cached_input_tokens for u in self.per_turn_usage),
+            output_tokens=sum(u.output_tokens for u in self.per_turn_usage),
+            reasoning_tokens=sum(u.reasoning_tokens for u in self.per_turn_usage),
+            total_tokens=sum(u.total_tokens for u in self.per_turn_usage),
+        )
+
+    def partial_cost_usd(self) -> float:
+        """Price the per-turn usage accumulated so far, without finalizing the run.
+        Used to charge the spend breaker for a run that failed mid-flight; a run
+        that failed before any model call has no per-turn usage and prices at 0."""
+        total = self._total_usage()
+        usd, _ = pricing.cost_usd(
+            self.model, total.input_tokens, total.cached_input_tokens, total.output_tokens
+        )
+        return round(usd, 6)
+
     def finalize(self, result) -> RunEvidenceState:
         """Compute the derived sets, metrics, token totals, and cost, and return the
         finished RunEvidenceState. Call once after a successful run; `result` is the
@@ -209,13 +262,7 @@ class EvidenceCollector:
         cited = {_chunk_key(c.video_id, c.start_ts) for c in result.citations}
 
         # Sum per-turn usage into run totals, then price it.
-        total = TokenUsage(
-            input_tokens=sum(u.input_tokens for u in self.per_turn_usage),
-            cached_input_tokens=sum(u.cached_input_tokens for u in self.per_turn_usage),
-            output_tokens=sum(u.output_tokens for u in self.per_turn_usage),
-            reasoning_tokens=sum(u.reasoning_tokens for u in self.per_turn_usage),
-            total_tokens=sum(u.total_tokens for u in self.per_turn_usage),
-        )
+        total = self._total_usage()
         usd, breakdown = pricing.cost_usd(
             self.model, total.input_tokens, total.cached_input_tokens, total.output_tokens
         )
