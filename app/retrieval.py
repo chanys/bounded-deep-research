@@ -65,6 +65,23 @@ def _doc_key(hit: dict) -> str:
     return f"{hit['video_id']}:{hit['start_ts']}"
 
 
+def _iso_day(value) -> str | None:
+    """Normalize a video publish timestamp to a compact ISO date (YYYY-MM-DD).
+
+    Handles the two shapes the two backends return: a Python date/datetime from
+    Postgres, or an ISO string from the OpenSearch index. Returns None when the
+    video has no recorded publish date, so both backends carry an identical field.
+    """
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return value[:10]                 # ISO strings begin with YYYY-MM-DD
+    isoformat = getattr(value, "isoformat", None)
+    if isoformat is not None:
+        return isoformat()[:10]
+    return str(value)[:10]
+
+
 async def chunk_exists(video_id: str, start_ts: int, channel: str) -> bool:
     """Check whether a chunk with exact (video_id, start_ts) exists. Backend dispatch."""
     if settings.retrieval_backend == "pgvector":
@@ -118,11 +135,11 @@ async def read_video_segment(video_id: str, start_ts: int, channel: str) -> dict
 
 def _pg_read_video_segment(video_id: str, start_ts: int, channel: str) -> dict | None:
     """Postgres single-chunk fetch. Aliases start_s/end_s -> start_ts/end_ts and joins
-    videos for title, so the dict matches the OpenSearch shape exactly."""
+    videos for title and publish date, so the dict matches the OpenSearch shape exactly."""
     with transaction() as conn:
         row = conn.execute(
             """
-            SELECT c.video_id, v.title,
+            SELECT c.video_id, v.title, v.published_at,
                    c.start_s AS start_ts, c.end_s AS end_ts, c.text
             FROM video_chunks c
             JOIN videos v USING (video_id)
@@ -131,7 +148,11 @@ def _pg_read_video_segment(video_id: str, start_ts: int, channel: str) -> dict |
             """,
             {"vid": video_id, "ts": start_ts, "ch": channel},
         ).fetchone()
-    return dict(row) if row else None
+    if not row:
+        return None
+    seg = dict(row)
+    seg["published_at"] = _iso_day(seg.get("published_at"))
+    return seg
 
 
 async def _os_read_video_segment(video_id: str, start_ts: int, channel: str) -> dict | None:
@@ -157,6 +178,7 @@ async def _os_read_video_segment(video_id: str, start_ts: int, channel: str) -> 
     return {
         "video_id": source["video_id"],
         "title": source["title"],
+        "published_at": _iso_day(source.get("published_at")),
         "start_ts": source["start_ts"],
         "end_ts": source["end_ts"],
         "text": source["text"],
@@ -169,7 +191,10 @@ async def search(
     k: int | None = None,
     mode: Mode = "hybrid",
 ) -> list[dict]:
-    """Search transcripts. Returns list of {video_id, title, start_ts, end_ts, text, score}.
+    """Search transcripts. Returns list of {video_id, title, published_at, start_ts, end_ts, text, score}.
+
+    `published_at` is the video's publish date as a compact ISO string (YYYY-MM-DD),
+    or None when the video has no recorded date; both backends carry it identically.
 
     `k` defaults to `settings.retrieval_k` when not given, so that value is the single
     source of truth for result count across the agent path and offline callers alike.
@@ -232,7 +257,7 @@ def _pg_dense_search_sync(vec: list[float], channel: str, k: int) -> list[dict]:
     with transaction() as conn:
         rows = conn.execute(
             """
-            SELECT c.video_id, v.title,
+            SELECT c.video_id, v.title, v.published_at,
                    c.start_s AS start_ts, c.end_s AS end_ts, c.text,
                    1 - (c.embedding <=> %(qvec)s::vector) AS score
             FROM video_chunks c
@@ -243,7 +268,12 @@ def _pg_dense_search_sync(vec: list[float], channel: str, k: int) -> list[dict]:
             """,
             {"qvec": vec, "ch": channel, "k": k},
         ).fetchall()
-    return [dict(r) for r in rows]
+    hits = []
+    for r in rows:
+        hit = dict(r)
+        hit["published_at"] = _iso_day(hit.get("published_at"))
+        hits.append(hit)
+    return hits
 
 
 # ---------------------------------------------------------------------------
@@ -315,7 +345,8 @@ async def _bm25_search(query: str, channel: str, k: int) -> list[dict]:
         },
     )
     return [
-        {**hit["_source"], "score": hit["_score"]}
+        {**hit["_source"], "score": hit["_score"],
+         "published_at": _iso_day(hit["_source"].get("published_at"))}
         for hit in resp["hits"]["hits"]
     ]
 
@@ -341,7 +372,8 @@ async def _dense_search(query: str, channel: str, k: int) -> list[dict]:
         },
     )
     return [
-        {**hit["_source"], "score": hit["_score"]}
+        {**hit["_source"], "score": hit["_score"],
+         "published_at": _iso_day(hit["_source"].get("published_at"))}
         for hit in resp["hits"]["hits"]
     ]
 

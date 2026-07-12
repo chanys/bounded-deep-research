@@ -85,7 +85,7 @@ class RunEvidenceState(BaseModel):
     query: str                      # the user's question
     channel: str                    # corpus/channel searched
     recipe_version: str             # prompt recipe version used
-    retrieval_mode: str             # bm25 | dense | hybrid
+    retrieval_mode: str             # effective mode used (pgvector forces dense); matches agent_config.retrieval_mode
     model: str                      # model that ran the agent
 
     # --- provenance (which agent, under what conditions) ---
@@ -201,6 +201,62 @@ class EvidenceCollector:
 
         elif t == "turn_complete":
             self.per_turn_usage.append(TokenUsage(**event["usage"]))
+            # Keep a live partial cost so a run that dies mid-flight can still be
+            # charged to the spend breaker (the failure path never reaches finalize).
+            _PARTIAL_COST[self.run_id] = self.partial_cost_usd()
+
+    # --- read surface over the running accumulators ---------------------------
+    # These let the agent loop and the /query failure path inspect what the
+    # collector has seen so far, without duplicating the folding logic. They read
+    # only already-accumulated state, so they are safe to call mid-run.
+
+    def search_count(self) -> int:
+        """How many searches have completed so far."""
+        return len(self.search_events)
+
+    def read_count(self) -> int:
+        """How many successful reads have completed so far."""
+        return len(self.read_events)
+
+    def distinct_queries(self) -> list[str]:
+        """Distinct search query strings issued so far, in first-seen order."""
+        ordered: dict[str, None] = {}
+        for s in self.search_events:
+            ordered.setdefault(s.query, None)
+        return list(ordered)
+
+    def zero_hit_queries(self) -> list[str]:
+        """Query strings whose search returned no hits."""
+        return [s.query for s in self.search_events if s.result_count == 0]
+
+    def reads_by_video(self) -> dict[str, list[int]]:
+        """Successfully read chunks as video_id -> sorted list of start_ts."""
+        by_video: dict[str, list[int]] = {}
+        for r in self.read_events:
+            by_video.setdefault(r.video_id, []).append(r.start_ts)
+        for starts in by_video.values():
+            starts.sort()
+        return by_video
+
+    def _total_usage(self) -> TokenUsage:
+        """Sum the per-turn usage seen so far into a single run total."""
+        return TokenUsage(
+            input_tokens=sum(u.input_tokens for u in self.per_turn_usage),
+            cached_input_tokens=sum(u.cached_input_tokens for u in self.per_turn_usage),
+            output_tokens=sum(u.output_tokens for u in self.per_turn_usage),
+            reasoning_tokens=sum(u.reasoning_tokens for u in self.per_turn_usage),
+            total_tokens=sum(u.total_tokens for u in self.per_turn_usage),
+        )
+
+    def partial_cost_usd(self) -> float:
+        """Price the per-turn usage accumulated so far, without finalizing the run.
+        Used to charge the spend breaker for a run that failed mid-flight; a run
+        that failed before any model call has no per-turn usage and prices at 0."""
+        total = self._total_usage()
+        usd, _ = pricing.cost_usd(
+            self.model, total.input_tokens, total.cached_input_tokens, total.output_tokens
+        )
+        return round(usd, 6)
 
     def finalize(self, result) -> RunEvidenceState:
         """Compute the derived sets, metrics, token totals, and cost, and return the
@@ -208,14 +264,12 @@ class EvidenceCollector:
         AgentResult, which supplies the citations and the run outcome."""
         cited = {_chunk_key(c.video_id, c.start_ts) for c in result.citations}
 
+        # This run finalized, so its full cost is on the RunEvidenceState below; drop
+        # any live partial estimate so the failure path can never double-charge it.
+        _PARTIAL_COST.pop(self.run_id, None)
+
         # Sum per-turn usage into run totals, then price it.
-        total = TokenUsage(
-            input_tokens=sum(u.input_tokens for u in self.per_turn_usage),
-            cached_input_tokens=sum(u.cached_input_tokens for u in self.per_turn_usage),
-            output_tokens=sum(u.output_tokens for u in self.per_turn_usage),
-            reasoning_tokens=sum(u.reasoning_tokens for u in self.per_turn_usage),
-            total_tokens=sum(u.total_tokens for u in self.per_turn_usage),
-        )
+        total = self._total_usage()
         usd, breakdown = pricing.cost_usd(
             self.model, total.input_tokens, total.cached_input_tokens, total.output_tokens
         )
@@ -262,6 +316,17 @@ class EvidenceCollector:
 # fine for a live demo. Keyed by run_id, with a pointer to the most recent run.
 _RUNS: dict[str, RunEvidenceState] = {}
 _LATEST: str | None = None
+
+# Live partial cost per run_id, updated each turn. A run that raises before it can
+# finalize leaves its last estimate here; the /query failure path consumes it to
+# charge the spend breaker, so a run that burned budget before dying still counts.
+_PARTIAL_COST: dict[str, float] = {}
+
+
+def take_partial_cost(run_id: str) -> float:
+    """Return and clear the last recorded partial cost for a run (0.0 if none).
+    Consumed once by the failure path; finalize() clears it on the success path."""
+    return _PARTIAL_COST.pop(run_id, 0.0)
 
 
 def put_run(state: RunEvidenceState) -> None:

@@ -49,7 +49,8 @@ SEARCH_TRANSCRIPTS_SCHEMA: dict = {
     "name": "search_transcripts",
     "description": (
         "Search the video transcript corpus. Returns up to k chunks, each "
-        "with video_id, title, start_ts, end_ts, and a snippet."
+        "with video_id, title, published_at (the video's publish date, YYYY-MM-DD), "
+        "start_ts, end_ts, and a snippet."
     ),
     "parameters": {
         "type": "object",
@@ -114,7 +115,8 @@ READ_VIDEO_SEGMENT_SCHEMA: dict = {
     "type": "function",
     "name": "read_video_segment",
     "description": (
-        "Return the full text of a 30-second chunk by (video_id, start_ts). "
+        "Return the full text of a 30-second chunk by (video_id, start_ts), along "
+        "with the video's title and published_at (its publish date, YYYY-MM-DD). "
         "Call when a search snippet looks promising but doesn't contain the specific claim, "
         "or before citing any chunk."
     ),
@@ -230,6 +232,7 @@ async def _handle_search(call_id: str, args: dict[str, Any], channel: str, mode:
         {
             "video_id": h["video_id"],
             "title": h["title"],
+            "published_at": h.get("published_at"),
             "start_ts": h["start_ts"],
             "end_ts": h["end_ts"],
             "snippet": _snippet(h["text"], max_chars=250),
