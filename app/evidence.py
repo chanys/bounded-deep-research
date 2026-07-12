@@ -85,7 +85,7 @@ class RunEvidenceState(BaseModel):
     query: str                      # the user's question
     channel: str                    # corpus/channel searched
     recipe_version: str             # prompt recipe version used
-    retrieval_mode: str             # bm25 | dense | hybrid
+    retrieval_mode: str             # effective mode used (pgvector forces dense); matches agent_config.retrieval_mode
     model: str                      # model that ran the agent
 
     # --- provenance (which agent, under what conditions) ---

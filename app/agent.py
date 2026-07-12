@@ -146,13 +146,22 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
         actually submit.
     """
     langfuse = get_client()
+
+    # The effective retrieval mode is what the run actually uses: dense whenever the
+    # pgvector backend is active (that path forces dense regardless of the requested
+    # mode). Compute it once here and use it for every event, the collector, and the
+    # trace dump, so a run never asserts two different modes. `mode` is the requested
+    # mode and is kept only for the requested_mode provenance field below.
+    effective_mode = "dense" if settings.retrieval_backend == "pgvector" else mode
+
     langfuse.update_current_span(
         input={"query": query, "channel": channel},
         metadata={"agent_model": settings.agent_model,
                   "reasoning_effort": settings.reasoning_effort,
                   "max_steps": settings.agent_max_steps,
                   "channel": channel,
-                  "mode": mode,
+                  "mode": effective_mode,
+                  "requested_mode": mode,
                   "recipe_version": _RECIPE_METADATA.version},
     )
 
@@ -178,9 +187,6 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
     trace_url = langfuse.get_trace_url()
 
     # Provenance stamped on the run: the repo fingerprint plus the effective knobs.
-    # The effective retrieval mode is dense whenever the pgvector backend is active,
-    # since that path forces dense regardless of the requested mode.
-    effective_mode = "dense" if settings.retrieval_backend == "pgvector" else mode
     provenance = RunProvenance(
         git_sha=PROVENANCE.git_sha,
         git_dirty=PROVENANCE.git_dirty,
@@ -202,7 +208,7 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
     # Folds the same event stream the SSE emits into RunEvidenceState for the audit.
     collector = EvidenceCollector(
         run_id=run_id, query=query, channel=channel,
-        recipe_version=_RECIPE_METADATA.version, retrieval_mode=mode,
+        recipe_version=_RECIPE_METADATA.version, retrieval_mode=effective_mode,
         trace_url=trace_url, model=settings.agent_model,
         provenance=provenance, agent_config=agent_config,
     )
@@ -213,7 +219,7 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
         event_sink(event)
         collector.handle(event)
 
-    emit(RunStarted(run_id=run_id, query=query, channel=channel, mode=mode,
+    emit(RunStarted(run_id=run_id, query=query, channel=channel, mode=effective_mode,
                     recipe_version=_RECIPE_METADATA.version,
                     max_steps=settings.agent_max_steps).model_dump())
 
@@ -293,13 +299,13 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
         """
         if kind == "search":
             args = json.loads(call_item.get("arguments", "{}"))
-            emit(SearchStart(search_id=ev_id, query=args.get("query", ""), mode=mode).model_dump())
+            emit(SearchStart(search_id=ev_id, query=args.get("query", ""), mode=effective_mode).model_dump())
         elif kind == "read":
             args = json.loads(call_item.get("arguments", "{}"))
             emit(ReadStart(read_id=ev_id, video_id=args.get("video_id", ""),
                            start_ts=int(args.get("start_ts", 0))).model_dump())
 
-        result = await dispatch(call_item, channel=channel, mode=mode)
+        result = await dispatch(call_item, channel=channel, mode=effective_mode)
 
         if kind == "search":
             # Rebuild the canonical chunk_ids from the hits for the evidence fold.
@@ -337,7 +343,7 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
                 dump_dir,
                 query=query,
                 channel=channel,
-                mode=mode,
+                mode=effective_mode,
                 recipe_version=_RECIPE_METADATA.version,
                 trace_id=run_id,
                 trace_url=trace_url,
@@ -361,7 +367,7 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
             input_items.append(to_input_item(item))
         for item in response.output:
             if item.type == "function_call":
-                result = await dispatch(to_input_item(item), channel=channel, mode=mode)
+                result = await dispatch(to_input_item(item), channel=channel, mode=effective_mode)
                 input_items.append(result.output_item)
                 if result.terminal:
                     return _finalize(result.submitted, steps_used, budget_exhausted)
