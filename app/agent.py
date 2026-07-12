@@ -120,6 +120,39 @@ def _finalize(submitted: SubmittedAnswer, steps_used: int, budget_exhausted: boo
     return result
 
 
+def _call_output(call_id: str, payload: dict) -> dict:
+    """Build a function_call_output item for one call, carrying a JSON payload.
+    Used for the mark_ready gate's accept/reject acknowledgements, which the loop
+    appends by hand (mark_ready is not routed through the tool dispatcher)."""
+    return {"type": "function_call_output", "call_id": call_id, "output": json.dumps(payload)}
+
+
+def _mark_ready_gate(search_count: int, distinct_queries: int, read_count: int) -> tuple[bool, str]:
+    """Decide whether a mark_ready is acceptable from the run's evidence so far.
+
+    Returns (accepted, reason). The recipe's pre-submit checklist is honor-system;
+    this enforces the code-checkable subset. Accept when the model has genuinely
+    explored (at least 2 distinct-query searches AND at least 1 successful read), or
+    when it has hit the critical-failure path (at least 3 searches and still 0 reads:
+    the corpus most likely cannot answer, so let it proceed and say so). Otherwise
+    reject with a specific, actionable reason.
+    """
+    if distinct_queries >= 2 and read_count >= 1:
+        return True, ""
+    if search_count >= 3 and read_count == 0:
+        return True, ""
+    if distinct_queries < 2:
+        noun = "query" if distinct_queries == 1 else "queries"
+        return False, (
+            f"rejected: only {distinct_queries} distinct search {noun} issued so far - "
+            "run at least 2 searches with different queries before marking ready."
+        )
+    return False, (
+        "rejected: no chunks read yet - read the chunks you intend to cite (or search "
+        "more if the corpus lacks the answer) before marking ready."
+    )
+
+
 @observe(name="run_agent")
 async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump_dir=None) -> AgentResult:
     """Run the agent on one query and return its answer.
@@ -228,6 +261,10 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
     # an id is fixed before its coroutine starts, regardless of finish order.
     search_id_counter = 0
     read_id_counter = 0
+
+    # Drives the mark_ready gate's livelock escape: after 3 rejections the gate
+    # accepts unconditionally so a stubborn run still terminates.
+    mark_ready_rejections = 0
 
     async def _respond_turn(step, tools, tool_choice, effort=None, stream_answer=True):
         """Run one model call (one "turn") and bracket it with two events:
@@ -386,15 +423,17 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
         response = await _respond_turn(step, tools=EXPLORE_TOOLS, tool_choice="required",
                                        stream_answer=False)
 
-        # Append reasoning/messages and search/read calls. A mark_ready call is the
-        # model's "ready" signal: skip it (no args, no answer, nothing wasted) and
-        # synthesize below at the synthesis effort.
+        # Append reasoning/messages and every function call, including mark_ready.
+        # mark_ready is the model's "ready" signal; we record the call here (in the
+        # calls group) and append its accept/reject acknowledgement after dispatch,
+        # so the conversation stays well-formed whether the gate below passes or not.
         ready = False
+        ready_call_id: str | None = None
         for item in response.output:
+            input_items.append(to_input_item(item))
             if item.type == "function_call" and item.name == "mark_ready":
                 ready = True
-                continue
-            input_items.append(to_input_item(item))
+                ready_call_id = to_input_item(item)["call_id"]
 
         # Collect this turn's search/read calls and assign ids in a sync pre-pass,
         # so ids are fixed before the parallel dispatch.
@@ -419,9 +458,24 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
         for result in results:
             input_items.append(result.output_item)
 
-        # Model signaled ready -> synthesize the final answer at the synthesis effort.
+        # Model signaled ready -> gate it against the run's evidence, then either
+        # synthesize the final answer or send it back to keep exploring. The
+        # collector already reflects this turn's searches/reads (folded during the
+        # dispatch above), so the counts include the current turn.
         if ready:
-            return _finish(await _synthesize(step + 1, budget_exhausted=False))
+            accepted, reason = _mark_ready_gate(
+                collector.search_count(),
+                len(collector.distinct_queries()),
+                collector.read_count(),
+            )
+            if accepted or mark_ready_rejections >= 3:
+                input_items.append(_call_output(ready_call_id, {"status": "accepted"}))
+                return _finish(await _synthesize(step + 1, budget_exhausted=False))
+            # Reject: tell the model why, and let it gather more before trying again.
+            # After 3 rejections the branch above accepts unconditionally (livelock guard).
+            mark_ready_rejections += 1
+            input_items.append(_call_output(ready_call_id, {"error": reason}))
+            continue
 
         # No tool call at all is unexpected, since tool_choice is "required".
         if not call_items:
