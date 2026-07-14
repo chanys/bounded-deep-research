@@ -100,6 +100,7 @@ First decide comparability. A valid comparison contrasts two DIFFERENT named sub
 Question rules for accepted pairs:
 - Answerable from the two claims together; unanswerable from either alone.
 - Never reveal the outcome of the comparison (no winner, no margin) in the question.
+- Name both subjects and the comparison axis, but disclose NEITHER side's mechanism, finding, result, or design content. Do not paraphrase the claims into the question ("how does A's <what A does> compare to B's <what B does>") - that lets the answer be recovered without retrieval. Name what is compared, not what each side did.
 - Standalone practitioner phrasing; no "these videos" / "the creator" / "both tests". Public entity names are fine; creator-specific constructs get a natural description.
 - If the comparison only makes sense with time context (results a year apart), it is fine to phrase it neutrally ("in their respective evaluations") - do not invent dates.
 - Vary opening and structure; avoid resembling the previously written questions, if any are provided.
