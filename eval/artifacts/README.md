@@ -52,20 +52,6 @@ The flow is: **extract claims -> compose questions from them -> (later) verify a
 - **`groundable_claims.json`** - a cache that records, for each claim, whether it is substantive enough to build a question from, versus content-free setup or narration (e.g. "the creator tests two models"). This saves re-deciding the same claim twice and is shared across question types.
 - **`groundable_claims_code4AI.json`** - an older, video-keyed version of that same cache, kept because its answers are still valid and save re-computation.
 
-### Comparative leakage repair (Task 5.5)
-
-An external review found the comparative questions often disclosed a side's mechanism or finding in paraphrase - an instrument-validity bug (a question that reveals its own answer cannot test retrieval).
-This layer localized and fixed that; the pairs are unchanged, only the wording.
-Statuses are **human-adjudicated across three review passes**, not assigned by an automatic judge.
-
-- **`query_candidates_comparative_claimslice_v21_final.jsonl`** - the frozen comparative set after repair (gitignored bulk; provenance-stamped in its `_meta`). Each record carries the original and final wording, the human `final_status` (`pass`, or a failure reason: `leak`, `gold_insufficient`, `subject_unnameable`, `unneutralizable`, `two_factuals`), `status_source`, and the automatic leak fields marked `instrument_certified: false`.
-- **`comparative_claimslice_v21_final_sample.md`** - **the file to review for the repaired comparative set.** Shows the finding, the human status per candidate, and (as diagnostic evidence only) the uncertified classifier's output.
-- Interim renders `comparative_claimslice_{v2,v21}_sample.md` are earlier passes, kept as a paper trail.
-
-Why the automatic leak-judge is not certified: two successive classifier versions each failed validation - the first on recall (a prompt tightening drifted it into flagging everything), the second on precision (its regression suite had no negative controls, so an over-firing classifier passed it).
-The lesson - a calibration set needs human-verified *should-pass* controls, not only should-fail cases - is carried forward as a hard requirement on the faithfulness judge.
-The frozen two-sided regression suite lives in `eval/leak_suite.py`; the repair/calibrate/finalize scripts are `eval/{repair_comparative_leakage,calibrate_leak,finalize_comparative}.py`.
-
 Still to come (not built yet): checking each candidate's evidence actually holds up (grounding) and the final human pick of ~20 questions per type.
 
 ## 3. Legacy query pipeline - the older approach, kept for the record
