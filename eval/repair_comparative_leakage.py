@@ -55,7 +55,19 @@ FINAL_STATUS = {"pass", "leak", "axis_drift", "invalid_original_axis", "meta_ref
 # ---- prompts ---------------------------------------------------------------
 
 LEAK_SIDE_SYSTEM = """\
-You classify which side's content a comparison question discloses. Given the QUESTION and the two gold CLAIMS (one per subject), a side is "leaked" if the question states that subject's mechanism, finding, result, verdict, or design detail beyond merely naming the subject and the comparison axis. Return leaked_side: "none", "claim_a", "claim_b", or "both", a one-line reason, and echo the candidate_id."""
+You classify which side's SPECIFIC CONTENT a comparison question discloses. You are given the QUESTION and the two gold CLAIMS (one per subject).
+
+A side is LEAKED only when the question states or paraphrases what that subject specifically DOES, FOUND, ACHIEVED, or CONCLUDED - its mechanism, result, metric, verdict, or design choice - so that the answer for that side is already in the question. This holds even when the content is embedded as framing or a subordinate clause.
+
+A side is NOT leaked when the question merely names the subject and the shared comparison AXIS - the dimension along which the two are compared - even a technical-sounding axis. Naming WHAT is compared is not disclosing what each side did.
+
+Setup vs content: stating a subject's SETUP, CONDITION, or CONTEXT is NOT a leak; stating its BEHAVIOR, FINDING, or OUTCOME is. "How did Gemini tackle the puzzle when code execution was enabled" names a condition (not a leak). "Gemini's strategy of redefining the task as math functions" states the behavior (leak).
+
+Named method is content: naming the SPECIFIC method, algorithm, or training technique a subject uses (e.g. "continual pre-training", "Monte Carlo tree search"), or describing what that method accomplishes for it, discloses that side. The axis is the shared QUESTION the two sides answer (e.g. "how each adapts to new data without forgetting"), not the named technique that IS one side's answer.
+
+Tiebreak when unsure whether a phrase is an axis or a disclosed mechanism: ask "could the agent produce a scoreable answer from the QUESTION TEXT ALONE?" If NO (a correct answer still requires reading the claims), it is an axis - not a leak. If YES (the question already carries the answer), it is a leak. Judge by this harm model, not by how technical the wording sounds.
+
+Return leaked_side: "none", "claim_a", "claim_b", or "both", a one-line reason, and echo the candidate_id."""
 
 AXIS_AUDIT_SYSTEM = """\
 You audit a comparison-question pair. You are given the ORIGINAL question, the CURRENT (possibly rewritten) question, and the two gold claims. Return, echoing candidate_id:
@@ -64,7 +76,7 @@ You audit a comparison-question pair. You are given the ORIGINAL question, the C
 - same_conceptual_level: are the two sides at the same conceptual level (method vs method, evaluation vs evaluation), not apples-to-oranges?
 - both_sides_required: does a correct answer require both claims (not answerable from one alone)?
 - invalid_original_axis: true if the original axis is not a valid, commensurable comparison at all (advisory).
-- neutralizable: default TRUE. Set FALSE ONLY when the pair is structurally impossible to neutralize: a subject that cannot be named at all from its claim (only "a paper"/"a study" with no name anywhere), OR a pair with no substantive comparable content (pure availability/metadata, e.g. where a model can be downloaded). A merely weak, broad, low-value, or number-driven pair is still neutralizable (TRUE). Do NOT use this to drop weak pairs; when in doubt, TRUE.
+- neutralizable: default TRUE. Set FALSE ONLY when the pair is structurally impossible to neutralize: a subject whose claim gives only a generic descriptor ("the paper", "the study", "the world-generation framework") with no real proper name - the test is whether the claim supplies a real name, not whether the word "unnamed" appears - OR a pair with no substantive comparable content (pure availability/metadata, e.g. where a model can be downloaded). A merely weak, broad, low-value, or number-driven pair is still neutralizable (TRUE). Do NOT use this to drop weak pairs; when in doubt, TRUE.
 - final_axis_drift: does the CURRENT question compare a DIFFERENT axis than the ORIGINAL intended (its comparison changed)?"""
 
 RECOMPOSE_SYSTEM = """\
@@ -84,11 +96,11 @@ Return the question and the comparison_axis it uses (a short phrase)."""
 
 CHECK_SYSTEM = """\
 You validate a rewritten comparison question against its two gold claims and the intended comparison axis (given). Return ok=true only if it passes ALL of the following; otherwise ok=false with the single most important failure:
-- leak: it discloses either subject's mechanism/finding/result/design beyond naming the subject and axis.
+- leak: it states or paraphrases what a subject specifically DOES, FOUND, or ACHIEVED (mechanism/result/verdict/design), so that side's answer is already in the question - even when embedded as framing or a subordinate clause. NOT a leak: merely naming a subject and the shared comparison axis (even a technical axis), or naming a subject's setup/condition/context. Tiebreak: if the agent could NOT produce a scoreable answer from the question text alone, it is an axis, not a leak.
 - axis_drift: its comparison changed from the intended axis to a different comparison.
-- gold_insufficient: fully answering it would need information beyond the two gold claims (the claims must contain the whole answer).
+- gold_insufficient: fully answering it would need information beyond the two gold claims (the claims must contain the whole answer). Check EACH side: if the question asks for a property (approach, structure, mechanism, result, quality) that EITHER claim does not actually contain, it is gold_insufficient - even if the other claim does. E.g. it asks for a side's "approach" or "structure" but that claim carries only a step count, a bare label ("is an agent framework"), or a metadata fact.
 - two_factuals: it staples two unrelated facts with "compared to" and has no genuine shared axis.
-- subject_unnameable: a side's subject cannot be named from its claim (e.g. "an unnamed paper") - never a valid neutralization.
+- subject_unnameable: a side's subject is only a generic descriptor ("the paper", "the world-generation framework") with no real proper name in its claim - the test is whether the claim supplies a real name, not whether the word "unnamed" appears. Never a valid neutralization.
 - underdetermined: it is too vague for the two claims to determine a right answer (librarian test).
 Return ok, failure (one of those or null), and a one-line reason."""
 
