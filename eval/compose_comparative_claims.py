@@ -343,7 +343,8 @@ async def amain(args: argparse.Namespace) -> None:
     # was not visible as heavy until it ran. Rough upper bound at ~$0.01/call.
     uncached_vids = {v for v in videos_needed if any(c["claim_id"] not in cache for c in by_vid[v])}
     print(f"[cost estimate] rough upper bound <= {len(uncached_vids)} filter calls "
-          f"+ <= {args.max_judged} judge calls ~ ${(len(uncached_vids) + args.max_judged) * 0.01:.2f}")
+          f"+ <= {args.max_judged} judge calls ~ ${(len(uncached_vids) + args.max_judged) * 0.01:.2f}",
+          flush=True)   # flush so the pre-spend estimate is visible even under block-buffered stdout
 
     # Lazy classification: pair generation is local and free, so generate first, then classify
     # ONLY the videos whose claims appear in generated pairs; drop non-groundable and regenerate
