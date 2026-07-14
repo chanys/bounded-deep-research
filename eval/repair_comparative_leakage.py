@@ -39,7 +39,7 @@ RENDER_DEFAULT = Path("eval/artifacts/comparative_claimslice_v21_sample.md")
 CACHE_DEFAULT = Path("eval/artifacts/comparative_repair_v21_cache.json")
 MODEL = "claude-sonnet-5"
 LEAK_MAX_TOKENS = 700
-AXIS_MAX_TOKENS = 1200
+AXIS_MAX_TOKENS = 2500   # adaptive thinking + 9 fields; 1200 truncated
 RECOMPOSE_MAX_TOKENS = 2500
 CHECK_MAX_TOKENS = 1500
 CALL_TIMEOUT = 120
@@ -64,7 +64,7 @@ You audit a comparison-question pair. You are given the ORIGINAL question, the C
 - same_conceptual_level: are the two sides at the same conceptual level (method vs method, evaluation vs evaluation), not apples-to-oranges?
 - both_sides_required: does a correct answer require both claims (not answerable from one alone)?
 - invalid_original_axis: true if the original axis is not a valid, commensurable comparison at all (advisory).
-- neutralizable: could this PAIR yield ANY valid neutral comparison question at all - both subjects nameable from their claims and a genuine shared axis? False for e.g. an unnameable subject ("an unnamed paper") or a thin availability-only pair.
+- neutralizable: default TRUE. Set FALSE ONLY when the pair is structurally impossible to neutralize: a subject that cannot be named at all from its claim (only "a paper"/"a study" with no name anywhere), OR a pair with no substantive comparable content (pure availability/metadata, e.g. where a model can be downloaded). A merely weak, broad, low-value, or number-driven pair is still neutralizable (TRUE). Do NOT use this to drop weak pairs; when in doubt, TRUE.
 - final_axis_drift: does the CURRENT question compare a DIFFERENT axis than the ORIGINAL intended (its comparison changed)?"""
 
 RECOMPOSE_SYSTEM = """\
