@@ -371,6 +371,7 @@ async def amain(args: argparse.Namespace) -> None:
     pf = partial.open("a" if args.resume else "w", encoding="utf-8")   # fresh unless resuming
 
     def log_event(rec: dict) -> None:
+        rec["_usage"] = usage_totals()   # cumulative token snapshot -> live cost readable from disk
         pf.write(json.dumps(rec, ensure_ascii=False) + "\n")
         pf.flush()
         logged.append(rec)
@@ -432,7 +433,7 @@ async def amain(args: argparse.Namespace) -> None:
     pf.close()
 
     # Finalize from the event log: assign ids, advisory-sort pass candidates, write the artifact.
-    candidates = [{kk: vv for kk, vv in r.items() if kk != "_outcome"}
+    candidates = [{kk: vv for kk, vv in r.items() if kk not in ("_outcome", "_usage")}
                   for r in logged if r.get("_outcome") == "candidate"]
     for i, c in enumerate(sorted(candidates, key=lambda c: c["thread_key"]), 1):
         c["candidate_id"] = f"lc-{i:04d}"
