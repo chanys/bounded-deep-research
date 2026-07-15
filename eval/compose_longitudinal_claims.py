@@ -521,7 +521,7 @@ async def amain(args: argparse.Namespace) -> None:
     }}
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("w", encoding="utf-8") as f:
-        f.write(json.dumps(meta["_meta"], ensure_ascii=False) + "\n")
+        f.write(json.dumps(meta, ensure_ascii=False) + "\n")   # line 1 = {"_meta": {...}}, per convention
         for c in candidates:
             f.write(json.dumps(c, ensure_ascii=False) + "\n")
     print(f"candidates {len(candidates)} (judged {len(candidates) + n_reject}, rejected {n_reject}, "
