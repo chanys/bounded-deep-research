@@ -51,6 +51,7 @@ OUT_DEFAULT = Path("eval/artifacts/query_candidates_longitudinal_claimslice.json
 MODEL = "claude-sonnet-5"
 COMPOSE_MAX_TOKENS = 4000   # adaptive thinking + question + must-say + milestone ids
 ADVISORY_MAX_TOKENS = 1500
+ADVISORY_BATCH = 40        # questions per advisory call; one giant call truncates and fails
 CALL_TIMEOUT = 120
 MAX_ATTEMPTS = 2            # deterministic-scan retries before neutralization_failed
 MIN_MILESTONES = 2         # required count in gold (identity is substitutable)
@@ -262,39 +263,69 @@ def build_milestones(comp: ThreadComposition, claims: list[dict], idxs: list[int
 
 async def advisory_sort(accepted: list[dict], cache: dict, cache_path: Path | None) -> None:
     """Attach an advisory {risk, hint} to each accepted candidate for render sort order.
-    Cached and prompt-fingerprinted; never gates. id-echo validated."""
+
+    Chunked (one call per ADVISORY_BATCH questions) and BEST-EFFORT: the advisory is a
+    non-gating reading-order hint, so a failed or truncated batch must never block finalize
+    or the artifact write - those candidates just default to an 'unrated' hint. Cached and
+    prompt-fingerprinted; the cache persists per chunk so a resume continues where it left off.
+    """
     def ckey(c: dict) -> str:
         return f"{ADVISORY_FP}:{c['candidate_id']}:{_h(c['query'])}"
 
     todo = [c for c in accepted if ckey(c) not in cache]
-    if todo:
-        listing = "\n".join(f"[{c['candidate_id']}] {c['query']}" for c in todo)
-        out = await asyncio.wait_for(
-            call_structured(ADVISORY_SYSTEM,
-                            f"Questions:\n{listing}\n\nReturn a risk and one-word hint for "
-                            f"EVERY candidate_id above, echoing each id.",
-                            AdvisoryBatch, model=MODEL, max_tokens=ADVISORY_MAX_TOKENS,
-                            thinking={"type": "disabled"}),
-            timeout=CALL_TIMEOUT,
-        )
-        got = {it.candidate_id for it in out.items}
-        sent = {c["candidate_id"] for c in todo}
-        if got != sent:
-            raise ValueError(f"advisory id-echo mismatch: missing={sorted(sent - got)} "
-                             f"extra={sorted(got - sent)}")
-        by_id = {c["candidate_id"]: c for c in todo}
-        for it in out.items:
-            cache[ckey(by_id[it.candidate_id])] = {"risk": it.risk, "hint": it.hint}
+    for i in range(0, len(todo), ADVISORY_BATCH):
+        chunk = todo[i:i + ADVISORY_BATCH]
+        listing = "\n".join(f"[{c['candidate_id']}] {c['query']}" for c in chunk)
+        try:
+            out = await asyncio.wait_for(
+                call_structured(ADVISORY_SYSTEM,
+                                f"Questions:\n{listing}\n\nReturn a risk and one-word hint for "
+                                f"EVERY candidate_id above, echoing each id.",
+                                AdvisoryBatch, model=MODEL, max_tokens=ADVISORY_MAX_TOKENS,
+                                thinking={"type": "disabled"}),
+                timeout=CALL_TIMEOUT,
+            )
+            by_id = {c["candidate_id"]: c for c in chunk}
+            for it in out.items:
+                if it.candidate_id in by_id:
+                    cache[ckey(by_id[it.candidate_id])] = {"risk": it.risk, "hint": it.hint}
+        except Exception as e:  # noqa: BLE001 - advisory never gates; never block the artifact
+            print(f"  advisory batch {i // ADVISORY_BATCH} failed ({type(e).__name__}); "
+                  f"those candidates default to unrated", flush=True)
         if cache_path is not None:
             cache_path.parent.mkdir(parents=True, exist_ok=True)
             cache_path.write_text(json.dumps(cache, ensure_ascii=False))
     for c in accepted:
-        c["advisory"] = cache[ckey(c)]
+        c["advisory"] = cache.get(ckey(c), {"risk": "low", "hint": "unrated"})
 
 
 # ---- driver ----------------------------------------------------------------
 
 _RISK_RANK = {"high": 0, "medium": 1, "low": 2}
+
+_USAGE_FIELDS = ("calls", "input_tokens", "output_tokens",
+                 "cache_read_input_tokens", "cache_creation_input_tokens")
+
+
+def _resume_aware_usage(logged: list[dict]) -> dict:
+    """Total token usage across the compose phase, summed over resume boundaries. Each
+    record's cumulative `_usage` resets when the run was resumed (a lower calls count), so
+    bank the last cumulative before each reset. This recovers the whole-run compose cost
+    even when finalize runs in a separate (resumed) process."""
+    total = dict.fromkeys(_USAGE_FIELDS, 0)
+    prev = None
+    for r in logged:
+        u = r.get("_usage")
+        if not u:
+            continue
+        if prev and u["calls"] < prev["calls"]:
+            for k in _USAGE_FIELDS:
+                total[k] += prev.get(k, 0)
+        prev = u
+    if prev:
+        for k in _USAGE_FIELDS:
+            total[k] += prev.get(k, 0)
+    return total
 
 
 async def amain(args: argparse.Namespace) -> None:
@@ -439,6 +470,7 @@ async def amain(args: argparse.Namespace) -> None:
         c["candidate_id"] = f"lc-{i:04d}"
     candidates.sort(key=lambda c: c["candidate_id"])
 
+    pre_adv = usage_totals() or {}
     passed = [c for c in candidates if c["composition_checks"]["status"] == "pass"]
     if passed:
         adv_cache = json.loads(args.advisory_cache.read_text()) if args.advisory_cache.exists() else {}
@@ -452,7 +484,13 @@ async def amain(args: argparse.Namespace) -> None:
                      for r in logged if r.get("_outcome") == "reject"][:25]
     error_sample = [{"thread_key": r["thread_key"], "error": r["error"]}
                     for r in logged if r.get("_outcome") == "error"][:10]
-    usage = usage_totals()
+    # Whole-run usage = resume-aware compose (from the checkpoint records) + the advisory
+    # delta (post-minus-pre around the advisory call). Using the advisory delta rather than
+    # the live total avoids double-counting compose in the single-process case, and recovers
+    # compose from the checkpoint in the finalize-only resume case.
+    post_adv = usage_totals() or {}
+    adv_delta = {k: post_adv.get(k, 0) - pre_adv.get(k, 0) for k in _USAGE_FIELDS}
+    usage = {k: _resume_aware_usage(logged).get(k, 0) + adv_delta.get(k, 0) for k in _USAGE_FIELDS}
 
     meta = {"_meta": {
         "tier": "longitudinal", "slice": "claim_derived", "model": MODEL, "seed": args.seed,
