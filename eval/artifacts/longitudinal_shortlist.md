@@ -4,7 +4,7 @@ Produced by an LLM-assisted advisory read (chat assistant, all 503 pass candidat
 recorded here deterministically (no LLM calls). NO LLM verdict gates any outcome - human
 verification of every keep, plus a 10-item drop spot-check, is pending.
 
-TIER 1: 22 | TIER 2: 19 (request labeled 16; 19 ids were listed - FLAGGED for reconciliation) | SPOT-CHECK: 10 (seed 20260716, from 456 non-shortlisted non-span-flagged pass)
+TIER 1: 22 | TIER 2: 19 | SPOT-CHECK: 10 (seed 20260716, from 456 non-shortlisted non-span-flagged pass)
 
 All shortlisted ids exist and are pass candidates.
 
@@ -1010,3 +1010,145 @@ milestones (6):
     The creator finds support for his typo assumption in the paper's accuracy/validation curve, which shows accuracy reward increasing and validation accuracy plateauing rather than crashing at step 500-600, unlike the SRT-only case.
 - 2025-12-20  `LbUBncFv9yM#c052`  chunk_ids=['LbUBncFv9yM:01200', 'LbUBncFv9yM:01230']
     The creator concludes that MGRPO stabilizes training such that the final model is also the best or a plateauing model, allowing training to run longer without fear of an immediate crash.
+
+
+## Revised longitudinal categorization
+
+A question belongs in `TIER 1` only when the thread shows genuine development: a stance changes, strengthens, weakens, or reverses; results evolve across attempts or versions; or an assessment is revised as new evidence arrives. Threads that show plausible but imperfect development remain in `TIER 2`; threads that mainly repeat a point, collect unrelated examples, or rely on a shared topic label remain in `SPOT-CHECK`.
+
+Human-adjudication overrides are applied to `lc-0179`, `lc-0233`, `lc-0497`, `lc-0496`, `lc-0167`, and `lc-0011`.
+
+### Final counts
+
+| Final section | Count |
+|---|---:|
+| TIER 1 | 24 |
+| TIER 2 | 14 |
+| SPOT-CHECK | 13 |
+| **Total** | **51** |
+
+### TIER 1 (24)
+
+- **lc-0130** — Original section: `TIER 1`
+  Clear stance revision: repeated rejection of emergent intelligence becomes a conditional view that specific memory infrastructure might make it possible.
+- **lc-0143** — Original section: `TIER 1`
+  The idea develops from a GraphRAG design principle into a broader theory that reliable agency depends on externalizing memory, skills, protocols, and cognitive burdens.
+- **lc-0398** — Original section: `TIER 1`
+  The thread progresses from reward hacking as a theoretical risk to named exploit mechanisms, direct experimental evidence, and concrete mitigation strategies.
+- **lc-0127** — Original section: `TIER 1`
+  The benchmark itself becomes harder while model outcomes change across repeated tests, producing a genuine results-evolution arc.
+- **lc-0452** — Original section: `TIER 1`
+  The assessment moves from optimism about test-time compute to weak early gains, stronger later results, and skepticism about whether benchmark gains reflect true capability.
+- **lc-0011** — Original section: `TIER 1`
+  Human-adjudication override. Although some milestones are broad, the thread is retained as a high-priority arc about optimism for agentic AI giving way to stalled expectations and persistent reliability concerns.
+- **lc-0123** — Original section: `TIER 1`
+  DPO moves from being presented as a simpler alternative to reinforcement learning toward increasingly specific empirical and theoretical limitations.
+- **lc-0344** — Original section: `TIER 1`
+  The creator shifts from accepting quantization as a practical tradeoff to recommending against aggressive 4-bit quantization for demanding reasoning tasks.
+- **lc-0349** — Original section: `TIER 1`
+  RAG changes from the default answer for updating model knowledge into a temporary and structurally limited workaround as evidence accumulates.
+- **lc-0337** — Original section: `TIER 1`
+  Prompt optimization moves from a useful performance lever to a limited and often uneconomical technique whose gains may not justify their compute cost.
+- **lc-0504** — Original section: `TIER 1`
+  The creator moves from conceptual enthusiasm about world models to empirical skepticism after observing negligible or negative gains in actual tests.
+- **lc-0418** — Original section: `TIER 1`
+  The thread develops from surveying the promise of self-learning to hands-on implementation lessons and a stricter conclusion that small gains do not constitute genuine self-learning.
+- **lc-0135** — Original section: `TIER 1`
+  The creator’s error-analysis practice becomes more rigorous, moving from reporting external diagnoses to taxonomies, quantitative comparisons, and direct manual verification.
+- **lc-0478** — Original section: `TIER 1`
+  Early broad claims of transferable memories and skills are narrowed by later evidence showing that transferability may be task-specific rather than general.
+- **lc-0061** — Original section: `TIER 2`
+  Chain of thought moves from being treated as a useful reasoning technique to being questioned as unfaithful, manipulable, and ultimately an illusion.
+- **lc-0014** — Original section: `TIER 2`
+  The creator’s skepticism about AGI strengthens from doubt about scaling claims to treating AGI as marketing and describing development as moving away from emergent intelligence.
+- **lc-0024** — Original section: `TIER 2`
+  The assessment of AI reasoning hardens from cautious belief in its importance to the view that current systems roleplay rationality rather than genuinely implement it.
+- **lc-0081** — Original section: `TIER 2`
+  The view of long context becomes more qualified: larger windows appear practically ineffective, compression is favored, and later evidence adds only a narrower structural benefit.
+- **lc-0223** — Original section: `TIER 2`
+  The creator’s position develops from general discomfort with LLM judges to a more precise assessment involving agreement rates, training needs, expertise, and hallucination risk.
+- **lc-0251** — Original section: `TIER 2`
+  Memorization moves from being one training-stage effect to becoming a broader explanation for apparently strong reasoning and benchmark performance.
+- **lc-0448** — Original section: `TIER 2`
+  Task decomposition changes from a broadly useful default technique into something criticized as rigid and hard-coded, motivating more adaptive delegation.
+- **lc-0481** — Original section: `TIER 2`
+  The diagnosis of transformer limitations becomes more precise and is ultimately revised from an intrinsic architecture flaw to a mismatch between inductive autoregression and deductive work.
+- **lc-0260** — Original section: `TIER 2`
+  This is a clear reversal in results: 3B-class models go from being judged too small for the hardest puzzles to producing a previously unseen successful strategy.
+- **lc-0169** — Original section: `SPOT-CHECK`
+  The understanding develops from academic claims about implicit gradient descent to online SGD and literal inference-time weight updates, making it the strongest promotion from the original spot-check set.
+
+### TIER 2 (14)
+
+- **lc-0070** — Original section: `TIER 1`
+  The benchmark-to-hands-on-failure portion shows real development, but later milestones describe alternative workflows rather than a revised assessment of code-generation reliability.
+- **lc-0087** — Original section: `TIER 1`
+  The topic has a plausible arc, but the stated trajectory says continuous learning was initially considered impossible while the first listed milestone already argues that RPT is continuous learning.
+- **lc-0233** — Original section: `TIER 1`
+  Human-adjudication override. The repeated-test history is strong, but it remains in TIER 2 rather than being promoted.
+- **lc-0026** — Original section: `TIER 1`
+  Concern clearly strengthens as evidence accumulates, but the question is extremely broad and combines several distinct safety problems.
+- **lc-0388** — Original section: `TIER 1`
+  The single-run-to-rerun arc is strong, but the later milestones appear to switch between Grok and Qwen and require entity reconciliation.
+- **lc-0027** — Original section: `TIER 2`
+  There is genuine development from autonomy claims to methodological criticism, but the initial optimism belongs to paper authors rather than clearly to the creator.
+- **lc-0111** — Original section: `TIER 2`
+  Coverage changes from praising DeepSeek’s architecture to noting performance weaknesses, but the milestones span several different assessment axes.
+- **lc-0179** — Original section: `TIER 2`
+  Human-adjudication override. The grokking explanation develops coherently, but it remains in TIER 2.
+- **lc-0266** — Original section: `TIER 2`
+  The preferred model changes, but the models appear to serve different purposes, making the trajectory partly a task shift rather than a clean preference change.
+- **lc-0413** — Original section: `TIER 2`
+  The optimism-to-skepticism arc is plausible, but the summary overstates early self-correction as spontaneous when models were prompted to check their answers.
+- **lc-0497** — Original section: `TIER 2`
+  Human-adjudication override. The verification arc is strong, but it remains in TIER 2.
+- **lc-0496** — Original section: `TIER 2`
+  Human-adjudication override. The verifiable-reward arc shows meaningful qualification over time, but it remains in TIER 2.
+- **lc-0177** — Original section: `SPOT-CHECK`
+  The diagnosis of GraphRAG becomes more detailed, but it is mostly an accumulation of limitations rather than a clearly revised position.
+- **lc-0476** — Original section: `SPOT-CHECK`
+  The thread develops a broader list of instability causes and mitigations, but still reads partly as a survey of distinct mechanisms.
+
+### SPOT-CHECK (13)
+
+- **lc-0019** — Original section: `TIER 1`
+  The milestones concern unrelated forms of capability and do not form a defensible initial-view-to-revised-view trajectory.
+- **lc-0296** — Original section: `TIER 1`
+  The creator remains consistently favorable toward open source; later milestones mainly provide more supporting examples rather than changing the position.
+- **lc-0407** — Original section: `TIER 1`
+  The thread combines several different scaling phenomena under one broad label rather than tracing one evolving stance.
+- **lc-0297** — Original section: `TIER 2`
+  This is a chronology of criticisms of OpenAI across pricing, transparency, publicity, technology, and priorities without one stable evolving axis.
+- **lc-0034** — Original section: `TIER 2`
+  The Anthropic thread mixes pricing, architecture, revenue, IPO speculation, skills, and product strategy into a company-opinion history.
+- **lc-0232** — Original section: `TIER 2`
+  The phrase “local minimum” is reused across training, agent behavior, and prompt exploration, but these are separate applications rather than one development.
+- **lc-0071** — Original section: `SPOT-CHECK`
+  The milestones use “coherence” to mean several different phenomena, so the shared topic label does not support a coherent longitudinal arc.
+- **lc-0077** — Original section: `SPOT-CHECK`
+  The final optimistic claim comes from Gemini rather than a revised creator judgment, and the contradiction with earlier evidence is unresolved.
+- **lc-0090** — Original section: `SPOT-CHECK`
+  This is mainly a catalog of different cost-saving mechanisms, not a change in how the creator evaluates cost efficiency.
+- **lc-0158** — Original section: `SPOT-CHECK`
+  The milestones describe different kinds of gates in unrelated architectures; repeated use of the same term does not create development.
+- **lc-0167** — Original section: `SPOT-CHECK`
+  Human-adjudication override. Despite a plausible progression from observed GPT-5 failures to explanations and corroboration, it remains in SPOT-CHECK.
+- **lc-0242** — Original section: `SPOT-CHECK`
+  The thread links unrelated masking implementations and a later novelty judgment, but is too thin to establish genuine development.
+- **lc-0365** — Original section: `SPOT-CHECK`
+  The milestones assess different models’ reasoning traces rather than showing that the creator’s own standard or understanding changed.
+
+### Movement from the original shortlist
+
+| Original section | Total | Final TIER 1 | Final TIER 2 | Final SPOT-CHECK |
+|---|---:|---:|---:|---:|
+| TIER 1 | 22 | 14 | 5 | 3 |
+| TIER 2 | 19 | 9 | 7 | 3 |
+| SPOT-CHECK | 10 | 1 | 2 | 7 |
+
+### Human-adjudication overrides
+
+- `lc-0011` remains in **TIER 1**.
+- `lc-0179`, `lc-0233`, `lc-0497`, and `lc-0496` remain in **TIER 2**.
+- `lc-0167` remains in **SPOT-CHECK**.
+
