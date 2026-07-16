@@ -10,7 +10,8 @@ The files group onto those steps, plus one older approach we have since replaced
 ### A note on what's in git
 
 Most files here are **bulk generated data and are gitignored** - they are large, and they can be regenerated from the scripts (or restored from backup).
-Only the small, human-reviewed artifacts are committed to git: the final query sets (`queryset_*.jsonl`), the readable corpus inventory (`inventory_code4AI.md`), and the methods record (`generation_conditions.md`).
+Only the small, human-reviewed artifacts are committed to git: the final query sets (`queryset_*.jsonl`), the readable corpus inventory (`inventory_code4AI.md`), the methods record (`generation_conditions.md`), and the longitudinal candidate shortlist (`longitudinal_shortlist.md`).
+The larger `*_sample.md` and `*_index.md` renders are review aids that stay untracked (regenerable from the scripts).
 
 ### Naming conventions
 
@@ -40,7 +41,7 @@ The flow is: **extract claims -> compose questions from them -> (later) verify a
 
 > **Which file do I open to review the candidates?**
 > Open the `*_sample.md` render for that question type - it is the human-readable review file:
-> **factual -> `factual_claimslice_sample.md`**, **comparative -> `comparative_claimslice_sample.md`**.
+> **factual -> `factual_claimslice_sample.md`**, **comparative -> `comparative_claimslice_sample.md`**, **longitudinal -> `longitudinal_claimslice_sample.md`**.
 > The matching `query_candidates_*_claimslice.jsonl` is the exact machine data those renders are built from; you only need it if a tool is consuming the candidates, not for eyeballing.
 
 - **`claims_code4AI.jsonl`** - the claim inventory: every concrete claim each video makes, each tied to the exact transcript chunks that state it, and dated (~26,000 claims). This is the raw material for all the questions below.
@@ -51,8 +52,16 @@ The flow is: **extract claims -> compose questions from them -> (later) verify a
 - **`comparative_claimslice_sample.md`** - **the file to review for comparative candidates.** A readable view of every comparative candidate, plus the run's health stats: the funnel (how many pairs were generated, judged, accepted), the diversity caps, the stop-list, and a sample of rejected pairs with reasons.
 - **`groundable_claims.json`** - a cache that records, for each claim, whether it is substantive enough to build a question from, versus content-free setup or narration (e.g. "the creator tests two models"). This saves re-deciding the same claim twice and is shared across question types.
 - **`groundable_claims_code4AI.json`** - an older, video-keyed version of that same cache, kept because its answers are still valid and save re-computation.
+- **`query_candidates_longitudinal_claimslice.jsonl`** - the **longitudinal** candidate questions as machine data (source of truth). Each asks how the creator's position or results developed *over time* on one topic, built from a dated thread of claims across several videos; it carries trajectory-level "must-say" points plus dated, chunk-anchored milestone slots as its draft gold. (To review by eye, open the sample file below.)
+- **`longitudinal_claimslice_sample.md`** - **the file to review for longitudinal candidates.** A readable view of every candidate with the run funnel; the few flagged items (kept for human review) are listed first, then the accepted candidates ordered by leak-risk.
 
-Still to come (not built yet): checking each candidate's evidence actually holds up (grounding) and the final human pick of ~20 questions per type.
+**Longitudinal post-run triage.** The longitudinal run accepts far more candidates than the final set needs (~500), because the pool mixes genuine trajectories with topic-recurrence "collections", so three extra files help a human narrow them down. None of these labels, gates, or drops anything on its own - they are reading aids, and every candidate stays in one list.
+
+- **`longitudinal_arc_index.md`** - a reading index of all accepted candidates, grouped into clusters of near-duplicate topics (so you keep one question per story), with a simple keyword-based sort hint inside each cluster and the span-defective candidates flagged at the bottom. An LLM "arc scorer" was tried to label each candidate as a genuine trajectory versus a loose collection, but it failed its calibration gate and was abandoned, so this index uses the deterministic keyword hint only.
+- **`longitudinal_shortlist.md`** - a curated shortlist (two tiers plus a seeded random spot-check of dropped items) from an advisory read of all the candidates, recorded for the final human pick; human verification is still pending.
+- **`arc_scores_cache.json`** / **`longitudinal_advisory_cache.json`** - caches behind the abandoned arc scorer and the advisory leak-risk sort, kept so the work is not recomputed.
+
+Still to come (not built yet): checking each candidate's evidence actually holds up (grounding, all three tiers together) and the final human pick of the questions per type.
 
 ## 3. Legacy query pipeline - the older approach, kept for the record
 
