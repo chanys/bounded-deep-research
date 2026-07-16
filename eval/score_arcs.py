@@ -24,7 +24,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from core.claude_llm import call_structured, enable_usage_capture, usage_totals
-from eval.compose_comparative_claims import normalize, topic_family
+from eval.compose_comparative_claims import normalize
 
 OUT = Path("eval/artifacts/query_candidates_longitudinal_claimslice.jsonl")
 CACHE = Path("eval/artifacts/arc_scores_cache.json")
@@ -322,39 +322,70 @@ def _lex(c: dict) -> tuple[int, int]:
     return (sum(text.count(p) for p in ARC_LEX), sum(text.count(p) for p in COLL_LEX))
 
 
+ELEVATOR_FORCE = {"lc-0395"}   # elevator arc mis-keyed under topic:result; force into elevator cluster
+
+
+def cluster_key(c: dict) -> str:
+    """Coarse cluster key: the elevator family (including the known cross-key duplicate),
+    else the first 1-2 normalized topic tokens. Crude grouping that collapses near-duplicate
+    families (test time compute/scaling/training) into one block for the human read; over- and
+    under-merges are both cheap (skip a block, or catch a stray duplicate at the sitting)."""
+    if c["candidate_id"] in ELEVATOR_FORCE:
+        return "elevator"
+    topic = normalize(c["thread_key"].split(":", 1)[-1])
+    if "elevator" in topic:
+        return "elevator"
+    toks = topic.split()
+    return " ".join(toks[:2]) if toks else topic
+
+
+def _render_cand(out: list, c: dict) -> None:
+    a, kk = _lex(c)
+    span = _span_days(c)
+    adv = c.get("advisory", {}).get("hint", "?")
+    flag = "  SPAN<90" if span < 90 else ""
+    out.append(f"\n### {c['candidate_id']}  lex(arc{a}/coll{kk})  span={span}d{flag}  "
+               f"advisory={adv}  milestones={len(c['gold_draft']['milestone_slots'])}")
+    out.append(f"**Q:** {c['query']}")
+    out.append("must_say:")
+    out += [f"- {p}" for p in c["gold_draft"]["trajectory_must_say"]]
+
+
 def build_index() -> None:
     import collections
     cands = load_candidates()
     passes = [c for c in cands if c["composition_checks"]["status"] == "pass"]
+    flagged = sorted((c for c in passes if _span_days(c) < 90), key=lambda c: -_span_days(c))
+    normal = [c for c in passes if _span_days(c) >= 90]
     clusters: dict[str, list[dict]] = collections.defaultdict(list)
-    for c in passes:
-        clusters[topic_family(normalize(c["thread_key"].split(":", 1)[-1]))].append(c)
+    for c in normal:
+        clusters[cluster_key(c)].append(c)
     order = sorted(clusters, key=lambda k: (-len(clusters[k]), k))
 
-    n_span_viol = sum(1 for c in passes if _span_days(c) < 90)
     out = [f"# Longitudinal cluster index (fallback): {len(passes)} pass candidates, {len(clusters)} clusters",
            "LLM arc scorer ABANDONED (failed the pre-registered double-pass gate). The lex(arc/coll)",
-           "hint is a DETERMINISTIC keyword-list render-sort aid ONLY - not a label, not a verdict,",
-           "never gates or drops. Clusters by topic (size desc); within a cluster, higher (arc-coll)",
-           "lexical score first, then milestone span desc. Read these as reading order, not judgment.",
-           f"milestone-span violations (<90 days): {n_span_viol}/{len(passes)}\n"]
+           "hint is a DETERMINISTIC keyword-list SORT hint only - it orders reading WITHIN a cluster;",
+           "it never classifies, labels, or gates; every candidate stays in one list and is read.",
+           "Clusters by coarse topic key (first 1-2 tokens; elevator family force-merged), size desc;",
+           "within a cluster, higher (arc-coll) lexical score first, then milestone span desc.",
+           "Reading protocol: big clusters - direction-test the top 1-2, keep best-or-none, skip the",
+           "rest; singletons - 30-second direction test; then spot-check 10 random tail items for arcs",
+           "the hint may be burying.",
+           f"{len(flagged)} candidates with milestone span <90d are in the FLAGGED block at the bottom.\n"]
     for k in order:
         members = clusters[k]
         members.sort(key=lambda c: (-(_lex(c)[0] - _lex(c)[1]), -_span_days(c)))
         out.append(f"\n## {k}  ({len(members)})")
         for c in members:
-            a, kk = _lex(c)
-            span = _span_days(c)
-            adv = c.get("advisory", {}).get("hint", "?")
-            flag = "  SPAN<90" if span < 90 else ""
-            out.append(f"\n### {c['candidate_id']}  lex(arc{a}/coll{kk})  span={span}d{flag}  "
-                       f"advisory={adv}  milestones={len(c['gold_draft']['milestone_slots'])}")
-            out.append(f"**Q:** {c['query']}")
-            out.append("must_say:")
-            out += [f"- {p}" for p in c["gold_draft"]["trajectory_must_say"]]
+            _render_cand(out, c)
+    out.append(f"\n## FLAGGED: milestone span < 90 days ({len(flagged)}) - read with the defect in mind")
+    out.append("Selected-milestone span under the 90-day intent; no assertion enforces it "
+               "(verification gap D63). Kept visible, sorted last.")
+    for c in flagged:
+        _render_cand(out, c)
     INDEX.write_text("\n".join(out))
-    print(f"wrote {INDEX} ({len(passes)} candidates, {len(clusters)} clusters, "
-          f"{n_span_viol} span<90 flags)", flush=True)
+    print(f"wrote {INDEX} ({len(normal)} clustered in {len(clusters)} clusters, "
+          f"{len(flagged)} span<90 flagged at bottom)", flush=True)
 
 
 def main() -> None:
