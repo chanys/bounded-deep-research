@@ -54,6 +54,47 @@ GROUND_SYSTEM = (
     "same topic is not evidence unless it states the answer."
 )
 
+# Tier-conditional variant for longitudinal (cc_07 item 4): a trajectory question has no
+# single chunk that "directly answers" it, so grounding relaxes to evidence for any part of
+# the development. Applied ONLY when explicitly requested and only to the longitudinal tier,
+# and recorded as grounding_variant in _meta so the run's grounding condition is auditable.
+GROUND_SYSTEM_LONGITUDINAL_V1 = (
+    "You locate supporting evidence in a single video's transcript. Given a question about "
+    "how something developed over time and the video's transcript as a numbered list of "
+    "30-second chunks, return the indices of the chunks that provide evidence for any part "
+    "of the development the question asks about. Return an empty list if no chunk provides "
+    "such evidence. Do not guess; a chunk merely on the same broad topic is not evidence "
+    "unless it states part of the development."
+)
+
+
+def ground_system(tier: str, variant: str | None) -> str:
+    if tier == "longitudinal" and variant == "longitudinal_v1":
+        return GROUND_SYSTEM_LONGITUDINAL_V1
+    return GROUND_SYSTEM
+
+
+# ---- input/output path resolution ------------------------------------------
+
+# claim-derived inputs; comparative is the frozen Task 5.5 output (post-neutralization),
+# not a formula-named file, so it is pinned explicitly.
+CLAIM_INPUT = {
+    "factual": "query_candidates_factual_claimslice.jsonl",
+    "comparative": "query_candidates_comparative_claimslice_v21_final.jsonl",
+    "longitudinal": "query_candidates_longitudinal_claimslice.jsonl",
+}
+
+
+def input_path(tier: str, slice_: str) -> Path:
+    if slice_ == "claim_derived":
+        return OUT_DIR / CLAIM_INPUT[tier]
+    return OUT_DIR / f"query_candidates_{tier}.jsonl"
+
+
+def output_path(tier: str, slice_: str) -> Path:
+    suffix = "_claimslice" if slice_ == "claim_derived" else ""
+    return OUT_DIR / f"query_grounded_{tier}{suffix}.jsonl"
+
 
 class Grounded(BaseModel):
     chunk_indices: list[int]
@@ -63,7 +104,8 @@ def _chunk_listing(chunks: list[dict]) -> str:
     return "\n".join(f"{i}: {c['text']}" for i, c in enumerate(chunks))
 
 
-async def ground_in_video(query: str, video_id: str, chunk_cache: dict, sem) -> tuple[list[str], bool]:
+async def ground_in_video(query: str, video_id: str, chunk_cache: dict, sem,
+                          system: str = GROUND_SYSTEM) -> tuple[list[str], bool]:
     """Return (chunk_ids answering the query, errored). errored=True on API failure,
     so an empty result from a real 'nothing matches' is not confused with a dropped call."""
     if video_id not in chunk_cache:
@@ -76,7 +118,7 @@ async def ground_in_video(query: str, video_id: str, chunk_cache: dict, sem) -> 
     async with sem:
         try:
             out = await asyncio.wait_for(
-                call_structured(GROUND_SYSTEM, user, Grounded, model=MODEL,
+                call_structured(system, user, Grounded, model=MODEL,
                                 max_tokens=MAX_TOKENS, thinking={"type": "disabled"}),
                 timeout=CALL_TIMEOUT,
             )
@@ -93,14 +135,15 @@ def observed_shape(chunk_ids: list[str]) -> str:
     return "single" if len(chunk_ids) == 1 else "adjacent"
 
 
-async def ground_candidate(cand: dict, chunk_cache: dict, sem) -> tuple[str, dict | None]:
+async def ground_candidate(cand: dict, chunk_cache: dict, sem,
+                           system: str = GROUND_SYSTEM) -> tuple[str, dict | None]:
     """Return ('ok', record) | ('unanswerable', None) | ('error', None).
 
     'error' means a grounding call failed and the union came back empty, so we must
     not record it as a genuine no-answer; it is excluded and reported for a re-run.
     """
     per_video = await asyncio.gather(*(
-        ground_in_video(cand["query"], v, chunk_cache, sem) for v in cand["answer_video_ids"]
+        ground_in_video(cand["query"], v, chunk_cache, sem, system) for v in cand["answer_video_ids"]
     ))
     chunk_ids = sorted({cid for ids, _ in per_video for cid in ids})
     if chunk_ids:
@@ -147,8 +190,8 @@ def dedup(cands: list[dict]) -> tuple[list[dict], int]:
 
 # ---- driver ----------------------------------------------------------------
 
-def read_candidates(tier: str) -> list[dict]:
-    path = OUT_DIR / f"query_candidates_{tier}.jsonl"
+def read_candidates(tier: str, slice_: str) -> list[dict]:
+    path = input_path(tier, slice_)
     rows = []
     for ln in path.read_text().splitlines():
         ln = ln.strip()
@@ -160,17 +203,47 @@ def read_candidates(tier: str) -> list[dict]:
     return rows
 
 
-async def run_tier(tier: str, limit: int | None, concurrency: int) -> None:
-    cands = read_candidates(tier)
+def _load_ids(ids_file: str | None) -> set[str] | None:
+    """Optional allow-list of candidate_ids restricting grounding to a subset.
+
+    Accepts either a bare JSON list or a provenance-stamped object with an "ids" list.
+    """
+    if not ids_file:
+        return None
+    obj = json.loads(Path(ids_file).read_text())
+    ids = obj["ids"] if isinstance(obj, dict) else obj
+    if not isinstance(ids, list) or not all(isinstance(x, str) for x in ids):
+        raise ValueError(f"{ids_file}: expected a JSON list of candidate_id strings (or {{'ids': [...]}})")
+    return set(ids)
+
+
+async def run_tier(tier: str, limit: int | None, concurrency: int, slice_: str,
+                   variant: str | None, ids: set[str] | None) -> None:
+    cands = read_candidates(tier, slice_)
+    if ids is not None:
+        before = len(cands)
+        cands = [c for c in cands if c["candidate_id"] in ids]
+        matched = {c["candidate_id"] for c in cands}
+        missing = ids - matched
+        print(f"  {tier}: ids-filter kept {len(cands)}/{before}"
+              + (f"; {len(missing)} requested ids not in this tier" if missing else ""))
     if limit:
         cands = cands[:limit]
-    print(f"{tier}: grounding {len(cands)} candidates")
+    system = ground_system(tier, variant)
+    n_calls = sum(len(c["answer_video_ids"]) for c in cands)
+    # Pre-spend estimate (standing guard): grounding sends ~a full transcript per call, tiny output.
+    est_in_tok = n_calls * 4500
+    print(f"[cost estimate] {tier}: {len(cands)} candidates, ~{n_calls} ground calls, "
+          f"~{est_in_tok/1e6:.2f}M input tok, ~${est_in_tok/1e6*2:.2f} at Sonnet 5 intro in-price",
+          flush=True)
+    print(f"{tier}: grounding {len(cands)} candidates"
+          + (f" [variant={variant}]" if variant and tier == "longitudinal" else ""), flush=True)
     sem = asyncio.Semaphore(concurrency)
     chunk_cache: dict[str, list[dict]] = {}
 
     grounded: list[dict] = []
     n_unanswerable = n_error = 0
-    tasks = [ground_candidate(c, chunk_cache, sem) for c in cands]
+    tasks = [ground_candidate(c, chunk_cache, sem, system) for c in cands]
     for coro in tqdm(asyncio.as_completed(tasks), total=len(tasks), desc=f"ground {tier}"):
         status, r = await coro
         if status == "ok":
@@ -195,8 +268,10 @@ async def run_tier(tier: str, limit: int | None, concurrency: int) -> None:
     survivors.sort(key=lambda c: c["candidate_id"])
     survivors, n_dup = dedup(survivors)
 
-    path = OUT_DIR / f"query_grounded_{tier}.jsonl"
-    meta = {"_meta": {"tier": tier, "grounding_model": MODEL, "leak_max": LEAK_MAX,
+    path = output_path(tier, slice_)
+    meta = {"_meta": {"tier": tier, "slice": slice_,
+                      "grounding_variant": (variant if variant and tier == "longitudinal" else None),
+                      "grounding_model": MODEL, "leak_max": LEAK_MAX,
                       "dedup_jaccard": DEDUP_JACCARD,
                       "provenance": {"git_sha": PROVENANCE.git_sha, "git_dirty": PROVENANCE.git_dirty},
                       "input": len(cands), "kept": len(survivors),
@@ -212,8 +287,9 @@ async def run_tier(tier: str, limit: int | None, concurrency: int) -> None:
 
 
 async def amain(args: argparse.Namespace) -> None:
+    ids = _load_ids(args.ids_file)
     for tier in (args.tiers or ["factual", "comparative", "longitudinal"]):
-        await run_tier(tier, args.limit, args.concurrency)
+        await run_tier(tier, args.limit, args.concurrency, args.slice, args.grounding_variant, ids)
 
 
 def main() -> None:
@@ -221,6 +297,13 @@ def main() -> None:
     ap.add_argument("--tiers", nargs="*", choices=["factual", "comparative", "longitudinal"])
     ap.add_argument("--limit", type=int, default=None, help="cap candidates per tier (smoke)")
     ap.add_argument("--concurrency", type=int, default=6)
+    ap.add_argument("--slice", choices=["legacy", "claim_derived"], default="legacy",
+                    help="legacy = original summary-derived files (default, unchanged); "
+                         "claim_derived = the Task 4/5.5/6 *_claimslice inputs")
+    ap.add_argument("--grounding-variant", choices=["longitudinal_v1"], default=None,
+                    help="longitudinal-only relaxed grounding prompt; recorded in _meta")
+    ap.add_argument("--ids-file", default=None,
+                    help="optional JSON list of candidate_ids to restrict grounding to")
     args = ap.parse_args()
     asyncio.run(amain(args))
 
