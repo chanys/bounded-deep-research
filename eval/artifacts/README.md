@@ -10,8 +10,8 @@ The files group onto those steps, plus one older approach we have since replaced
 ### A note on what's in git
 
 Most files here are **bulk generated data and are gitignored** - they are large, and they can be regenerated from the scripts (or restored from backup).
-Only the small, human-reviewed artifacts are committed to git: the final query sets (`queryset_*.jsonl`), the readable corpus inventory (`inventory_code4AI.md`), the methods record (`generation_conditions.md`), and the longitudinal candidate shortlist (`longitudinal_shortlist.md`).
-The larger `*_sample.md` and `*_index.md` renders are review aids that stay untracked (regenerable from the scripts).
+Only the small, human-reviewed artifacts are committed to git: the final query sets (`queryset_*.jsonl`), the readable corpus inventory (`inventory_code4AI.md`), the methods record (`generation_conditions.md`), the longitudinal candidate shortlist (`longitudinal_shortlist.md`), the longitudinal grounding-input manifest (`longitudinal_grounding_ids.json`), and the Task 7 handoff set (`{factual,comparative,longitudinal}_claimslice_handoff.md`, `SLICES.md`, `grounding_prediction_note.md`).
+The larger `*_sample.md` and `*_index.md` renders, and the read-only retrieval-probe diagnostics (`_probe_a_lexical_recall.md`, `_probe_b_video_routing.md`), stay untracked (regenerable from the scripts).
 
 ### Naming conventions
 
@@ -43,6 +43,7 @@ The flow is: **extract claims -> compose questions from them -> (later) verify a
 > Open the `*_sample.md` render for that question type - it is the human-readable review file:
 > **factual -> `factual_claimslice_sample.md`**, **comparative -> `comparative_claimslice_sample.md`**, **longitudinal -> `longitudinal_claimslice_sample.md`**.
 > The matching `query_candidates_*_claimslice.jsonl` is the exact machine data those renders are built from; you only need it if a tool is consuming the candidates, not for eyeballing.
+> Once grounding has run (Task 7, section 2b), the file for the **final selection** is `{type}_claimslice_handoff.md` instead: it carries the gold chunk text inline plus the advisory flags for the pick.
 
 - **`claims_code4AI.jsonl`** - the claim inventory: every concrete claim each video makes, each tied to the exact transcript chunks that state it, and dated (~26,000 claims). This is the raw material for all the questions below.
 - **`query_candidates_factual_claimslice.jsonl`** - the **factual** candidate questions as machine data (source of truth). Each record carries the question, the video and claim it came from, and the claim's text as a draft answer. (To review these by eye, open the sample file below, not this one.)
@@ -61,7 +62,19 @@ The flow is: **extract claims -> compose questions from them -> (later) verify a
 - **`longitudinal_shortlist.md`** - a curated shortlist (two tiers plus a seeded random spot-check of dropped items) from an advisory read of all the candidates, recorded for the final human pick; human verification is still pending.
 - **`arc_scores_cache.json`** / **`longitudinal_advisory_cache.json`** - caches behind the abandoned arc scorer and the advisory leak-risk sort, kept so the work is not recomputed.
 
-Still to come (not built yet): checking each candidate's evidence actually holds up (grounding, all three tiers together) and the final human pick of the questions per type.
+## 2b. Grounding and handoff (Task 7) - verify the evidence, hand off for selection
+
+Grounding takes each candidate question and, for its source video(s), asks an LLM which transcript chunks actually answer it (never the retriever, which would make recall circular), pinning the gold chunk ids and dropping any question no chunk supports.
+The survivors, with advisory flags and the gold chunk text inline, become one review file per tier for the final human pick of 20/20/20.
+
+- **`query_grounded_{factual,comparative,longitudinal}_claimslice.jsonl`** - the grounded candidates (machine data, gitignored bulk): each survivor plus its `source_chunk_ids`, `observed_shape`, and lexical `leak`. Longitudinal is grounded with the `longitudinal_v1` variant (relaxed to "evidence for any part of the development"), recorded in `_meta`.
+- **`{factual,comparative,longitudinal}_claimslice_handoff.md`** - **the files to open for the final selection sitting.** One per tier: every candidate keyed by composite identity, with the gold chunk text inline, deterministic advisory flags, and a clean-first sort. Longitudinal is graded by milestone-support (high-support first, low demoted). Comparative carries all 40 with per-side support and both sides' chunk text inline (so a one-side or unanswerable candidate can be verified by eye), non-both-side candidates flagged not dropped, and the drop broken out by pair-family.
+- **`longitudinal_grounding_ids.json`** - the 38 human-adjudicated shortlist keeps that were grounded (the longitudinal grounding input; the other candidates were not grounded).
+- **`SLICES.md`** - a self-contained manifest of the query slices (claim_derived = the scored core, keypoint_derived = the legacy circularity exhibit, external = planned), with each slice's couplings and per-slice-never-pooled reporting rule.
+- **`grounding_prediction_note.md`** - the two pre-registered predictions and their outcomes; the comparative unanswerable tripwire fired here and is recorded as tripped-investigated-explained (instrument shape-mismatch, not extractor hallucination).
+- **`_probe_a_lexical_recall.md`** / **`_probe_b_video_routing.md`** - read-only retrieval diagnostics (untracked): how well BM25/hybrid/dense retrieval and summary/keypoint video-routing reach the longitudinal gold chunks and videos. They quantify the retrieval ceiling for the writeup and gate nothing.
+
+Still to come (not built yet): the final human pick of 20/20/20 from the handoff files, then scoring answers against the chosen gold.
 
 ## 3. Legacy query pipeline - the older approach, kept for the record
 
