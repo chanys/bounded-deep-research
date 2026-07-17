@@ -45,7 +45,8 @@ def load_claim_index() -> tuple[dict, dict]:
             continue
         videos[r["video_id"]] = {"title": r["title"], "date": (r.get("published_at") or "")[:10]}
         for c in r["claims"]:
-            claims[c["claim_id"]] = {"entities": c.get("entities", []), "text": c["text"]}
+            claims[c["claim_id"]] = {"entities": c.get("entities", []), "text": c["text"],
+                                     "chunk_ids": c.get("chunk_ids", [])}
     return claims, videos
 
 
@@ -129,30 +130,42 @@ def flags_factual(cand: dict, claims: dict, gold_text_by_chunk: dict) -> dict:
     return f
 
 
-def flags_comparative(cand: dict, claims: dict, gold_text_by_chunk: dict) -> dict:
+def flags_comparative(cand: dict, claims: dict, pre_text: dict) -> dict:
+    """Per-side verification: each side's pre-attached chunk_ids cross-checked against the grounded
+    chunk ids (same mechanism as the longitudinal milestone cross-check). A two-sided comparison
+    needs BOTH sides independently grounded; a single video cannot evidence a comparison (verified
+    on longitudinal), so non-both-side pass candidates are FLAGGED (not excluded) with a per-side
+    annotation and the human verifies the missing side from the inline pre-attached chunk text.
+    (cc_07 item 4 amendment, D69.)
+    """
+    grounded = set(cand.get("source_chunk_ids", []))
     sides = {}
     for side, cid in zip(("A", "B"), cand["source_claim_ids"]):
-        vid = _video_of_claim(cid)
-        side_gold = " ".join(t for c, t in gold_text_by_chunk.items() if _video_of(c) == vid)
-        sides[side] = subject_in_gold(claims.get(cid, {}).get("entities", []), side_gold)
+        cl = claims.get(cid, {})
+        pre = cl.get("chunk_ids", [])
+        side_text = " ".join(pre_text.get(c, "") for c in pre)
+        sides[side] = {
+            "claim_id": cid,
+            "pre_chunk_ids": pre,
+            "supported": bool(set(pre) & grounded),
+            "subject_in_gold": subject_in_gold(cl.get("entities", []), side_text),
+        }
     status = cand.get("final_status")
+    both = sides["A"]["supported"] and sides["B"]["supported"]
     f = {
-        "observed_shape": cand.get("observed_shape"),
-        "subject_in_gold": sides,
-        "chunk_span": chunk_span(cand["source_chunk_ids"]),
+        "observed_shape": cand.get("observed_shape", "none"),
+        "sides": sides,
+        "both_side_support": both,
         "anaphora": anaphora_hits(cand["query"], *(cand.get("gold_draft") or [])),
         "leak": cand.get("leak", 0.0),
         "semantic_leak": {"final_status": status, "leaked_side_final": cand.get("leaked_side_final")},
-        "one_side_unverified": cand.get("observed_shape") != "multi-video",
     }
     f["excluded"] = status != "pass"
-    f["flagged"] = bool(
-        not f["excluded"] and (
-            f["one_side_unverified"] or "none" in sides.values()
-            or f["anaphora"] or f["leak"] >= FLAG_LEAK
-            or status in {"leak", "unneutralizable"}
-        )
-    )
+    f["flagged"] = bool(not f["excluded"] and (
+        not both
+        or "none" in (sides["A"]["subject_in_gold"], sides["B"]["subject_in_gold"])
+        or f["anaphora"] or f["leak"] >= FLAG_LEAK
+        or status in {"leak", "unneutralizable"}))
     return f
 
 
@@ -204,6 +217,7 @@ def ext_review_key(cand: dict) -> str:
 
 def render_candidate(tier: str, cand: dict, f: dict, gold_text_by_chunk: dict,
                      videos: dict, review: dict) -> list[str]:
+    assert tier in ("factual", "longitudinal"), "comparative uses render_comparative"
     out = [f"\n### {identity_key(cand)}"]
     q, oq = cand["query"], cand.get("original_query")
     out.append(f"**Q:** {q}")
@@ -219,17 +233,6 @@ def render_candidate(tier: str, cand: dict, f: dict, gold_text_by_chunk: dict,
                    f"chunk_span={f['chunk_span']['n']}/{f['chunk_span']['shape']}  "
                    f"anaphora={f['anaphora'] or '-'}  leak={f['leak']}")
         out.append(f"**gold (draft answer):** {cand['gold_draft'][0]}")
-    elif tier == "comparative":
-        out.append(f"flags: observed_shape={f['observed_shape']}  "
-                   f"subject_in_gold(A/B)={f['subject_in_gold']['A']}/{f['subject_in_gold']['B']}  "
-                   f"chunk_span={f['chunk_span']['n']}/{f['chunk_span']['shape']}  "
-                   f"anaphora={f['anaphora'] or '-'}  leak={f['leak']}  "
-                   f"final_status={f['semantic_leak']['final_status']}  "
-                   f"leaked_side={f['semantic_leak']['leaked_side_final']}")
-        out.append(f"pair_key: {cand.get('pair_key')}")
-        gd = cand.get("gold_draft") or ["", ""]
-        out.append(f"**gold A:** {gd[0]}")
-        out.append(f"**gold B:** {gd[1] if len(gd) > 1 else ''}")
     else:  # longitudinal
         unsup = f["milestones_unsupported"]
         out.append(f"flags: milestone_support={f['milestones_total'] - len(unsup)}/{f['milestones_total']}"
@@ -277,8 +280,6 @@ def render_tier(tier: str, claims: dict, videos: dict, review: dict) -> dict:
         gtb = chunk_text_map(cand["source_chunk_ids"], cache)
         if tier == "factual":
             f = flags_factual(cand, claims, gtb)
-        elif tier == "comparative":
-            f = flags_comparative(cand, claims, gtb)
         else:
             f = flags_longitudinal(cand)
         rows.append((cand, f, gtb))
@@ -307,15 +308,6 @@ def render_tier(tier: str, claims: dict, videos: dict, review: dict) -> dict:
                    f"fully-supported {full}/{len(rows)}; list sorted high-support first (low = demoted, not flagged)")
     out += NOTES.get(tier, [])
 
-    fam = {}
-    if tier == "comparative":
-        for cand, f, _ in rows:
-            if f.get("one_side_unverified"):
-                fam[cand.get("pair_key")] = fam.get(cand.get("pair_key"), 0) + 1
-        out.append("")
-        out.append("one-side-unverified (observed_shape != multi-video) by pair-family: "
-                   + (", ".join(f"{k}={v}" for k, v in sorted(fam.items())) if fam else "none"))
-
     out.append("\n---\n## CLEAN")
     for cand, f, gtb in clean:
         out += render_candidate(tier, cand, f, gtb, videos, review)
@@ -330,7 +322,109 @@ def render_tier(tier: str, claims: dict, videos: dict, review: dict) -> dict:
     path = OUT_DIR / f"{tier}_claimslice_handoff.md"
     path.write_text("\n".join(out) + "\n", encoding="utf-8")
     return {"tier": tier, "clean": len(clean), "flagged": len(flagged), "excluded": len(excluded),
-            "meta": meta, "family_unverified": fam}
+            "meta": meta}
+
+
+# ---- comparative handoff (per-side support, both-side inline text, all 40 carried) ---------
+
+COMP_INPUT = OUT_DIR / "query_candidates_comparative_claimslice_v21_final.jsonl"
+
+
+def read_comparative_merged() -> tuple[dict, list[dict]]:
+    """All 40 frozen 5.5 candidates with grounded fields merged in. The dropped (unanswerable)
+    keep source_chunk_ids=[] so both sides render as unverified for the human to check by eye."""
+    meta, grounded = read_grounded("comparative")
+    gmap = {r["candidate_id"]: r for r in grounded}
+    merged = []
+    for ln in COMP_INPUT.read_text().splitlines():
+        if not ln.strip():
+            continue
+        o = json.loads(ln)
+        if "_meta" in o:
+            continue
+        g = gmap.get(o["candidate_id"])
+        o["source_chunk_ids"] = g["source_chunk_ids"] if g else []
+        o["observed_shape"] = g["observed_shape"] if g else "none"
+        o["leak"] = g.get("leak", 0.0) if g else 0.0
+        merged.append(o)
+    return meta, merged
+
+
+def _comp_side_block(label: str, side: dict, pre_text: dict, grounded: set, gold_claim: str) -> list[str]:
+    out = [f"**side {label}** `{side['claim_id']}`  support={'YES' if side['supported'] else 'NO'}  "
+           f"subject_in_gold={side['subject_in_gold']}",
+           f"  gold claim: {gold_claim}",
+           "  pre-attached chunks ([GROUNDED]=independently re-found; [unverified]=verify by eye):"]
+    for c in side["pre_chunk_ids"]:
+        tag = "[GROUNDED]" if c in grounded else "[unverified]"
+        out.append(f"  - {tag} `{c}`  {pre_text.get(c, '') or '(no text)'}")
+    return out
+
+
+def render_comparative(claims: dict, videos: dict, review: dict) -> dict:
+    meta, merged = read_comparative_merged()
+    cache: dict = {}
+    rows = []
+    for cand in merged:
+        pre_ids = [c for cid in cand["source_claim_ids"] for c in claims.get(cid, {}).get("chunk_ids", [])]
+        gtb = chunk_text_map(pre_ids, cache)
+        rows.append((cand, flags_comparative(cand, claims, gtb), gtb))
+
+    clean = [r for r in rows if not r[1]["flagged"] and not r[1]["excluded"]]
+    flagged = [r for r in rows if r[1]["flagged"] and not r[1]["excluded"]]
+    excluded = [r for r in rows if r[1]["excluded"]]
+    for grp in (clean, flagged, excluded):
+        grp.sort(key=lambda r: r[0]["candidate_id"])
+
+    # non-both-side PASS candidates by pair-family (the supply-collapse fact, D69/D70)
+    fam: dict = {}
+    for cand, f, _ in rows:
+        if not f["excluded"] and not f["both_side_support"]:
+            fam[cand.get("pair_key")] = fam.get(cand.get("pair_key"), 0) + 1
+    both = sum(1 for _, f, _ in rows if not f["excluded"] and f["both_side_support"])
+
+    out = ["# Task 7 review - comparative (claim slice)", ""]
+    out.append(f"grounded {meta.get('kept')}/{meta.get('input')} (13 dropped as unanswerable); "
+               f"handoff carries all {len(rows)} candidates with per-side support + inline both-side text.")
+    out.append(f"clean {len(clean)} | flagged {len(flagged)} | excluded {len(excluded)} (failure status)")
+    out.append(f"PASS both-side-grounded (strongly verified comparisons): {both}; the rest need the "
+               "missing side verified by eye at the sitting (evidence is in the inline pre-attached chunks).")
+    out.append("non-both-side PASS candidates by pair-family: "
+               + (", ".join(f"{k}={v}" for k, v in sorted(fam.items())) if fam else "none"))
+
+    def emit(cand: dict, f: dict, gtb: dict) -> list[str]:
+        grounded = set(cand.get("source_chunk_ids", []))
+        s = f["sides"]
+        block = [f"\n### {identity_key(cand)}", f"**Q:** {cand['query']}", _videos_line(cand, videos)]
+        ext = review.get(ext_review_key(cand))
+        if ext:
+            block.append(f"external_review: {ext.get('verdict')} - {ext.get('reason', '')}")
+        block.append(
+            f"flags: observed_shape={f['observed_shape']}  "
+            f"side_support(A/B)={'Y' if s['A']['supported'] else 'N'}/{'Y' if s['B']['supported'] else 'N'}  "
+            f"both_side={f['both_side_support']}  "
+            f"subject(A/B)={s['A']['subject_in_gold']}/{s['B']['subject_in_gold']}  "
+            f"anaphora={f['anaphora'] or '-'}  leak={f['leak']}  "
+            f"final_status={f['semantic_leak']['final_status']}  leaked_side={f['semantic_leak']['leaked_side_final']}")
+        block.append(f"pair_key: {cand.get('pair_key')}")
+        gd = cand.get("gold_draft") or ["", ""]
+        block += _comp_side_block("A", s["A"], gtb, grounded, gd[0])
+        block += _comp_side_block("B", s["B"], gtb, grounded, gd[1] if len(gd) > 1 else "")
+        return block
+
+    out.append("\n---\n## CLEAN (pass, both sides grounded, no other flags)")
+    for cand, f, gtb in clean:
+        out += emit(cand, f, gtb)
+    out.append("\n---\n## FLAGGED (pass; per-side annotation - verify the unverified side by eye)")
+    for cand, f, gtb in flagged:
+        out += emit(cand, f, gtb)
+    out.append("\n---\n## EXCLUDED (failure status carried through for reference)")
+    for cand, f, gtb in excluded:
+        out += emit(cand, f, gtb)
+
+    (OUT_DIR / "comparative_claimslice_handoff.md").write_text("\n".join(out) + "\n", encoding="utf-8")
+    return {"tier": "comparative", "clean": len(clean), "flagged": len(flagged),
+            "excluded": len(excluded), "meta": meta, "both_side": both}
 
 
 # ---- SLICES.md + prediction note -------------------------------------------
@@ -393,6 +487,18 @@ def _legacy_leak_rate(tier: str) -> float | None:
     return None
 
 
+# Prediction (b) resolutions where the tripwire fired and was investigated (do not soften).
+PREDICTION_B_RESOLVED = {
+    "comparative": "TRIPPED -> investigated -> EXPLAINED (not confirmed). Fired at 32.5% unanswerable. "
+    "Hypothesized cause (extractor hallucination) RULED OUT: the claims are real and chunk-anchored. "
+    "Actual cause = instrument shape-mismatch - strict per-video grounding cannot evidence a two-sided "
+    "comparison (only 5/29 pass candidates have BOTH pre-attached sides independently grounded, 6/29 are "
+    "multi-video by any chunk; the same per-video limitation was verified on longitudinal). The tripwire "
+    "worked: it fired, forced the investigation, and found a different cause than hypothesized. See build "
+    "log D69/D70.",
+}
+
+
 def write_prediction_note(summaries: list[dict]) -> None:
     lines = ["# Grounding prediction note (Task 7)", "",
              "Two pre-registered predictions (cc_07 item 5). A failure is a stop-and-investigate signal.",
@@ -413,8 +519,11 @@ def write_prediction_note(summaries: list[dict]) -> None:
             lines.append(f"(a) leakage vs legacy {legacy:.1%}: {verdict}")
         else:
             lines.append("(a) leakage vs legacy: no legacy grounded file to compare")
-        b = "OK (low)" if unans_rate <= 0.20 else "INVESTIGATE (high - possible extractor hallucination)"
-        lines.append(f"(b) unanswerable attrition: {b}")
+        if tier in PREDICTION_B_RESOLVED:
+            lines.append(f"(b) unanswerable attrition: {PREDICTION_B_RESOLVED[tier]}")
+        else:
+            b = "OK (low)" if unans_rate <= 0.20 else "INVESTIGATE (high - possible extractor hallucination)"
+            lines.append(f"(b) unanswerable attrition: {b}")
         lines.append("")
     (OUT_DIR / "grounding_prediction_note.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -437,9 +546,11 @@ def main() -> None:
     present = [t for t in wanted if (OUT_DIR / f"query_grounded_{t}_claimslice.jsonl").exists()]
     summaries = []
     for tier in present:
-        s = render_tier(tier, claims, videos, review)
+        s = render_comparative(claims, videos, review) if tier == "comparative" \
+            else render_tier(tier, claims, videos, review)
         summaries.append(s)
-        print(f"{tier}: clean {s['clean']} | flagged {s['flagged']} | excluded {s['excluded']} "
+        extra = f" | both-side {s['both_side']}" if "both_side" in s else ""
+        print(f"{tier}: clean {s['clean']} | flagged {s['flagged']} | excluded {s['excluded']}{extra} "
               f"-> {tier}_claimslice_handoff.md", flush=True)
 
     write_slices_md(present)
