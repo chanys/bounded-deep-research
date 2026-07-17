@@ -11,7 +11,7 @@ The files group onto those steps, plus one older approach we have since replaced
 
 Most files here are **bulk generated data and are gitignored** - they are large, and they can be regenerated from the scripts (or restored from backup).
 Only the small, human-reviewed artifacts are committed to git: the final query sets (`queryset_*.jsonl`), the readable corpus inventory (`inventory_code4AI.md`), the methods record (`generation_conditions.md`), the longitudinal candidate shortlist (`longitudinal_shortlist.md`), the longitudinal grounding-input manifest (`longitudinal_grounding_ids.json`), and the Task 7 handoff set (`{factual,comparative,longitudinal}_claimslice_handoff.md`, `SLICES.md`, `grounding_prediction_note.md`).
-The larger `*_sample.md` and `*_index.md` renders, and the read-only retrieval-probe diagnostics (`_probe_a_lexical_recall.md`, `_probe_b_video_routing.md`), stay untracked (regenerable from the scripts).
+The larger `*_sample.md` and `*_index.md` renders, and the read-only retrieval-probe diagnostics (`_probe_*.md`), stay untracked (regenerable from the scripts).
 
 ### Naming conventions
 
@@ -72,7 +72,14 @@ The survivors, with advisory flags and the gold chunk text inline, become one re
 - **`longitudinal_grounding_ids.json`** - the 38 human-adjudicated shortlist keeps that were grounded (the longitudinal grounding input; the other candidates were not grounded).
 - **`SLICES.md`** - a self-contained manifest of the query slices (claim_derived = the scored core, keypoint_derived = the legacy circularity exhibit, external = planned), with each slice's couplings and per-slice-never-pooled reporting rule.
 - **`grounding_prediction_note.md`** - the two pre-registered predictions and their outcomes; the comparative unanswerable tripwire fired here and is recorded as tripped-investigated-explained (instrument shape-mismatch, not extractor hallucination).
-- **`_probe_a_lexical_recall.md`** / **`_probe_b_video_routing.md`** - read-only retrieval diagnostics (untracked): how well BM25/hybrid/dense retrieval and summary/keypoint video-routing reach the longitudinal gold chunks and videos. They quantify the retrieval ceiling for the writeup and gate nothing.
+**Retrieval probes (read-only diagnostics, untracked, gate nothing).** Six scratch files quantify where the longitudinal gold evidence is reachable, for the writeup's designed-absence story; the end-to-end traces in the last two are preserved as judge dev-set candidates.
+
+- **`_probe_a_lexical_recall.md`** - BM25 vs hybrid vs dense milestone-chunk recall (hybrid best at 20.7% @100, still leaving ~79% unreached).
+- **`_probe_b_video_routing.md`** - embedding video-routing recall from summary/key_point docs (~23-25% @10).
+- **`_probe_g_granularity.md`** - the chunk/claim/video granularity ladder (recall rises with unit semantics - chunk 14.5% < claim 38.9% @100 - but the ceiling holds).
+- **`_probe_e_llm_router.md`** - an LLM summaries-only router (one-shot and two-batch arms); does not beat embedding routing at matched id-budget, so the richer F variant was skipped.
+- **`_probe_cd_agent_endtoend.md`** - the agent run end-to-end on 10 factual + 10 comparative, with gold-chunk retrieval/citation hit rates (factual 77%/73%, comparative 58%/55%) and verbatim answers; shows the retrieval ceiling is longitudinal-specific.
+- **`_probe_h_oracle_synthesis.md`** - gpt-5.4 answering 5 longitudinal questions with the gold videos' full transcripts as oracle context; it recovers the arcs, localizing the failure to retrieval, not synthesis.
 
 Still to come (not built yet): the final human pick of 20/20/20 from the handoff files, then scoring answers against the chosen gold.
 
