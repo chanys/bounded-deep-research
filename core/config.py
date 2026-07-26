@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     #   which need all three modes (bm25 / dense / hybrid). Never used to serve traffic.
     retrieval_backend: Literal["pgvector", "opensearch"] = "pgvector"
     retrieval_k: int = 10
+    # Context-expansion ablation knob (D76): after retrieval, also include the +/-N
+    # neighbor chunks (30s each) around every hit, deduped. 0 = off (retrieve only the
+    # specific chunk, the default). Applies to whichever backend is active.
+    retrieval_neighbor_window: int = 0
     opensearch_url: str = "http://localhost:9200"
     opensearch_index_prefix: str = "chunks"
     embedding_model: str = "text-embedding-3-large"

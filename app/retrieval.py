@@ -226,15 +226,49 @@ async def search(
     if settings.retrieval_backend == "pgvector":
         # Production dense-only: no BM25 engine in prod, so ignore the requested mode
         # and always run dense kNN over the Postgres HNSW index.
-        return await _pg_dense_search(query, channel, k)
+        hits = await _pg_dense_search(query, channel, k)
+    elif mode == "bm25":
+        hits = await _bm25_search(query, channel, k)
+    elif mode == "dense":
+        hits = await _dense_search(query, channel, k)
+    elif mode == "hybrid":
+        hits = await _hybrid_search(query, channel, k)
+    else:
+        raise ValueError(f"unknown mode: {mode}")
 
-    if mode == "bm25":
-        return await _bm25_search(query, channel, k)
-    if mode == "dense":
-        return await _dense_search(query, channel, k)
-    if mode == "hybrid":
-        return await _hybrid_search(query, channel, k)
-    raise ValueError(f"unknown mode: {mode}")
+    return await _expand_neighbors(hits, channel, settings.retrieval_neighbor_window)
+
+
+async def _expand_neighbors(hits: list[dict], channel: str, window: int) -> list[dict]:
+    """Context-expansion (D76): append the +/-window neighbor chunks (30s each) around
+    every hit, so the agent (and the recall metric) also see adjacent context.
+
+    window=0 returns hits unchanged (the default: retrieve only the specific chunk).
+    Neighbors that do not exist (video start/end, gaps) are skipped, duplicates are
+    dropped, and the original ranking order is preserved with new neighbors appended
+    (ordered by video_id, start_ts). Neighbors carry score=None; they were not ranked.
+    """
+    if window <= 0 or not hits:
+        return hits
+
+    have = {(h["video_id"], h["start_ts"]) for h in hits}
+    wanted: dict[tuple[str, int], None] = {}
+    for h in hits:
+        for d in range(1, window + 1):
+            for ts in (h["start_ts"] - 30 * d, h["start_ts"] + 30 * d):
+                if ts >= 0 and (h["video_id"], ts) not in have:
+                    wanted.setdefault((h["video_id"], ts), None)
+    if not wanted:
+        return hits
+
+    fetched = await asyncio.gather(
+        *(read_video_segment(vid, ts, channel) for vid, ts in wanted)
+    )
+    extra = [seg for seg in fetched if seg is not None]
+    for seg in extra:
+        seg["score"] = None
+    extra.sort(key=lambda s: (s["video_id"], s["start_ts"]))
+    return hits + extra
 
 
 # ---------------------------------------------------------------------------
