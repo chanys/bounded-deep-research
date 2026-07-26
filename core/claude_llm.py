@@ -74,6 +74,7 @@ async def call_structured(
     model: str,
     max_tokens: int,
     thinking: dict | None = None,
+    cache_system: bool = False,
 ) -> T:
     """Single-shot Claude call returning a validated Pydantic object.
 
@@ -81,11 +82,20 @@ async def call_structured(
     is on (its default). Pass {"type": "disabled"} to turn reasoning off, e.g.
     for the bulk summarization pass where it is not needed and would otherwise
     spend tokens on every call.
+
+    cache_system=True marks the (fixed) system prompt with an ephemeral cache
+    breakpoint, so a high-volume caller reusing one system prompt across many calls
+    (the judge) pays to send it once and reads it from cache after. Only worth it
+    when the system prompt is fixed and reused; leave False otherwise.
     """
+    system_param = system
+    if cache_system:
+        system_param = [{"type": "text", "text": system,
+                         "cache_control": {"type": "ephemeral"}}]
     kwargs: dict = {
         "model": model,
         "max_tokens": max_tokens,
-        "system": system,
+        "system": system_param,
         "messages": [{"role": "user", "content": user}],
         "output_format": response_model,
     }
