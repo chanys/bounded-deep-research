@@ -42,3 +42,5 @@ corpus.dump
 /eval/artifacts/*.jsonl
 /eval/artifacts/*.json
 !/eval/artifacts/queryset_*.jsonl
+# Bulk per-run agent outputs (answers, traces, evidence) from eval/run_batch.py.
+/eval/artifacts/runs/
