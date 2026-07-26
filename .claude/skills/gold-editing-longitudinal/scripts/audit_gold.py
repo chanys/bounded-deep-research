@@ -2,8 +2,8 @@
 """Mechanical audit of a longitudinal gold worksheet.
 
 Usage:
-    uv run python audit_gold.py <worksheet.md>
-    uv run python audit_gold.py <worksheet.md> --plot coverage.png
+    python3 audit_gold.py <worksheet.md>
+    python3 audit_gold.py <worksheet.md> --plot coverage.png
 
 What this script does, in plain words
 -------------------------------------
@@ -44,6 +44,13 @@ regex and a calendar can find:
                        several separate claims.
   9. OVERCLAIM WORDS - "repeatedly", "throughout", etc. in a trajectory
                        line: dated samples cannot prove continuity.
+ 10. TOO MANY NUGGETS- more than 6 nuggets in one question; the
+                       turning-point rule expects 3-5 (start, turns,
+                       end, shift), so extras are usually waypoints.
+
+Both worksheet formats are supported: the original trajectory_must_say
+blocks and the edited nugget blocks (with **n1** prefixes, "- supports:"
+tags on milestones, and "chunks" as well as "claim" evidence headers).
 
 With --plot it also draws one row per question, one dot per milestone
 date, so the holes of warning 1 and 2 are visible at a glance. Rows
@@ -95,16 +102,26 @@ def parse(path):
         m = re.search(r"\*\*advisory:\*\* (.+)", body)
         q["advisory"] = dict(re.findall(r"(\w+)=([\w.\-]+)", m.group(1))) if m else {}
 
-        # The trajectory block: consecutive '- ' bullet lines right after
-        # the trajectory_must_say heading.
-        arc = re.search(r"\*\*trajectory_must_say[^\n]*\n((?:- .+\n)+)", body)
-        q["arc"] = [l[2:].strip() for l in arc.group(1).splitlines()] if arc else []
+        # The nugget/arc block. Two formats exist:
+        #   old: **trajectory_must_say ...** followed by "- ..." lines
+        #   new: **nuggets ...**           followed by "- **n1** ..." lines
+        # We parse whichever is present and strip the "**n1**" prefix so
+        # the per-line checks see only the nugget text.
+        arc = re.search(
+            r"\*\*(?:trajectory_must_say|nuggets)[^\n]*\n((?:- .+\n)+)", body)
+        lines = [l[2:].strip() for l in (arc.group(1).splitlines() if arc else [])]
+        q["arc"] = [re.sub(r"^\*\*[\w() -]+\*\*\s*", "", l) for l in lines]
+        # Which lines are the shift / no-change nugget: they summarize the
+        # whole arc, so they are legitimately long (see mega-line check).
+        q["arc_is_shift"] = [bool(re.match(r"\*\*(shift|no-change)", l))
+                             for l in lines]
 
         # Milestones: '### m1  2025-02-22  claim `VIDEO#cNNN`' followed by
         # a '**statement:**' line.
         q["milestones"] = []
         for mm in re.finditer(
-            r"### (m\d+)\s+(\d{4}-\d{2}-\d{2})\s+claim `([^`]+)`\n"
+            r"### (m\d+)\s+(\d{4}-\d{2}-\d{2})\s+(?:claim|chunks) `([^`]+)`"
+            r"[^\n]*\n"          # tolerate a trailing "- supports: n2" tag
             r"\*\*statement:\*\* (.+)", body
         ):
             q["milestones"].append({
@@ -194,14 +211,23 @@ def audit(q):
         flags.append(f"leak={adv['leak']}: arc or question may copy "
                      f"chunk wording")
 
+    # Warning 10: the turning-point rule expects 3-5 nuggets (start,
+    # turns, end, shift). More than 6 usually means waypoint samples
+    # were kept as requirements.
+    if len(q["arc"]) > 6:
+        flags.append(f"{len(q['arc'])} nuggets: turning-point rule "
+                     f"expects 3-5; waypoints may still be requirements")
+
     # Warnings 7-9: per trajectory line.
-    for a in q["arc"]:
+    for a, is_shift in zip(q["arc"], q.get("arc_is_shift", [False]*len(q["arc"]))):
         hits = [w for w in OVERCLAIM_WORDS if w in a.lower()]
         if hits:
             flags.append(f"arc line overclaims ('{hits[0]}'): milestones "
                          f"prove sampled dates, not the space between: "
                          f"\"{a[:60]}...\"")
-        if len(a.split()) > MEGA_LINE_WORDS:
+        if len(a.split()) > MEGA_LINE_WORDS and not is_shift:
+            # shift/no-change nuggets summarize the whole arc; long is
+            # their job, so they are exempt from the bundling warning
             flags.append(f"arc line bundles several claims "
                          f"({len(a.split())} words): \"{a[:60]}...\"")
         for c in q["chunks"]:

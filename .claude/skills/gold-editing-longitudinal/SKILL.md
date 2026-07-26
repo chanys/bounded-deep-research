@@ -80,6 +80,37 @@ would walk straight into the answer key. Both of these actually happened
 in the lc-0130 draft. Milestones have one job: to prove the trajectory
 lines. Trajectory lines have one job: to be the rubric.
 
+**Turning points, not waypoints.** With a 400+ video corpus, many valid
+routes run through any stretch of the story. Two correct answers can
+prove the same descent into skepticism using different intermediate
+stances from different videos. So a nugget must be route-independent:
+something every correct telling of the story has to contain. That means
+nuggets are only:
+
+- the **start stance** (with window),
+- each **turning point** - a place where the direction or framing of
+  his view changes (with window),
+- the **end stance** (with window),
+- the **shift** (or no-change) nugget.
+
+A stance that is merely one more sample inside an already-established
+stretch - one more skeptical moment during a skeptical period - is a
+waypoint, not a nugget. It moves down to the milestones as evidence.
+An item on a different axis than the question (a method he proposed,
+when the question asks about his assessment) is not a nugget either.
+
+The test for arguable cases, answerable yes or no: **"Could a correct
+answer, taking a different route through the corpus, omit this item and
+still tell the same story?"** Omittable means milestone. Not omittable
+means nugget. When genuinely unsure, flag it.
+
+Expect 3 to 5 nuggets per question after this filter. If scores later
+saturate near 100% across the set, the filter over-pruned; promote the
+genuinely distinctive turns back, question by question, based on what
+good answers actually contain. Worked before/after examples for three
+real questions are in `examples/turning-point-rewrites.md`; read them
+before editing.
+
 One caution that follows from this: the trajectory is a summary written
 by a model, one step further from the transcripts than a claim is. It
 can be wrong in ways no single quote reveals — the wrong voice, or a
@@ -181,9 +212,18 @@ answer key, the eval would stop meaning anything.
 ## How this gold gets scored (so the editor knows what it is for)
 
 Each question's nuggets form one flat list. An automatic judge reads an
-agent's answer and marks each nugget hit or miss. Recall = hits divided
-by total. Four content nuggets plus one shift nugget, all expressed:
-5/5 = 100%.
+agent's answer and marks each nugget hit or miss - binary, no partial
+credit. (An earlier ad-hoc judge invented a half-credit "plausible"
+verdict; that was a symptom of bundled nuggets, and the fix is
+splitting the nugget, never a middle category.) Recall = hits divided
+by total. Three content nuggets plus one shift nugget, all expressed:
+4/4 = 100%.
+
+Windows count. A nugget's timing is part of the claim: the right stance
+in the wrong period is a miss. Tolerance: an answer date inside the
+window is a hit; a vaguer-but-compatible placement is a hit; a
+contradicting placement is a miss; a correct sequence with no dates at
+all passes the stance nuggets but not the shift nugget.
 
 - Content nuggets are checked as facts: "does the answer say he was
   optimistic in early 2025?"
@@ -257,6 +297,17 @@ with the question id where it happened.
    actual wording was neutral — topic and span only, no arc shape. The
    agent correctly overruled the tag by reading the question. Advisory
    tags are hints to check, never rulings; the text decides.
+11. **Waypoint nuggets punish valid alternative routes** (lc-0024,
+   first gate). The gold required two specific mid-2025 stances; the
+   agent proved the same turn with two different real mid-2025 stances
+   and was scored 0.4 for a good answer. Nuggets must be turning
+   points; samples along a stretch go to the milestones. See the
+   turning-point rule above.
+12. **Question span narrower than the evidence** (lc-0014, first
+   gate). The question said "through early 2026" while a required
+   stance rested on March 17, 2026 evidence. The agent may reasonably
+   treat out-of-span content as off-limits. Windows in nuggets and the
+   span in the question must agree; widen one or drop the other.
 
 ## Files in this skill
 
