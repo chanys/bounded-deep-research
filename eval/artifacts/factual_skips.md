@@ -1,0 +1,52 @@
+# Factual skips (24 of 50)
+
+Questions excluded from dev and test, with the human reason.
+
+- **fc-0003** - The question is non specific. Not a good question. Drop.
+  - Q: How does dialogue tuning affect reasoning performance across basic, advanced, and challenging difficulty levels compared to other forms of training data?
+- **fc-0008** - The question is non specific. Suggest to drop this question.
+  - Q: How did the 'agentic reasoning' approach compare to the other models or modes tested on a PhD-level benchmark?
+- **fc-0011** - Too much overlap between question and claim. Drop this question.
+  - Q: In an elevator puzzle test, o4-mini claimed its 20-step solution was Pareto optimal with no strictly shorter sequence possible - was that claim actually correct, especially compared to Gemini 2.5 Pro's solution?
+- **fc-0014** - Too much overlap between the question and claim. Drop this question.
+  - Q: How does continuous pre-training (CPT) alone compare to CPT combined with additional optimization methods in terms of cost, speed, and performance gain (e.g., moving accuracy from 80% to 86.7%)?
+- **fc-0016** - I don't see GPDiT in the chunk texts. Drop this question.
+  - Q: What kind of new attention mechanism does GPDiT introduce to reduce computational cost?
+- **fc-0018** - The claim did not answer the question. Drop this question.
+  - Q: In a code evaluation setup where the one correct ('ground truth') code snippet was stripped down to plain text while all the incorrect candidate snippets kept their original well-documented, nicely formatted code and explanations, what did this asymmetric test reveal?
+- **fc-0019** - Leakage between question and claim. Drop this question.
+  - Q: How does the Hierarchical Reasoning Model (HRM) use deep supervision, breaking training into segments with loss computed at multiple depths, to address long-horizon training instability?
+- **fc-0022** - The 'benchmark comparison cited by the creator' is non-specific ; not a natural question that a real user would ask.
+  - Q: What scores were reported for Opus 4.1 16k thinking versus Sonnet 4.5 on a benchmark comparison cited by the creator?
+- **fc-0023** - Too much leakage between question and claim. Drop the question.
+  - Q: In the GeARs architecture, what happens during the 'triple link' step where each proximal triple is used as a search query against a large external knowledge graph like Wikidata?
+- **fc-0024** - Too much leakage between question and claim. And I'm not sure that the claim is fully supported by the chunk text.
+  - Q: How does LSD-3D compare to methods like Gaussian splatting scenes (3C) and MagicDrive 3D when generating novel driving trajectories?
+- **fc-0025** - 'the causal reasoning puzzle' is too non-specific.
+  - Q: Was Qwen3 235B, running at maximum non-thinking effort, able to reliably solve the causal reasoning puzzle, and is a comparison planned once the thinking variant of the new Qwen3 is available?
+- **fc-0027** - Too much overlap between question and claim. Plus, the Duncan experiment is specific to the creator.
+  - Q: What is the 'Duncan experiment' thought experiment about testing whether an LLM's world model can predict the deflection angle of water hitting a newly invented object with novel angles it has never seen described in pretraining data?
+- **fc-0028** - Too specific question ; the question is not likely to be asked by a real user.
+  - Q: In a paper's worked example on agent matchmaking with a pool of 100 agents, cosine similarity is used to match agent self-descriptions to subtasks - which agent was identified as the best fit for subtask one, and what was its similarity score?
+- **fc-0029** - Too much overlap between question and claim.
+  - Q: What mistake did Grok 4 make in an elevator puzzle involving a 50-floor building, where it moved the elevator to floor 52 and then capped it at floor 50?
+- **fc-0030** - Too much overlap between question and claim.
+  - Q: Why does feedback quality matter so much in textual gradient methods, and why would using a small LLM such as a 1.5 billion parameter model likely cause unstable updates?
+- **fc-0034** - Too much overlap between question and claim.
+  - Q: Why do trained models place opposing concepts, like multiplication and addition, on opposite sides of a hyperplane in high-dimensional space?
+- **fc-0035** - 'the benchmarks tested' is too non-specific.
+  - Q: On average across the benchmarks tested, how much did SRL improve performance compared to classical reinforcement learning?
+- **fc-0037** - The claim does not really answer the question.
+  - Q: Why might a t-SNE plot showing a supposed continuous manifold be misleading when the original data lives in roughly 896-dimensional space?
+- **fc-0039** - The claim is not answering the question.
+  - Q: According to Nvidia's research on injecting reasoning data during pre-training, why can't supervised fine-tuning combined with reinforcement learning fully recover the performance gains achieved by that approach?
+- **fc-0041** - Accuracy on what? Drop this question.
+  - Q: At five reasoning hops, how do GPT-5.2's accuracy and a locally trained 14B-parameter model's accuracy compare?
+- **fc-0046** - The question is basically the claim. Drop this question.
+  - Q: Why does converting human similarity-based thinking (dot products of dense vectors) into explicit logical structures like DAGs and trees, with defined state transitions and causality, lose some of the complexity and beauty of human language?
+- **fc-0047** - Too much overlap between question and claim.
+  - Q: On a cost-per-query versus benchmark-score chart, how does KARL's pricing compare to models like GPT 5.2, Opus 4.5, and Opus 4.6, given that it reportedly matches Opus 4.6's performance?
+- **fc-0049** - The 'seed workflow' is non-specific. Drop this question.
+  - Q: When the seed workflow was tested on a set of 100 problems, what results came back in terms of accuracy, token cost, and time taken, and where did it struggle?
+- **fc-0050** - This question is just weird.
+  - Q: In a parallel multi-agent setup, what two conditions determine whether the approach fails versus whether success then hinges on Kimi K2.5's ability to summarize sub-results into a coherent final answer?

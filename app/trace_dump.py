@@ -66,7 +66,7 @@ def _render_output(raw_output: str) -> str:
             lines.append(
                 f"  - [{h.get('video_id')} @ {h.get('start_ts')}-{h.get('end_ts')}] "
                 f"({h.get('published_at')}) "
-                f"{h.get('title', '')}: {h.get('snippet', '')}"
+                f"{h.get('title', '')}: {h.get('text', '')}"
             )
         return "\n".join(lines)
 

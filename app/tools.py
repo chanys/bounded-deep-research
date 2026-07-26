@@ -50,7 +50,7 @@ SEARCH_TRANSCRIPTS_SCHEMA: dict = {
     "description": (
         "Search the video transcript corpus. Returns up to k chunks, each "
         "with video_id, title, published_at (the video's publish date, YYYY-MM-DD), "
-        "start_ts, end_ts, and a snippet."
+        "start_ts, end_ts, and the full chunk text."
     ),
     "parameters": {
         "type": "object",
@@ -115,10 +115,11 @@ READ_VIDEO_SEGMENT_SCHEMA: dict = {
     "type": "function",
     "name": "read_video_segment",
     "description": (
-        "Return the full text of a 30-second chunk by (video_id, start_ts), along "
-        "with the video's title and published_at (its publish date, YYYY-MM-DD). "
-        "Call when a search snippet looks promising but doesn't contain the specific claim, "
-        "or before citing any chunk."
+        "Fetch the full text of a specific chunk by (video_id, start_ts) that was "
+        "NOT among your search results - for example an adjacent chunk for extra "
+        "boundary context. Search already returns full chunk text, so you never need "
+        "to re-fetch a chunk you already retrieved. Also returns the video's title "
+        "and published_at (its publish date, YYYY-MM-DD)."
     ),
     "parameters": {
         "type": "object",
@@ -224,10 +225,10 @@ async def _handle_search(call_id: str, args: dict[str, Any], channel: str, mode:
     except Exception as e:
         return _error_output(call_id, f"search failed: {e}")
 
-    # Tool return granularity (master plan Phase 2, v4.2): search returns
-    # title + timestamp + short snippet. Truncating text keeps the search
-    # phase context-cheap. Phase 2 will add read_video_segment for the
-    # agent to escalate to full chunk text when needed.
+    # Search returns the full chunk text (chunks are short: ~30s, ~390 chars on
+    # average), so the agent sees complete evidence at search time and never needs
+    # to escalate a retrieved chunk to a separate read. read_video_segment remains
+    # only for fetching chunks that were NOT retrieved (e.g. an adjacent chunk).
     results = [
         {
             "video_id": h["video_id"],
@@ -235,7 +236,7 @@ async def _handle_search(call_id: str, args: dict[str, Any], channel: str, mode:
             "published_at": h.get("published_at"),
             "start_ts": h["start_ts"],
             "end_ts": h["end_ts"],
-            "snippet": _snippet(h["text"], max_chars=250),
+            "text": h["text"],
         }
         for h in hits
     ]
@@ -317,12 +318,6 @@ def _error_output(call_id: str, message: str) -> DispatchResult:
         "output": json.dumps({"error": message}),
     }
     return DispatchResult(output_item=output, terminal=False)
-
-
-def _snippet(text: str, max_chars: int = 250) -> str:
-    if len(text) <= max_chars:
-        return text
-    return text[: max_chars - 1].rstrip() + "…"
 
 
 async def _citation_exists(c: Citation, channel: str) -> bool:

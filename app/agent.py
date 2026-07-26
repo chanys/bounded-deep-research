@@ -127,29 +127,25 @@ def _call_output(call_id: str, payload: dict) -> dict:
     return {"type": "function_call_output", "call_id": call_id, "output": json.dumps(payload)}
 
 
-def _mark_ready_gate(search_count: int, distinct_queries: int, read_count: int) -> tuple[bool, str]:
+def _mark_ready_gate(search_count: int, distinct_queries: int) -> tuple[bool, str]:
     """Decide whether a mark_ready is acceptable from the run's evidence so far.
 
     Returns (accepted, reason). The recipe's pre-submit checklist is honor-system;
-    this enforces the code-checkable subset. Accept when the model has genuinely
-    explored (at least 2 distinct-query searches AND at least 1 successful read), or
-    when it has hit the critical-failure path (at least 3 searches and still 0 reads:
-    the corpus most likely cannot answer, so let it proceed and say so). Otherwise
-    reject with a specific, actionable reason.
+    this enforces the code-checkable subset. Search returns full chunk text, so the
+    model has complete evidence once a search returns results; the only hard gate is
+    genuine exploration (at least 2 distinct-query searches). If it has tried
+    repeatedly (at least 3 searches) without reaching 2 distinct queries, let it
+    proceed anyway so a stubborn or corpus-cannot-answer run still terminates.
+    Otherwise reject with a specific, actionable reason.
     """
-    if distinct_queries >= 2 and read_count >= 1:
+    if distinct_queries >= 2:
         return True, ""
-    if search_count >= 3 and read_count == 0:
+    if search_count >= 3:
         return True, ""
-    if distinct_queries < 2:
-        noun = "query" if distinct_queries == 1 else "queries"
-        return False, (
-            f"rejected: only {distinct_queries} distinct search {noun} issued so far - "
-            "run at least 2 searches with different queries before marking ready."
-        )
+    noun = "query" if distinct_queries == 1 else "queries"
     return False, (
-        "rejected: no chunks read yet - read the chunks you intend to cite (or search "
-        "more if the corpus lacks the answer) before marking ready."
+        f"rejected: only {distinct_queries} distinct search {noun} issued so far - "
+        "run at least 2 searches with different queries before marking ready."
     )
 
 
@@ -376,8 +372,10 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
         Those must be read there, not here, because they are only available while
         the @observe span is active.
         """
-        put_run(collector.finalize(result))
+        state = collector.finalize(result)
+        put_run(state)
         if dump_dir is not None:
+            import os
             from app.trace_dump import write_trace_dump
             write_trace_dump(
                 dump_dir,
@@ -390,6 +388,12 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
                 input_items=input_items,
                 result=result,
             )
+            # Full run evidence as JSON (the debug / eval "full trace" mode): every
+            # search with its query and returned chunk ids, every read, the
+            # seen/read/cited sets, cost, and provenance - enough to replay or audit.
+            os.makedirs(dump_dir, exist_ok=True)
+            with open(os.path.join(dump_dir, f"evidence_{run_id}.json"), "w") as f:
+                json.dump(state.model_dump(mode="json"), f, indent=2)
         return result
 
     async def _synthesize(steps_used: int, budget_exhausted: bool) -> AgentResult:
@@ -469,7 +473,6 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
             accepted, reason = _mark_ready_gate(
                 collector.search_count(),
                 len(collector.distinct_queries()),
-                collector.read_count(),
             )
             if accepted or mark_ready_rejections >= 3:
                 input_items.append(_call_output(ready_call_id, {"status": "accepted"}))
@@ -502,25 +505,20 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
     # Summarize what was gathered so the low-effort synthesis turn can hedge about
     # coverage gaps without re-deriving them from the raw history.
     distinct = collector.distinct_queries()
-    reads_by_video = collector.reads_by_video()
     zero_hits = collector.zero_hit_queries()
+    seen_videos = {c.split(":")[0] for c in collector.seen}
     summary = [
         "Step budget exhausted. Submit your best answer now from the evidence gathered "
         "so far; if evidence is insufficient, say so in the answer.",
         "",
         f"Evidence gathered: {collector.search_count()} searches "
-        f"({len(distinct)} distinct queries).",
+        f"({len(distinct)} distinct queries), {len(collector.seen)} chunks retrieved "
+        f"from {len(seen_videos)} video(s).",
     ]
     if distinct:
         summary.append("Queries issued: " + "; ".join(distinct))
-    if reads_by_video:
-        read_desc = ", ".join(
-            f"{vid} ({len(starts)} chunk{'s' if len(starts) != 1 else ''})"
-            for vid, starts in reads_by_video.items()
-        )
-        summary.append(f"Chunks read from {len(reads_by_video)} video(s): {read_desc}.")
-    else:
-        summary.append("No chunks were read.")
+    if not collector.seen:
+        summary.append("No chunks were retrieved.")
     if zero_hits:
         summary.append("Queries that returned no results: " + "; ".join(zero_hits))
     input_items.append({"role": "user", "content": "\n".join(summary)})

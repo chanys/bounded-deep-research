@@ -110,7 +110,7 @@ class RunEvidenceState(BaseModel):
     # --- behavioral metrics (the "is the harness behaving" signals) ---
     duplicate_search_rate: float            # fraction of searches that returned nothing new
     consecutive_searches_without_read_max: int   # longest run of searches with no read between them
-    read_before_cite_violations: list[str]  # chunks cited but never read (snippet-only citations)
+    read_before_cite_violations: list[str]  # chunks cited whose full text was never seen (never surfaced or read)
     cited_not_seen: list[str]               # chunks cited that no search surfaced; should be empty
 
     # --- token usage & cost ---
@@ -300,7 +300,7 @@ class EvidenceCollector:
             cited_count=len(cited),
             duplicate_search_rate=round(dup_rate, 3),
             consecutive_searches_without_read_max=self._max_searches_without_read,
-            read_before_cite_violations=sorted(cited - self.read),
+            read_before_cite_violations=sorted(cited - (self.seen | self.read)),
             cited_not_seen=sorted(cited - self.seen),
             usage=total,
             per_turn_usage=self.per_turn_usage,

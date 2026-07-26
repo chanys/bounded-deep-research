@@ -20,6 +20,30 @@ T = TypeVar("T", bound=BaseModel)
 
 _client: AsyncAnthropic | None = None
 
+# Opt-in per-call usage capture. Off by default (None), so scripts that don't enable it are
+# unaffected. A caller enables it once, then reads usage_totals() to report actual token spend
+# (the pre-spend cost print is only an estimate; this is the ground truth).
+_usage: list[dict] | None = None
+
+
+def enable_usage_capture() -> None:
+    """Start (or reset) recording per-call token usage for later usage_totals()."""
+    global _usage
+    _usage = []
+
+
+def usage_totals() -> dict | None:
+    """Aggregate captured token usage, or None if capture was never enabled."""
+    if _usage is None:
+        return None
+    return {
+        "calls": len(_usage),
+        "input_tokens": sum(c["input"] for c in _usage),
+        "output_tokens": sum(c["output"] for c in _usage),
+        "cache_read_input_tokens": sum(c["cache_read"] for c in _usage),
+        "cache_creation_input_tokens": sum(c["cache_creation"] for c in _usage),
+    }
+
 
 def _get_client() -> AsyncAnthropic:
     """Construct the async Anthropic client once, lazily.
@@ -68,6 +92,14 @@ async def call_structured(
     if thinking is not None:
         kwargs["thinking"] = thinking
     response = await _get_client().messages.parse(**kwargs)
+    if _usage is not None:   # capture before the truncation guard: a truncated call still spends
+        u = response.usage
+        _usage.append({
+            "input": getattr(u, "input_tokens", 0) or 0,
+            "output": getattr(u, "output_tokens", 0) or 0,   # includes thinking tokens
+            "cache_read": getattr(u, "cache_read_input_tokens", 0) or 0,
+            "cache_creation": getattr(u, "cache_creation_input_tokens", 0) or 0,
+        })
     parsed = response.parsed_output
     if parsed is None:
         raise ValueError(

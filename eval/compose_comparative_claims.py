@@ -45,6 +45,7 @@ from pydantic import BaseModel
 
 from core.claude_llm import call_structured
 from core.provenance import PROVENANCE
+from eval import groundable
 
 CLAIMS_DEFAULT = Path("eval/artifacts/claims_code4AI.jsonl")
 OUT_DEFAULT = Path("eval/artifacts/query_candidates_comparative_claimslice.jsonl")
@@ -113,58 +114,14 @@ class Judgement(BaseModel):
     question: str | None = None
 
 
-# ---- groundable-claim pre-filter (same bar as the factual slice's selector) ----
-
-FILTER_SYSTEM = """\
-You identify which of one video's claims are groundable comparison material. Return the ids of claims that state a substantive, comparable property: a concrete result, finding, number, comparison, method or mechanism detail, design choice, behavior, or creator judgment with real content. EXCLUDE content-free setup or meta claims (e.g. "the creator tests two models side by side", "a closer look will follow"), moment-by-moment demo narration, and claims too thin or generic to compare against another claim. Return ONLY claim ids."""
-
-
-class Groundable(BaseModel):
-    claim_ids: list[str]
-
-
-async def filter_video(video_id: str, vclaims: list[dict], sem: asyncio.Semaphore) -> set[str] | None:
-    """Return the groundable claim ids for one video, or None on API failure (caller
-    falls back to keeping all of that video's claims; the checker is the backstop)."""
-    valid = {c["claim_id"] for c in vclaims}
-    listing = "\n".join(f"[{c['claim_id']}] {c['text']}" for c in vclaims)
-    user = f"Video claims (high-confidence):\n{listing}\n\nReturn the ids of all groundable claims."
-    async with sem:
-        try:
-            out = await asyncio.wait_for(
-                call_structured(FILTER_SYSTEM, user, Groundable, model=MODEL,
-                                max_tokens=1200, thinking={"type": "disabled"}),
-                timeout=CALL_TIMEOUT,
-            )
-        except Exception as e:  # noqa: BLE001
-            print(f"  filter ERROR {video_id}: {type(e).__name__}")
-            return None
-    keep = set()
-    for cid in out.claim_ids:      # accept bare-suffix ids too (same fix as the factual slice)
-        if cid in valid:
-            keep.add(cid)
-        elif (full := f"{video_id}#{cid.lstrip('#')}") in valid:
-            keep.add(full)
-    return keep
-
-
-LEGACY_VIDEO_CACHE = Path("eval/artifacts/groundable_claims_code4AI.json")
-
-
-def load_groundable_cache(path: Path, by_vid: dict[str, list[dict]]) -> dict[str, bool]:
-    """Claim-level groundability cache {claim_id: bool}, so classifications accumulate
-    across slices (Task 6 reuses them). Pre-warmed once from the legacy video-level cache
-    so already-paid classifications become an asset, not sunk cost."""
-    if path.exists():
-        return json.loads(path.read_text())
-    cache: dict[str, bool] = {}
-    if LEGACY_VIDEO_CACHE.exists():
-        vc = json.loads(LEGACY_VIDEO_CACHE.read_text())
-        for vid, gids in vc.items():
-            g = set(gids)
-            for c in by_vid.get(vid, []):
-                cache[c["claim_id"]] = c["claim_id"] in g
-    return cache
+# ---- groundable-claim pre-filter -------------------------------------------
+# The per-claim groundable filter, its response model, and the cross-slice claim-level
+# cache now live in eval/groundable.py (Task 6 Step 0). This slice classifies only the
+# claims that reach pairing, via groundable.classify_uncached, and shares the cache
+# (eval/artifacts/groundable_claims.json) with the longitudinal slice. Switching from the
+# prior per-video filter to the per-claim module is a no-op here because that cache is
+# fully warm: every claim that reaches pairing is already classified, so zero new calls
+# run and the generated pairs are unchanged.
 
 
 # ---- normalization ---------------------------------------------------------
@@ -339,7 +296,7 @@ async def amain(args: argparse.Namespace) -> None:
         print(f"restricted to {len(families)} families: {list(families)}")
     videos_needed = {claims[i]["video_id"] for k in families for i in families[k]}
 
-    cache = load_groundable_cache(args.filter_cache, by_vid)   # {claim_id: bool}, pre-warmed
+    cache = groundable.load_cache(args.filter_cache, by_vid)   # {claim_id: bool}, pre-warmed
     # Pre-run cost estimate BEFORE any spend - the last outage happened because a heavy pass
     # was not visible as heavy until it ran. Rough upper bound at ~$0.01/call.
     uncached_vids = {v for v in videos_needed if any(c["claim_id"] not in cache for c in by_vid[v])}
@@ -351,26 +308,20 @@ async def amain(args: argparse.Namespace) -> None:
     # ONLY the videos whose claims appear in generated pairs; drop non-groundable and regenerate
     # until the pair set is stable. Cache is claim-level and persists across slices.
     sem = asyncio.Semaphore(args.filter_concurrency)
+    text_by_id = {c["claim_id"]: c["text"] for c in claims}
     n_filter_calls = n_filter_fallback = 0
     while True:
         nong = {cid for cid, ok in cache.items() if not ok}
         pairs = generate_pairs(claims, families, args.per_family_gen, nong)
-        involved = {claims[p[s]]["claim_id"] for p in pairs for s in ("a", "b")}
-        todo = sorted({cid.rsplit("#", 1)[0] for cid in involved if cid not in cache})
+        involved = sorted({claims[p[s]]["claim_id"] for p in pairs for s in ("a", "b")})
+        todo = [cid for cid in involved if cid not in cache]   # per-claim now, not per-video
         if not todo:
             break
-        results = await asyncio.gather(*(filter_video(v, by_vid[v], sem) for v in todo))
-        n_filter_calls += len(todo)
-        for v, keep in zip(todo, results):
-            if keep is None:
-                for c in by_vid[v]:
-                    cache[c["claim_id"]] = True   # fallback: keep all; the checker backstops
-                n_filter_fallback += 1
-            else:
-                for c in by_vid[v]:
-                    cache[c["claim_id"]] = c["claim_id"] in keep
-        args.filter_cache.parent.mkdir(parents=True, exist_ok=True)
-        args.filter_cache.write_text(json.dumps(cache, ensure_ascii=False))
+        stats = await groundable.classify_uncached(
+            todo, text_by_id, cache, sem=sem, batch_size=args.filter_batch,
+            cache_path=args.filter_cache)
+        n_filter_calls += stats["calls"]
+        n_filter_fallback += stats["fallbacks"]
 
     pairs.sort(key=lambda p: (-p["richness"], p["pair_key"], -p["date_gap_days"],
                               claims[p["a"]]["claim_id"], claims[p["b"]]["claim_id"]))
@@ -525,6 +476,7 @@ def main() -> None:
     ap.add_argument("--filter-cache", type=Path,
                     default=Path("eval/artifacts/groundable_claims.json"))  # claim-level, cross-slice
     ap.add_argument("--filter-concurrency", type=int, default=8)
+    ap.add_argument("--filter-batch", type=int, default=50)   # claims per groundable classify call
     ap.add_argument("--only-families", nargs="*", help="restrict to these family keys (smoke)")
     ap.add_argument("--render", type=Path, default=None)
     args = ap.parse_args()

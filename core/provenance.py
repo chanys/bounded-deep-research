@@ -47,11 +47,13 @@ def _resolve() -> Provenance:
     # it fingerprints every tracked file (recipe, tool prompts, loop code) at once.
     sha = _run_git("rev-parse", "HEAD")
     if sha is not None:
-        # `git status --porcelain` lists working-tree changes in a stable, script-friendly
-        # format: one line per modified/added/deleted tracked path, and nothing at all when
-        # the tree is clean. So a non-empty result means uncommitted edits exist, i.e. the
-        # SHA above does not fully describe what ran; empty means the SHA is exact.
-        dirty = _run_git("status", "--porcelain")
+        # `git status --porcelain --untracked-files=no` lists working-tree changes to TRACKED
+        # paths only, in a stable script-friendly format (one line per modified/added/deleted
+        # tracked path, empty when clean). Untracked files are excluded on purpose: they do not
+        # change what the SHA describes, and this repo always carries untracked review renders,
+        # so counting them would report every run as dirty. Non-empty means uncommitted edits to
+        # tracked code exist (the SHA is not exact); empty means the SHA describes what ran.
+        dirty = _run_git("status", "--porcelain", "--untracked-files=no")
         return Provenance(git_sha=sha, git_dirty=bool(dirty))
     # No git available (e.g. the prod image without .git): use the build-stamped SHA.
     return Provenance(git_sha=os.environ.get("GIT_SHA", "unknown"), git_dirty=False)
