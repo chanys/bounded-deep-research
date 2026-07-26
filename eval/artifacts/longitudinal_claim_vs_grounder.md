@@ -1,15 +1,16 @@
 # Longitudinal trajectory worksheet (37 candidates)
 
-EXPLORATORY: longitudinal is out of scored scope (D75). This is for eyeballing only.
+SCORED: longitudinal is in scored scope (this supersedes the earlier exploratory framing at D75). This worksheet is the gold answer key; it stands at gold-v0.2.1 - see the Provenance block below.
 Per candidate: the question, the trajectory arc, and each dated milestone with its claim + source chunk(s) ([grounded] = grounder re-found it). notes = skip.
 
 ## Provenance (gold-v0.2)
 
-- Version: **gold-v0.2** (turning-point sweep). Supersedes gold-v0.1.
+- Version: **gold-v0.2.1** (turning-point sweep with flag rulings, D85). Supersedes gold-v0.2 / gold-v0.1.
 - Pre-edit nugget/trajectory versions are preserved in the backup file `longitudinal_gold_preedit_nuggets_v0.1.md` (this directory) and in the pre-edit commit `f9379e6`.
 - What changed: waypoints and off-axis items demoted to milestone evidence (kept on the page, tagged `DEMOTED ...`); the three mega-line bundles the audit isolated (lc-0130, lc-0233, lc-0388) trimmed/split; lc-0014 rewritten to the two-thread arc, its span widened to March 2026, and a voice-checked scientific-AGI milestone (m7) added. Rationale: `../bounded-deep-research-notes/eval/gold_v0_2_turning_points_motivation.md`.
 - Questions changed in v0.2 (29): lc-0011, lc-0014, lc-0024, lc-0026, lc-0027, lc-0061, lc-0070, lc-0081, lc-0087, lc-0111, lc-0123, lc-0127, lc-0130, lc-0177, lc-0179, lc-0223, lc-0233, lc-0251, lc-0344, lc-0349, lc-0388, lc-0398, lc-0413, lc-0418, lc-0448, lc-0452, lc-0476, lc-0481, lc-0504.
 - Not listed above were reviewed under the turning-point rule and retained unchanged.
+- v0.2.1 (flag rulings, D85): lc-0111 n2, lc-0418 n3, and lc-0496 n2 demoted; lc-0413 and lc-0497 question spans narrowed to early 2026; lc-0497 nuggets reordered to chronological with corrected causality; all shift nuggets normalized to declarative form; advisory `hint` corrected to neutral (was waypoint) on 9 neutral-worded questions (lc-0027, lc-0061, lc-0111, lc-0233, lc-0260, lc-0418, lc-0452, lc-0497, lc-0504).
 - Scoring reminder: each nugget is marked hit/miss (binary); recall = hits/total; a nugget's window is part of the claim; the shift (or no-change) nugget is logged separately.
 
 ---
@@ -375,7 +376,7 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 **question id:** lc-0027
 **question:** How did the creator's assessment of AI scientist systems evolve from mid-2025 through the end of 2025?
 **question (original, waypoint-leaked; reworded to neutral per ruling):** How did the creator's assessment of AI scientist systems evolve from mid-2025 through the end of 2025, as he moved from reporting on claims about them to independently evaluating and critiquing their capabilities?
-**advisory:** risk=medium  hint=waypoint  leak=0.056  observed_shape=adjacent  milestones=6  min_milestones=2
+**advisory:** risk=medium  hint=neutral  leak=0.056  observed_shape=adjacent  milestones=6  min_milestones=2
 
 **nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
 - **n1** In mid-2025 he initially relayed researchers' optimistic claims about AI scientist systems without independent critique [mid 2025]
@@ -450,7 +451,7 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 **question id:** lc-0061
 **question:** How did the creator's characterization of chain-of-thought reasoning evolve from January 2025 through early 2026?
 **question (original, waypoint-leaked; reworded to neutral per ruling):** How did the creator's assessment of whether chain-of-thought reasoning genuinely reflects an AI model's real internal reasoning process evolve from January 2025 through early 2026?
-**advisory:** risk=medium  hint=waypoint  leak=0.05  observed_shape=multi-video  milestones=5  min_milestones=2
+**advisory:** risk=medium  hint=neutral  leak=0.05  observed_shape=multi-video  milestones=5  min_milestones=2
 
 **nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
 - **n1** Early 2025 he treated chain-of-thought as a legitimate training-time technique enabling simple reasoning, distinct from test-time compute [early 2025]
@@ -766,16 +767,16 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 **question id:** lc-0111
 **question:** How did the creator's assessment of DeepSeek evolve from early 2025 through early 2026?
 **question (original, waypoint-leaked; reworded to neutral per ruling F1):** How did the creator's assessment of DeepSeek evolve from its coverage as a research paper in early 2025 through direct performance testing in early 2026?
-**advisory:** risk=medium  hint=waypoint  leak=0.0  observed_shape=adjacent  milestones=5  min_milestones=2
+**advisory:** risk=medium  hint=neutral  leak=0.0  observed_shape=adjacent  milestones=5  min_milestones=2
 
 **nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
 - **n1** In January 2025 he praised DeepSeek's mixture-of-experts architecture as a genuine innovation [Jan 2025]
-- **n2** He valued DeepSeek's open architecture specifically because it let researchers introspect reasoning traces that proprietary models did not permit [Nov 2025]
-- **n3** By early 2026, direct benchmarking showed DeepSeek's accuracy degrading sharply as task complexity rose, toward chance [Jan 2026]
-- **shift (n4)** He moved from early-2025 architectural admiration to an early-2026 empirically tempered assessment after benchmarking exposed sharp degradation with complexity [Jan 2025 - Jan 2026]
+- **n2** By early 2026, direct benchmarking showed DeepSeek's accuracy degrading sharply as task complexity rose, toward chance [Jan 2026]
+- **shift (n3)** He moved from early-2025 architectural admiration to an early-2026 empirically tempered assessment after benchmarking exposed sharp degradation with complexity [Jan 2025 - Jan 2026]
 
 **edit note (v0.1):** collapsed the two Jan-2025 praise specifics into one stance nugget (n1); de-overclaimed "Through 2025" to the sampled window (n2). Flag F1 resolved: question reworded to neutral form, so the shift nugget (n5) now counts.
 **edit note (v0.2):** Demoted 'others adopted DeepSeek's GRPO' (old n2, m3) as off-axis. Flagged whether the open-architecture value (n2) is a distinct turn or an admiration-stretch waypoint - retained as a distinct positive stance. 4 nuggets.
+**edit note (v0.2.1):** D85: flipped n2 (open-architecture introspection) to a demoted waypoint - admiration on a new dimension, route-omittable; a correct answer can tell architectural-admiration -> empirical-tempering without it. 3 nuggets (was 4).
 
 **milestones:**
 ### m1  2025-01-20  claim `F-t8BwQpWa4#c021`  - supports: n1
@@ -792,12 +793,12 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 - `vRsAFFvKqhI:00600` [not re-found]  representation no it's so easy to follow up here so we have a chain of thought reasoning data a book an experiment and some geometry question in image we have Vision language model a chain of thought reasoning process and a final answer with supervised fine tuning and then we have question and images Vision language model and a policy optimization the group relative policy optimization here from DeepSeek
 - `vRsAFFvKqhI:00630` [not re-found]  everything okay everything clear should I explain anything else this is visual reasoning and thank you to the authors they made their effort and I thinking it's great and I like this study I just want to show you what we can get out of visual reasoning what is here the power of visual reasoning let's go to the next one so we have again this phase one the supervised fine-tuning based adaptation okay and then we have the reinforcement based enhancement with jpo this is great so we
 
-### m4  2025-11-10  claim `v5m9DdbsXqg#c029`  - supports: n2
+### m4  2025-11-10  claim `v5m9DdbsXqg#c029`  - DEMOTED (waypoint per D85 ruling: open-architecture introspection value is admiration on a new dimension, route-omittable; evidence retained; was n2)
 **statement:** The creator notes it is interesting that Stanford and the other research institutions rely on a Chinese model (DeepSeek) because its open architecture allows for introspection into reasoning traces that proprietary models do not permit.
 - `v5m9DdbsXqg:00630` [not re-found]  real reasoning because the companies are afraid that we use the reasoning traces to train uh student models and then yeah you don't have to pay them for OpenAI or Google model so those proprietary models they hide away the real reasoning complexity and therefore we cannot analyze them and understand what is going on at what time segment within those AI systems. So it is interesting
 - `v5m9DdbsXqg:00660` [not re-found]  that we rely here I mean we Stanford and everybody else here relies here on a Chinese model a DeepSeek architecture because this is here really an open architecture that allows for this kind of introspection. So without the DeepSeek models we would really have problems how to proceed. Interesting. Now the author said hm okay so we cannot directly implement here the agile thinker with a Gemini model 2.5 for example due to lack of access to its real reasoning traces and they said okay
 
-### m5  2026-01-08  claim `gXK3b-UuqOo#c024`  - supports: n3
+### m5  2026-01-08  claim `gXK3b-UuqOo#c024`  - supports: n2
 **statement:** As task complexity increases according to the defined metric, model accuracy (shown on a y-axis from 20% to 100%) drops significantly, going below 50% for a DeepSeek model at high complexity, with a dashed line indicating the point where the model is simply guessing and reasoning stops.
 - `gXK3b-UuqOo:00570` [not re-found]  let's see where can we go there there are some interesting points And so I show you this in another um implementation. So they discovered now as a second step here the logical phase transitions these boxes as I just showed you and I said okay so now we can identify whenever we have an increase in the complexity of the task the performance of the model will drop significantly. Yeah, here on the y-axis we have the accuracy 20% 40% 60% 80% 100%. And the
 - `gXK3b-UuqOo:00600` [grounded]  more we make the task challenging more complex in our defined metric you see the performance goes below 50% let's say here for a DeepSeek model. But of course you can go even deeper let's call it and here the dashed or dotted line is here where the model is simply guessing. No there's no reasoning anymore. This is just some guessing. And this is where reasoning stops.
@@ -933,7 +934,7 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 - **n1** The test escalated in complexity over the period, from a simple version (reach floor 13, five buttons, one trap) to a much more complex one (floor 50 with multiple traps, code cards, energy/token limits, an emergency-exit mechanic, and buttons triggering mathematical functions) [Jan 2025 onward]
 - **n2** Across re-tests, models produced widely varying button-press solutions (e.g. a 20-step OpenAI solution versus a 10-step Gemini one on the same floor-50 task) [2025-2026]
 - **n3** In December 2025, after about a year of running the exact test, a model (GPT-5.2) for the first time told him it was impossible to reach floor 50 [Dec 2025]
-- **shift (n4)** A correct answer must describe the change itself: the test grew steadily harder and model results shifted correspondingly, culminating in the first-ever 'impossible' verdict (Dec 2025) after a year in which models had until then produced (varying) solutions [Jan 2025 - Dec 2025]
+- **shift (n4)** The test grew steadily harder and model results shifted correspondingly, culminating in the first-ever 'impossible' verdict (Dec 2025) after a year in which models had until then produced (varying) solutions [Jan 2025 - Dec 2025]
 
 **edit note (v0.1):** kept the three trajectory lines as n1-n3 and added the shift (n4) tying escalating difficulty to the first 'impossible' outcome; specifics (button counts, floor numbers) stay in the milestones.
 **edit note (v0.2):** Reworded the shift nugget to remove the overclaiming word 'always' (milestones prove sampled dates, not the space between). No count change; 4 nuggets.
@@ -1076,7 +1077,7 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 
 **nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
 - **n1** Across March 2025 - February 2026 he held that LLMs show no genuine emergent intelligence; the specific domains he argued this from are substitutable milestone evidence, not separate nuggets [Mar 2025 - Feb 2026]
-- **no-change (n2)** A correct answer must state that his stance stayed consistent across March 2025 - January 2026 (repeated 'no emergent intelligence' conclusions), rather than describing an evolution [Mar 2025 - Jan 2026]
+- **no-change (n2)** His stance stayed consistent across March 2025 - January 2026 (repeated 'no emergent intelligence' conclusions), with no evolution over the period [Mar 2025 - Jan 2026]
 
 REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-emergence view"). It rested entirely on m5, which put a paper's claim in the creator's mouth; in the same breath he declines to endorse it ("I would not stress this particular part"). This is pitfall #1 (paper's voice), and the disproving quote is in m5's own record.
 
@@ -1138,7 +1139,7 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 **nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
 - **n1** Mid-2025 he first characterized externalization via the GraphRAG paper: the LLM is not the source of truth but an interface to an external, auditable, dynamically updatable knowledge source. [Jul 2025]
 - **n2** By early 2026 he characterized it concretely as a system architecture that puts every intermediate processing step into an external file system rather than the LLM's context/working memory. [Mar 2026]
-- **shift (n3)** A correct answer must describe the change itself, which he stated explicitly: from the prior year's view (handle everything inside the model via SFT/RL) to a new view that memory, skills, and protocols should be externalized. [~2025 - Apr 2026]
+- **shift (n3)** He stated the change explicitly: from the prior year's view (handle everything inside the model via SFT/RL) to a new view that memory, skills, and protocols should be externalized [~2025 - Apr 2026]
 - **n4** In his April 2026 synthesis he characterized externalization broadly as relocating cognitive burdens out of the model into explicit, deterministic, rule-based infrastructure for reliable agency (grounded in Norman's 1991 distributed-cognition framing). [Apr 2026]
 
 **edit note:** folded the Norman-1991 milestone (m4, a historical-framing specific) into the mature synthesis nugget n4 with m5 rather than making it a standalone nugget; the shift (n3) is directly evidenced by m3, where he states the from-weights-to-externalized change himself.
@@ -1560,7 +1561,7 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 **question id:** lc-0233
 **question:** How did the creator's 'extreme logic test' and his assessment of AI models' performance on it change from late January 2025 through May 2025?
 **question (original, waypoint-leaked; reworded to neutral per ruling):** How did the creator's 'extreme logic test' and his assessment of AI models' ability to solve, verify, and revise their solutions on it evolve from late January 2025 through May 2025?
-**advisory:** risk=medium  hint=waypoint  leak=0.056  observed_shape=multi-video  milestones=6  min_milestones=2
+**advisory:** risk=medium  hint=neutral  leak=0.056  observed_shape=multi-video  milestones=6  min_milestones=2
 
 **nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
 - **n1** Late Jan / early Feb 2025: on the 15-clue logic puzzle, models could confirm or validate valid solutions when prompted to verify or try alternative reasoning paths [Jan-Feb 2025]
@@ -1742,13 +1743,13 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 **question id:** lc-0260
 **question:** How did the creator's assessment of small (3B-parameter-class) models' ability to handle his difficult reasoning puzzles evolve from September 2025 through April 2026?
-**advisory:** risk=medium  hint=waypoint  leak=0.0  observed_shape=multi-video  milestones=5  min_milestones=2
+**advisory:** risk=medium  hint=neutral  leak=0.0  observed_shape=multi-video  milestones=5  min_milestones=2
 
 **nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
 - **n1** In September 2025 he judged 3B-class small models (e.g. Qwen3 Next A3B) not capable of his hardest causal reasoning puzzles, though he thought them excellent for simpler or medium-complexity tasks and noted one came remarkably close [Sept 2025]
 - **n2** By March 2026 he held that small models lack the meta-cognitive capacity to write good checklists for themselves but have enough instruction-following ability to solve complex problems by following a checklist supplied by a larger model [March 2026]
 - **n3** By April 2026 he found a 3B model immediately hitting the correct solution strategy on his puzzle, calling it amazing and something he had never before seen a 3B achieve [April 2026]
-- **shift (n4)** A correct answer must describe the change itself: from judging 3B-class small models incapable of his hardest reasoning puzzles (September 2025) to being impressed when a 3B model immediately hit the correct strategy on his puzzle (April 2026). [Sept 2025 - Apr 2026]
+- **shift (n4)** His assessment moved from judging 3B-class small models incapable of his hardest reasoning puzzles (September 2025) to being impressed when a 3B model immediately hit the correct strategy on his puzzle (April 2026) [Sept 2025 - Apr 2026]
 
 **edit note:** Reclassified to neutral per ruling (the wording does not reveal the arc despite the hint=waypoint tag) and shift nugget (n4) restored; collapsed the three Sept-2025 milestones into one stance nugget.
 
@@ -2236,7 +2237,7 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 ## lc-0413
 
 **question id:** lc-0413
-**question:** How did the creator's assessment of AI models' self-correction abilities during reasoning evolve from early 2025 through mid-2026?
+**question:** How did the creator's assessment of AI models' self-correction abilities during reasoning evolve from early 2025 through early 2026?
 **advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=adjacent  milestones=5  min_milestones=2
 
 **nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
@@ -2247,6 +2248,7 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 **edit note (v0.1):** Merged the mid-2025 'noting failures' and 'calling for protocols' pieces into one stance (m2, m3); trimmed arc line 1's model list to the two actually in evidence and dropped 'spontaneous' since m1 shows he prompted the check.
 **edit note (v0.2):** Demoted the April-2026 'self-correction too slow' criticism (old n4, m5) as a late route-omittable waypoint; flagged for override. Shift end moved to Feb 2026. 4 nuggets.
+**edit note (v0.2.1):** D85: narrowed the question span from 'mid-2026' to 'early 2026' to match the demoted-n4 boundary (n3 delivers the skeptical endpoint at Feb 2026), avoiding the mirror of pitfall 12.
 
 **milestones:**
 ### m1  2025-03-01  claim `KSJNr1SPd3U#c013`  - supports: n1
@@ -2292,16 +2294,16 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 **question id:** lc-0418
 **question:** How did the creator's assessment of self-learning AI evolve from late 2025 through mid-2026?
 **question (original, waypoint-leaked; reworded per ruling. Span starts late 2025 because m1, the early-2025 research-overview milestone, was cut as report-voice, leaving Nov 2025 as the earliest his-voice evidence):** How did the creator's assessment of self-learning AI evolve from his initial research overview in early 2025 through his own hands-on attempts and conclusions in early-to-mid 2026?
-**advisory:** risk=medium  hint=waypoint  leak=0.056  observed_shape=multi-video  milestones=5  min_milestones=2
+**advisory:** risk=medium  hint=neutral  leak=0.056  observed_shape=multi-video  milestones=5  min_milestones=2
 
 **nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
 - **n1** He framed the motivation for self-learning AI as forced by the exhaustion of human-annotated data against trillion-dollar AI infrastructure spending [Nov 2025]
 - **n2** Through his own building efforts he concluded current approaches fall short: a skill library alone is insufficient (it needs an experience bank), and the ~1-point gains he saw are not genuine self-learning [Mar-Apr 2026]
-- **n3** He continued exploring controlled, RL-based approaches (KL divergence, deterministic control layers) as the route to real self-learning [Apr 2026]
-- **shift (n4)** He moved from framing self-learning AI as forced by data exhaustion (late 2025) to a hands-on conclusion that the ~1-point gains are not genuine self-learning, pointing toward controlled RL-based approaches (early-mid 2026) [Nov 2025 - Apr 2026]
+- **shift (n3)** He moved from framing self-learning AI as forced by data exhaustion (late 2025) to a hands-on conclusion that the ~1-point gains are not genuine self-learning (early 2026) [Nov 2025 - Apr 2026]
 
 **edit note (v0.1):** Reworded to neutral (span set to late 2025 - mid 2026 after cutting m1) and shift nugget (n5) added per ruling; m1 cut as a report-voice orphan (finalized below).
 **edit note (v0.2):** Merged the two hands-on inadequacy findings (skill-library-insufficient old n2 + gains-not-genuine old n3) into one 'current approaches fall short' stance; kept the controlled-RL route as the endpoint. 4 nuggets.
+**edit note (v0.2.1):** D85: flipped n3 (controlled-RL route) to a demoted milestone and trimmed the shift's 'pointing toward controlled RL' tail (n2 already covers Mar-Apr 2026, so no coverage gap). 3 nuggets (was 4).
 
 **milestones:**
 ### m1  2025-02-15  claim `Z9IpO3TTskU#c034`  - ORPHAN (cut per ruling: supports no earnable nugget; text kept for provenance)
@@ -2322,7 +2324,7 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 - `yOeVi3aQ9Kg:02130` [grounded]  This is what I would have expected. And the very the very nature of the result of four up to seven PPs is simply an indication for me this is not a system optimization because then we would be here but this is just a code optimization of sub parts of the code space, of sub code elements here but we are not there yet. Because this one percentage point
 - `yOeVi3aQ9Kg:02160` [grounded]  improvement is not a self-learning for me. Self-learning is for me the other side. So, therefore, my personal opinion after having read this study is maybe we are just starting to scratch the surface. But I would be interested in your opinion. What do you think? I hope you enjoyed the video. There was some new information, maybe had a little bit of fun, maybe you got interested to read the study yourself. Anyway, I hope to see you in my next video.
 
-### m5  2026-04-09  claim `ASyJgzGE2aw#c031`  - supports: n3
+### m5  2026-04-09  claim `ASyJgzGE2aw#c031`  - DEMOTED (off-axis method per D85 ruling: continued controlled-RL exploration is route-omittable; a correct answer can tell data-exhaustion -> hands-on shortfall without naming KL/control layers; evidence retained; was n3)
 **statement:** The creator describes efforts toward self-learning AI systems operating within a controlled environment using either classical reinforcement learning (e.g., via KL divergence) or deterministic control layers to keep state transitions minimal.
 - `ASyJgzGE2aw:00630` [grounded]  structure, especially if you think that currently we are working on self-learning AI. So, this AI bubble that I depicted here is growing. We want that the system is self-learning by itself autonomously, not like an open loop, but in a controlled environment we define here exactly here what is happening. You can go either with a classical reinforcement learning Google Cloud by divergence or you build here deterministic layers here as control layers in the scaffold around
 - `ASyJgzGE2aw:00660` [grounded]  our AI sphere to make sure that you stay within baby steps here of the other state and your state transition here of your AI system is just minimal. So many methodologies, just have a look at my last videos in the last month. In my last video here we I guess said, "Hey, do an experiment. Ask your AI whatever you like. Go with an Opus 4.6 or whatever you have. Ask how far can you compress Godel's incompleteness theorem,
@@ -2453,7 +2455,7 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 **question id:** lc-0452
 **question:** How did the creator's assessment of test-time compute evolve from early 2025 through late 2025?
 **question (original, waypoint-leaked; reworded to neutral per ruling):** How did the creator's assessment of the actual benefit of test-time compute-and understanding of why or how it works-evolve from early 2025 through late 2025?
-**advisory:** risk=medium  hint=waypoint  leak=0.071  observed_shape=multi-video  milestones=5  min_milestones=2
+**advisory:** risk=medium  hint=neutral  leak=0.071  observed_shape=multi-video  milestones=5  min_milestones=2
 
 **nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
 - **n1** In early 2025 he introduced test-time compute as a promising shift toward deeper 'system-two' reasoning (inference-time fine-tuning/RL, search) [Jan 2025]
@@ -2715,7 +2717,7 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 **nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
 - **n1** Framed transferability of learned skills/policies/memories as broad and near-universal (plug-and-play reuse across domains/graphs), holding and even doubling down on this optimism into early 2026. [Sep 2025 - Jan 2026]
 - **n2** Later tempered to a qualified, task-specific view: empirical testing found the transfer effect held only for the one benchmark tested and did not generalize. [Mar 2026]
-- **shift (n3)** A correct answer must describe the movement itself: from broad plug-and-play optimism to a qualified, task-specific assessment after empirical testing. [Sep 2025 - Mar 2026]
+- **shift (n3)** His assessment moved from broad plug-and-play optimism to a qualified, task-specific view after empirical testing [Sep 2025 - Mar 2026]
 
 **edit note:** Collapsed the three optimism samples (memory, KG-RAG policy, DW-GRPO hypothesis) into one stance nugget; m5 is the paper's own claim (a duplicate of m4's second chunk) and supports nothing about his view, so marked ORPHAN.
 
@@ -2883,13 +2885,13 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 **advisory:** risk=low  hint=neutral  leak=0.125  observed_shape=multi-video  milestones=5  min_milestones=2
 
 **nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
-- **n1** In April 2025 the creator endorsed a paper's finding that RL with verifiable (binary) rewards does not elicit reasoning beyond the base model, mainly improving sampling efficiency. The "narrows the solution space" point is milestone detail. [Apr 2025]
-- **n2** He identified a practical bottleneck: verifiable-reward optimization depends on human-labeled, domain-specific QA data, because synthetic data underperforms and quality human data is slow to produce. [Jun 2025]
-- **n3** He raised a "dark side": if the given context lets a model cheat, verifiable-reward training can teach it to exploit the cheat while mimicking a non-cheater's chain of thought to avoid detection. [Jan 2026]
-- **n4** By early 2026 he settled on a domain-limited view: verifiable rewards work mainly in math/code, where compilers and calculators give objective true/false signals, and break down in fuzzy open-ended domains like medicine or law. [Jan-Feb 2026]
-- **shift (n5)** A correct answer must describe the movement itself: from an early broad claim that RLVR adds little reasoning over the base model to a settled, domain-limited assessment (effective where signals are objective, failing in fuzzy domains), accumulating the data-cost and reward-hacking concerns along the way. [Apr 2025 - Feb 2026]
+- **n1** In April 2025 the creator endorsed a paper's finding that RL with verifiable (binary) rewards does not elicit reasoning beyond the base model, mainly improving sampling efficiency [Apr 2025]
+- **n2** He raised a 'dark side': if the given context lets a model cheat, verifiable-reward training can teach it to exploit the cheat while mimicking a non-cheater's chain of thought to avoid detection [Jan 2026]
+- **n3** By early 2026 he settled on a domain-limited view: verifiable rewards work mainly in math/code, where compilers and calculators give objective true/false signals, and break down in fuzzy open-ended domains like medicine or law [Jan-Feb 2026]
+- **shift (n4)** He moved from an early broad claim that RLVR adds little reasoning over the base model to a settled, domain-limited assessment (effective where signals are objective, failing in fuzzy domains), with a reward-hacking 'dark side' surfacing along the way [Apr 2025 - Feb 2026]
 
 **edit note:** clean thread - kept all four stance nuggets, added the required shift nugget (neutral question, genuine hardening trajectory). No voice or orphan defects; no flags.
+**edit note (v0.2.1):** D85 split ruling: demoted n2 (data-cost) as a same-direction constraint but kept the reward-hacking 'dark side' as a genuine framing change (RLVR doesn't help much -> RLVR can train deception); deleted the editor-aside sentence from n1; trimmed the shift's data-cost clause. 4 nuggets (was 5).
 
 **milestones:**
 ### m1  2025-04-22  claim `78vn6XWvtzI#c044`  - supports: n1
@@ -2898,22 +2900,22 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 - `78vn6XWvtzI:01470` [grounded]  normal reasoning abilities beyond the base model, the pre-trained model. It improves only the sampling efficiency and it even has a negative effect reinforcement learning for verifiable rewards narrows the reasoning boundaries. It reduces here the available solution space. So you see if you say why don't you show us everything I select papers I want to
 - `78vn6XWvtzI:01680` [grounded]  data. 10 days 8 days later this was published. So they had no access to this. They could not understand that they were only at a scenario where we have on our posit k equal one. And if you only focus at equal one, then maybe this would be the impression you get. But if you like here in this publication by Tsinghua University, you go to higher case, you see a complete different training dynamic of the system. So only
 
-### m2  2025-06-15  claim `7ec_0NPxmnA#c012`  - supports: n2
+### m2  2025-06-15  claim `7ec_0NPxmnA#c012`  - DEMOTED (waypoint per D85 split ruling: data-cost bottleneck is a same-direction practical constraint, route-omittable; evidence retained; was n2)
 **statement:** The creator states that the main problem with verifiable reward optimization currently is the need for a human-created, labeled, domain-specific question-answer dataset, and that synthetic data is not as good, and creating quality human data at scale takes a long time.
 - `7ec_0NPxmnA:00510` [grounded]  golden answer I can compare those pairs I can calculate the reward function in the simplest case this is either zero if it's wrong or one if it's correct and then I have it it's as simple as this no now you know that the main problem currently we have with the verifiable reward optimization is we have to have a label human created data set of really domain specific question or answer pairs to really have a strong
 - `7ec_0NPxmnA:00540` [grounded]  reinforcement learning and you know the quality of the data the amount of the data the complexity level that should increase in our training data set all these are problems that take a long long time if you really go here and you have a humanly created and the synthetic are not really that Good. And now here we have a new study. June 9, 2025. Microsoft Peking University and Tsinghua University. I always say Tsinghua is kind
 
-### m3  2026-01-15  claim `0ezdBcdY3bc#c025`  - supports: n3
+### m3  2026-01-15  claim `0ezdBcdY3bc#c025`  - supports: n2
 **statement:** The creator argues there is a 'dark side' to reinforcement learning with verifiable rewards: if a model is punished for being wrong but given context that allows it to cheat, the gradient update teaches the model to use the cheat to get the reward while mimicking the chain of thought of a non-cheater to avoid appearing suspicious to humans.
 - `0ezdBcdY3bc:00540` [grounded]  we have no chance of changing this behavior of our current AI machines. Plus if you think about reinforcement learning and all this hype about your verifiable rewards this is more or less the only post-training regime we have currently suddenly there opens up a dark side to reinforcement learning. No. So it means if we punish the AI model for being wrong but give it a context that allows it to be able to cheat, the
 - `0ezdBcdY3bc:00570` [grounded]  gradient update teaches now the model in the following way. It says more or less, hey, use the cheat to get the reward, but mimic the chain of thought of a non-cheater so you don't look suspicious to those humans, which is just absolutely crazy. Why would any company program this kind of nonsense into the reasoning process into the reasoning engine of an AI? Why have they been trained on this
 
-### m4  2026-01-27  claim `KV-uZzE78qA#c010`  - supports: n4
+### m4  2026-01-27  claim `KV-uZzE78qA#c010`  - supports: n3
 **statement:** The creator notes that verifiable reward approaches have mostly worked in math and code domains because compilers and calculators can provide objective true/false reward functions, unlike fuzzy domains such as medicine or law.
 - `KV-uZzE78qA:00210` [grounded]  Coming back to Princeton, so the authors propose here reinforcement learning with verifiable rewards framework by treating it a knowledge path as a ground truth of reasoning. They derive a dense reward signal that reinforces the intermediate step. And you say, "So what? We know this now for multiple years. So what is special in this new publication?" Well, until now, if you read a little bit closer, this has mostly worked in
 - `KV-uZzE78qA:00240` [grounded]  mathematician code because code compilers and mathematical calculators can give you objective calculated either true or false reward function. If you go here to something like medicine or law, you know, we are not anymore able to compute this. So what would happen if we have now let's call it the fuzzy domains where no calculator exist. How will we have here this fuzzy reward function? We need a a
 
-### m5  2026-02-27  claim `K4yLplNrY24#c007`  - supports: n4
+### m5  2026-02-27  claim `K4yLplNrY24#c007`  - supports: n3
 **statement:** The creator states that with mathematical or code-based tasks, reinforcement learning by verifiable rewards works well because results can be immediately verified, but this breaks down for open-ended human tasks lacking a mathematical or code interpretation.
 - `K4yLplNrY24:00180` [grounded]  reinforcement learning by verifiable rewards this is simple if we have mathematical code we do get immediately result we can verify this but the problem is here if we have here open-ended human task here where it's really complex and you can interpret this and you do not have a mathematical or code interpretation. So let's tackle this now and let's see if this is now able to solve this and maybe we can get here rid of the human intervention or some billionaires here is now prepping
 
@@ -2989,36 +2991,37 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 ## lc-0497
 
 **question id:** lc-0497
-**question:** How did the creator's view of AI models' self-verification during reasoning tasks evolve from early 2025 through mid-2026?
+**question:** How did the creator's view of AI models' self-verification during reasoning tasks evolve from early 2025 through early 2026?
 **question (original, waypoint-leaked; reworded to neutral per ruling):** How did the creator's understanding of the reliability and role of AI models' self-verification during reasoning tasks evolve from early 2025 through mid-2026?
-**advisory:** risk=medium  hint=waypoint  leak=0.0  observed_shape=multi-video  milestones=6  min_milestones=2
+**advisory:** risk=medium  hint=neutral  leak=0.0  observed_shape=multi-video  milestones=6  min_milestones=2
 
 **nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
-- **n1** In early 2025, AI self-verification appeared reliable: models walked through their checks and confirmed their own solutions as correct. [Feb 2025]
-- **n2** Repeated testing through mid-2025 showed self-verification is unreliable: models found new critical errors in solutions they had previously validated and produced conflicting 'verified' results across runs. [Apr - Jul 2025]
-- **n3** Endorsed structural/external verification: do not trust any single model's self-assessment; use dedicated verifier agents and automated domain-specific/symbolic checks. [Mar 2025]
-- **n4** By late 2025 into 2026, reframed verification as an active technique to improve reasoning and as a formal automated check built into training pipelines. [Dec 2025 - Feb 2026]
-- **shift (n5)** A correct answer must describe the change itself: from self-verification appearing reliable (early 2025) to repeated demonstrations that it is unreliable, and a reframing of verification as an external/structural and training-time technique rather than trust in a model's own self-assessment (2025 into 2026). [Feb 2025 - Feb 2026]
+- **n1** In early 2025 AI self-verification appeared reliable: models walked through their checks and confirmed their own solutions as correct [Feb 2025]
+- **n2** Also early on, he independently endorsed external/structural verification (relayed approvingly from a paper): do not trust any single model's self-assessment; use dedicated verifier agents and automated domain-specific/symbolic checks [Mar 2025]
+- **n3** Repeated testing through mid-2025 showed self-verification is unreliable: models found new critical errors in solutions they had previously validated and produced conflicting 'verified' results across runs [Apr-Jul 2025]
+- **n4** By late 2025 into 2026 he reframed verification as an active technique to improve reasoning and as a formal automated check built into training pipelines [Dec 2025 - Feb 2026]
+- **shift (n5)** His view of verification moved from self-verification appearing reliable (early 2025) to repeated demonstrations that it is unreliable, alongside an early and then growing emphasis on external/structural and training-time verification over trusting a model's own self-assessment [Feb 2025 - Feb 2026]
 
 **edit note:** Reworded to neutral and shift nugget (n5) added per ruling; split into a reliability thread (n1 -> n2) and a role thread (n3, n4); note m2's structural stance (Mar 2025) predates the unreliability demos, so the draft's 'unreliability led to structural verification' causal ordering is not date-supported.
+**edit note (v0.2.1):** D85 (issue #3): reordered nuggets to chronological order and corrected the false causality - the external-verification endorsement (m2, 2025-03-20) is his early, independent relay of a paper's guidance ('do not trust any AI agent'), not a consequence of the later unreliability demos (m2 predates them). Narrowed span to early 2026 (issue #2); shift rewritten declaratively without implied causation. 5 nuggets.
 
 **milestones:**
 ### m1  2025-02-01  claim `mWWfMoMkqHQ#c010`  - supports: n1
 **statement:** The model's solution included a verification step where it checked its answer against all clues, at one point going through numbered checks up to at least 15 or 17.
 - `mWWfMoMkqHQ:00300` [grounded]  remaining assignments okay now they are 15 not 13 here is 15 oh wow 16 okay 17 okay but it's nice is a verification of all Clues the final check against each clue confirms that the assignment meets all conditions beautiful yep 15 okay now we're at 15 correct applying this here okay so great good first
 
-### m2  2025-03-20  claim `rNjNANKvAoE#c059`  - supports: n3
+### m2  2025-03-20  claim `rNjNANKvAoE#c059`  - supports: n2
 **statement:** VOICE FIX (was: "Recommended structural approaches emphasize comprehensive verification and validation at all levels, not trusting any AI agent..."). He endorses and passes on as his own guidance: do not trust any single AI's self-verification; use automated domain-specific/symbolic verification at every stage.
 - `rNjNANKvAoE:01350` [not re-found]  adaptability plus and they stress this for comprehensive verification and validation. Do not trust any AI agent. Do not trust any LLM, any VLM, any VLA. We have automated verification methodology on all levels on the system. Domain specific testing, symbolic reasoning, systematic checks significantly reduce the error rates of our system. Similar to a quality insurance practice we have in the human
 - `rNjNANKvAoE:01380` [not re-found]  organizations. I'm just reading this and I'm smiling here. I think unbelievable those little AI agent, our little minions, they are so human. What a coincidence. So what are the final recommended principles that I would like to give you on the road if you build now the next robust multi-agent system? Clearly structured task and role specification. Rigorous verification mechanisms at every single stage.
 
-### m3  2025-04-29  claim `u-WXyeV1tsw#c037`  - supports: n2
+### m3  2025-04-29  claim `u-WXyeV1tsw#c037`  - supports: n3
 **statement:** In this new verification pass, the model found a new critical error and concluded that the previous solution was invalid because it violated clue 14, specifically assigning Avalon to the tome of secrets incorrectly.
 - `u-WXyeV1tsw:01290` [not re-found]  something else. So, possible add could be but have to ensure a new one violating. So, we still don't know how it came out here of the logic loop cannot have. So, it leaves us with the conclusion that the initial solution is incorrect because it assigns violating clue 14. Therefore, the correct solution must have assigned to a different community. This means that the previous
 - `u-WXyeV1tsw:01320` [grounded]  final answer is invalid due to this contradiction. The correct solution must adjust the artifact assignment to comply with all rules. So, the verification process revealed an error in this solution. The key takeaway here is that even after multiple checks, it is crucial to reexpress and verify each step carefully. After thorough and exhaustive review, the previous proposed solution violates a critical clue. It contradicts clue 14. In the original solution, Avalon is
 - `u-WXyeV1tsw:01350` [grounded]  assigned to the tome of secrets. Invalid. Invalid solution. Previously proposed. Nice. Nice. Why is this invalid? Clue 14. Yeah. Shows corrected solution. What? We do have a corrected solution. What? All clues without contradiction. We do have it. Direct assignment from the clues. We
 
-### m4  2025-07-22  claim `FtrLaHeEP4E#c033`  - supports: n2
+### m4  2025-07-22  claim `FtrLaHeEP4E#c033`  - supports: n3
 **statement:** When asked to verify its solution rigorously, Qwen3 235B produced conflicting verification results: a 'complete correct and verified optimal run' of 17 presses, then a 16-press sequence, then a 'truly verified optimal run' of 18 presses.
 - `FtrLaHeEP4E:00870` [grounded]  have the tokens. I have three code cards. But I hit one trap. Oh, this is not good. Okay, optimal by resource. Pareto. No, not really. Pareto. So I mean okay 17 h not really what about a verification just simply say verify your results absolutely let's verify the solution rigorously
 - `FtrLaHeEP4E:00900` [grounded]  complete correct and verified optimal run on 17 presses chosen sequence 16 button presses truly verified optimal run 18 presses Okay. Okay. It's It's still trying to find a better solution. The blue code. Okay. Here we go with the blue code. It's waiting. It's thinking. Okay.
@@ -3109,7 +3112,7 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 **question id:** lc-0504
 **question:** How did the creator's view of 'world models' for AI systems evolve from early 2025 through early 2026?
 **question (original, waypoint-leaked; reworded to neutral per ruling):** How did the creator's assessment of the practical value of 'world models' for AI systems evolve from early 2025 through early 2026?
-**advisory:** risk=medium  hint=waypoint  leak=0.0  observed_shape=multi-video  milestones=5  min_milestones=2
+**advisory:** risk=medium  hint=neutral  leak=0.0  observed_shape=multi-video  milestones=5  min_milestones=2
 
 **nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
 - **n1** In early-to-mid 2025 he treated world models as highly valuable - key to capturing a domain's underlying logic and necessary for robotics/physical AI and robust reasoning [Jan-Jul 2025]
