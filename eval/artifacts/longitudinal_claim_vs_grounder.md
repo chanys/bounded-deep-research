@@ -3,19 +3,31 @@
 EXPLORATORY: longitudinal is out of scored scope (D75). This is for eyeballing only.
 Per candidate: the question, the trajectory arc, and each dated milestone with its claim + source chunk(s) ([grounded] = grounder re-found it). notes = skip.
 
+## Provenance (gold-v0.2)
+
+- Version: **gold-v0.2** (turning-point sweep). Supersedes gold-v0.1.
+- Pre-edit nugget/trajectory versions are preserved in the backup file `longitudinal_gold_preedit_nuggets_v0.1.md` (this directory) and in the pre-edit commit `f9379e6`.
+- What changed: waypoints and off-axis items demoted to milestone evidence (kept on the page, tagged `DEMOTED ...`); the three mega-line bundles the audit isolated (lc-0130, lc-0233, lc-0388) trimmed/split; lc-0014 rewritten to the two-thread arc, its span widened to March 2026, and a voice-checked scientific-AGI milestone (m7) added. Rationale: `../bounded-deep-research-notes/eval/gold_v0_2_turning_points_motivation.md`.
+- Questions changed in v0.2 (29): lc-0011, lc-0014, lc-0024, lc-0026, lc-0027, lc-0061, lc-0070, lc-0081, lc-0087, lc-0111, lc-0123, lc-0127, lc-0130, lc-0177, lc-0179, lc-0223, lc-0233, lc-0251, lc-0344, lc-0349, lc-0388, lc-0398, lc-0413, lc-0418, lc-0448, lc-0452, lc-0476, lc-0481, lc-0504.
+- Not listed above were reviewed under the turning-point rule and retained unchanged.
+- Scoring reminder: each nugget is marked hit/miss (binary); recall = hits/total; a nugget's window is part of the claim; the shift (or no-change) nugget is logged separately.
+
+---
+
 ## lc-0011
+
 **question id:** lc-0011
 **question:** How did the creator's assessment of agentic AI's real-world capability and impact evolve from early 2025 through early 2026?
 **advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=adjacent  milestones=5  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** In February 2025 he was optimistic that agentic AI could already perform all desired science and research tasks (including web search) if given proper source-reliability definitions [Feb 2025]
-- **n2** By August 2025 he had tempered that optimism: on realistic evaluation, agentic AI systems performed poorly (at best around 30%, only GPT-5 and Grok 4 higher), and common agentic benchmarks were too simplistic and weakly evaluated [Aug 2025]
-- **n3** By early 2026 he concluded the anticipated 2025 agentic-AI revolution had stalled and the autonomous-AI-software-engineer job-replacement narrative had not materialized at scale [early 2026]
-- **n4** He identified persistent reliability bottlenecks in agentic/RAG systems, notably unresolved conflicts between a model's pre-trained knowledge and newly retrieved information [early 2026]
-- **shift (n5)** He moved from early-2025 optimism that agentic AI could already do the work, through a mid-2025 tempering as realistic evaluations showed weak agentic performance, to an early-2026 conclusion that the promised agentic revolution had stalled [Feb 2025 - Jan 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** He was optimistic about agentic AI's real-world capability and near-term impact [early 2025]
+- **n2** He tempered that view: on realistic evaluation, agentic performance was weak [mid 2025]
+- **n3** He concluded the anticipated agentic-AI revolution had stalled [early 2026]
+- **shift (n4)** He moved from early-2025 optimism, through a mid-2025 tempering, to an early-2026 conclusion that the promised agentic revolution had stalled [Feb 2025 - Jan 2026]
 
-**edit note:** Voice-fixed the reliability milestone (paper's 'critical bottleneck' recast to his adopted concern); collapsed the two early-2026 milestones into one 'revolution stalled' stance; kept m6 (sub-agent-orchestration description) as an orphan. Per ruling: restored the mid-2025 tempering nugget (n2) and added milestone m2 (bPbkT7MtwGE, 2025-08-21) from the chunk store as its evidence - the coverage check surfaced the evidence the draft never sampled.
+**edit note (v0.1):** Voice-fixed the reliability milestone (paper's 'critical bottleneck' recast to his adopted concern); collapsed the two early-2026 milestones into one 'revolution stalled' stance; kept m6 (sub-agent-orchestration description) as an orphan. Per ruling: restored the mid-2025 tempering nugget (n2) and added milestone m2 (bPbkT7MtwGE, 2025-08-21) from the chunk store as its evidence - the coverage check surfaced the evidence the draft never sampled.
+**edit note (v0.2):** Worked example. Trimmed one-video specifics (science/research framing, 30% ceiling, SWE narrative) to milestones; demoted the RAG-bottleneck point (old n4, m5) as a route-omittable waypoint; unbundled old n3. 4 nuggets.
 
 **milestones:**
 ### m1  2025-02-22  claim `TUo1VeeBgOU#c036`  - supports: n1
@@ -36,7 +48,7 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 - `dxu3BJSjEdk:00270` [grounded]  that we can really say do you have to have a university degree to be called a skilled technical worker are you then a professional coder so there are a lot of yeah so it is between 40 million and 50 million people globally. Now the narrative of 2025 was it's supposed to be the year of the AI software engineer. We have autonomous agents capable of taking here all the different jobs here without any human intervention. Now at the end of 2025 we
 - `dxu3BJSjEdk:00300` [grounded]  can say no those AI machines tell us this reality has not materialized at scale because there was a resistance that is deeply rooted here what they call here the AI trust paradox the positive favorability towards here broad to the tools dropped from over 70% in 2023 24 to just 60% in 2025 so trust is declining So the core driver now if you want of
 
-### m5  2026-01-25  claim `BmzdS-a-G8g#c010`  - supports: n4
+### m5  2026-01-25  claim `BmzdS-a-G8g#c010`  - DEMOTED (waypoint per turning-point rule: RAG pre-trained-vs-retrieved bottleneck, route-omittable; evidence retained; was n4)
 **statement:** VOICE FIX (was: "The authors state that resolving which knowledge source wins (pre-trained model vs. RAG) is a real critical bottleneck..."). He adopts the paper's point as his own concern: the unresolved conflict between a model's pre-trained knowledge and RAG-retrieved data is a real reliability bottleneck in agentic/RAG systems.
 - `BmzdS-a-G8g:00210` [not re-found]  already explored here what does misinformation do to an LLM let's say you connect to an LLM and you you do not agree with what this LLM provides to you can you as a user override it here for your context window in general will also now reason with the overwritten information or not. We do have an internal conflict in the LLM and we have unknown error propagation in our large
 - `BmzdS-a-G8g:00240` [not re-found]  language model. Who wins the pre-trained model or whatever RAG is providing a new data? They say [clears throat] listen this is a real critical bottleneck in the reliability of the agentic AI and all the RAG system because if this fails we do have a problem in the reasoning. So let's talk about the illusion of a RAG success story. Now it is of course back to our
@@ -56,19 +68,20 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 
 ---
 ## lc-0014
+
 **question id:** lc-0014
-**question:** How did the creator's characterization and assessment of AGI/superintelligence as a goal for AI development evolve from mid-2025 through early 2026?
+**question:** How did the creator's characterization and assessment of AGI/superintelligence as a goal for AI development evolve from mid-2025 through March 2026?
 **advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=multi-video  milestones=6  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** In mid-to-late 2025 he was skeptical that scaling alone would produce AGI, citing his own poll where only about 2% thought GPT-5 had delivered it [mid-late 2025]
-- **n2** He argued AGI/superintelligence might not even be necessary, since a robust algorithm on near-unlimited compute searching a defined solution space could find precise solutions [late 2025]
-- **n3** By late 2025 he described the framing shifting from a single AGI/superintelligence toward a 'social construct' of multiple coordinated agents [late 2025]
-- **n4** By early 2026 he grew dismissive, treating AGI/superintelligence talk as largely a marketing slogan [early 2026]
-- **n5** By March 2026 he described AI fragmenting into simple hard-coded patterns, a reversal he likened to 1980s neural networks rather than the promised emergent superintelligence [early-mid 2026]
-- **shift (n6)** He hardened from mid-2025 skepticism (scaling won't deliver AGI, and it may not even be needed) to early-2026 dismissal of AGI as marketing and finally a declared reversal away from emergent superintelligence [mid 2025 - March 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** He was skeptical that scaling alone would deliver AGI [mid 2025]
+- **n2** He dismissed AGI/superintelligence talk as largely marketing [early 2026]
+- **n3** He still treated scientific AGI as a long-term research goal [late 2025 - early 2026]
+- **n4** He called the fragmentation into hard-coded skills a reversal away from emergent superintelligence [March 2026]
+- **shift (n5)** His skepticism hardened into dismissal and a declared reversal, while he retained scientific AGI as a distant goal [mid 2025 - Mar 2026]
 
-**edit note:** All milestones are his own voice (m4's 'I would not stress this part' correctly captures his dismissal, not the paper's claim); collapsed m5+m6 into one March-2026 fragmentation/reversal stance; no orphans.
+**edit note (v0.1):** All milestones are his own voice (m4's 'I would not stress this part' correctly captures his dismissal, not the paper's claim); collapsed m5+m6 into one March-2026 fragmentation/reversal stance; no orphans.
+**edit note (v0.2):** Worked example plus the two-thread ruling. Added n3 (scientific AGI retained as a distant goal), evidenced by new m7 (0bcaINHdUU8:01050,01080, 2025-12-15), voice-checked: his own 'positive note ... progress toward scientific AGI ... next multiple years, hopefully', distinct from the ARC-leaderboard AGI he mocks. Widened question span to March 2026 (n4 rests on 2026-03-17). Demoted 'AGI unnecessary given compute' (m2) and 'social construct of agents' (m3) to milestone waypoints. 5 nuggets.
 
 **milestones:**
 ### m1  2025-08-11  claim `GohEyWrex4s#c003`  - supports: n1
@@ -76,31 +89,36 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 - `GohEyWrex4s:00000` [grounded]  Hello community. What is our most important weapon to conquer AGI? It is to reduce the complexity. Let's have a look. A day ago, I asked in my community, hey, what do you think about GPT-5? 60% told me GPT-5 was overhyped. 38% said incremental performance jump with with GPT-5. And only 2% out of 760 votes said GPT-5 finally delivered AGI.
 - `GohEyWrex4s:00030` [grounded]  So interesting. The majority of you think it's not really happened yet with AGI. No. So now marketing wise, OpenAI did a perfect job. Remember when Sam posted he was afraid of the intelligence of GPT-5 and AGI? My goodness, what's going to happen to mankind? Now we know it but we have other companies that now assemble here the super intelligent team and other companies here that go for a hyper intelligence. So why stay super if you
 
-### m2  2025-09-09  claim `L5ZPvG3sva8#c032`  - supports: n2
+### m2  2025-09-09  claim `L5ZPvG3sva8#c032`  - DEMOTED (waypoint per turning-point rule: 'AGI unnecessary given brute compute', route-omittable; evidence retained; was n2)
 **statement:** The creator argues that this approach means AGI or superintelligence is not needed, because a robust algorithm running on almost unlimited compute infrastructure that searches a complete mathematically defined solution space can find all possible solutions with absolute precision without needing an elegant or superintelligent solution.
 - `L5ZPvG3sva8:00841` [grounded]  corporation. Just read what OpenAI says how many more than hundred billion dollars they will burn just operating costs in their new data centers. And you know what is amazing? You know what is the consequence of all this? We don't need AGI. We don't need super intelligence itself. Because we do have a robust algorithm on an almost unlimited computer
 - `L5ZPvG3sva8:00871` [grounded]  infrastructure. And if this is an algorithm that really searches here the complete mathematically defined solution space of our physical chemical biochemical system. Then there is no need for a super intelligent for an elegant solution because with absolute precision this mechanism will scan all of the available mathematical solution space and will
 
-### m3  2025-10-30  claim `yoZLlpi5pBw#c021`  - supports: n3
+### m3  2025-10-30  claim `yoZLlpi5pBw#c021`  - DEMOTED (waypoint per turning-point rule: 'social construct of agents', route-omittable; evidence retained; was n3)
 **statement:** The creator states that the framing has shifted from a single AGI or superintelligence to a 'social construct' of multiple agents, raising the question of designing an optimal framework for human-AI interaction and coordination.
 - `yoZLlpi5pBw:00450` [grounded]  not anymore about individual agents. It is now for a if you want a social dynamic of a multitude of learning entities agents that emerges where the collective intelligence of a group definitely surpasses the intelligence of any single individual agents. So suddenly we're not talking about about a single if you want AGI or super intelligence or hyper intelligence but we have here a social construct
 - `yoZLlpi5pBw:00480` [not re-found]  and now the task suddenly became hey how can we design the optimal framework for a new human AI interaction network augmentation system work together however you want to call Now just imagine we have here a group of students here in a classroom and they give him here a particular task. Hey, let's think about a new form of
 
-### m4  2026-02-26  claim `jUz-RCjcHuE#c044`  - supports: n4
+### m4  2026-02-26  claim `jUz-RCjcHuE#c044`  - supports: n2
 **statement:** The paper contains a chapter on superintelligence or AGI, but the creator chooses not to present this idea, considering it more a marketing slogan than a core focus.
 - `jUz-RCjcHuE:00990` [grounded]  more and more interesting for me. Now I have to tell you they also have here a chapter about super intelligence or AGI and is this the way to AGI? I will not present you this idea because I think there are so many other benefits of this system and I don't have to address AGI as a marketing slogan here. Now what are the main insight of this beautiful paper? You remember we had prompt engineering
 - `jUz-RCjcHuE:01380` [grounded]  necessary for true emergent intelligence. Now as I told you the authors have here this idea of AGI and super intelligent and the emergent intelligence. I would not stress this particular part of this particular focus of the paper but I think the idea of an agent operating system is for super intelligent or not the idea is just brilliant and the authors show us that we can solve so many problems with this implementation
 
-### m5  2026-03-17  claim `9kox34X9IQs#c026`  - supports: n5
+### m5  2026-03-17  claim `9kox34X9IQs#c026`  - supports: n4
 **statement:** The creator argues that as of mid-March 2026, AI is undergoing atomic fragmentation into simple sequences, simple patterns, and simple workflows that are hard-coded into systems, representing a 180-degree turn away from the promised emergent superintelligence/AGI.
 - `9kox34X9IQs:00630` [grounded]  of knowledge of understanding of whatever you want to call it. And we went back here with the basic elements here. And at this [clears throat] very time when everybody was doing here the skills and Anthropic and everything beautiful, I thought is this a decoy? Is this a decoy by a global AI corporation? But think about what AI is today and I'm talking here about mid-March 2026. What we hap what is happening today in AI is an atomic fragmentation into real simple sequences
 - `9kox34X9IQs:00660` [grounded]  into real simple patterns that we have into real simple workflow that we have as humans to code hard code into systems and yeah workflow is is more or less a skill where you have your MCPA what exactly is here the sequence of action you want to be executed no so suddenly we make a 180-degree turn from this super AI intelligence that knows everything has this emergence of the AGI or whatever and suddenly we are back to an
 - `9kox34X9IQs:00690` [grounded]  automatic fragmentation of simple sequences of simple patterns and you might say why did we use here the neural network learning we now we are back to the beginning where we started in the 1980s and I was completely sad and said where is the ghost in the AI machine where is this promised emergence of intelligent remember Samman we just have to make them big enough and then suddenly super
 
-### m6  2026-03-17  claim `9kox34X9IQs#c027`  - supports: n5
+### m6  2026-03-17  claim `9kox34X9IQs#c027`  - supports: n4
 **statement:** The creator compares the current state of AI to returning to the neural network approaches of the 1980s, expressing sadness that the promised 'ghost in the machine' emergence of superintelligence has not appeared.
 - `9kox34X9IQs:00690` [grounded]  automatic fragmentation of simple sequences of simple patterns and you might say why did we use here the neural network learning we now we are back to the beginning where we started in the 1980s and I was completely sad and said where is the ghost in the AI machine where is this promised emergence of intelligent remember Samman we just have to make them big enough and then suddenly super
 - `9kox34X9IQs:00720` [grounded]  intelligence or AGI or hyper intelligence whatever we might call it no then suddenly it is happening we don't have to do a fragmentation we don't have to divide divide the complexity and simpler and simpler and simpler subtask and so on so where is it and I was promised this by OpenAI I definitely remember a statement here by same old man no starting from you're going to cure cancer within a very short time if we have this system to yeah you know what I mean
+
+### m7  2025-12-15  chunks `0bcaINHdUU8:01050,01080`  - supports: n3
+**statement:** He frames a 'positive note' in his own voice: progress toward scientific AGI (via neurosymbolic / advanced tool use / supercomputing) is coming 'in the next multiple years, hopefully' - treated as a genuine long-term research goal, explicitly contrasted with the ARC-leaderboard 'AGI' hype he then mocks. [promoted from the chunk store per ruling; voice-checked - his own adopted stance, not neutral paper-reporting]
+- `0bcaINHdUU8:01050` [promoted from chunk store]  And I want to close this video with the positive AGI, you know. And here you have it here. This is here the original paper and they say, "Okay, so it underscored the necessity of integrating explicit domain knowledge like neurosymbolic, like advanced tool use, like supercomputing, you know, for a progress toward scientific AGI."
+- `0bcaINHdUU8:01080` [promoted from chunk store]  So, we do have, and this is the positive note, progress toward scientific AGI coming up in the next multiple years, hopefully. But of course, a lot of you asked me about AGI and the leaderboard. Hey, we are there, you know. Look at the ARC AGI leaderboard. We are 99% with AI. Well, wait a minute.
 
 **other grounder chunks (found by grounder, not a milestone claim chunk):**
 - `9kox34X9IQs:00390` [grounder]  roleplaying AI everybody recommended to you yes if you have a scientific AI you just define no answer me as an MD or as a scientist or a computer scientist whatever and everybody saw this is here the solution to a further specialization and of course we had this other on the human AI side now if people just wanted to talk with somebody they were alone during I don't know 2:00 in the morning so we had you ask here at URI to respond as a sociologist, psychologist,
@@ -141,18 +159,19 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 
 ---
 ## lc-0024
+
 **question id:** lc-0024
 **question:** How did the creator's overall assessment of the current state and authenticity of AI reasoning evolve from February 2025 through early 2026?
 **advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=multi-video  milestones=5  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** Early on he framed genuine reasoning as going beyond surface pattern-copying to uncover what a person actually believes and intends [early 2025]
-- **n2** By March 2025 he concluded AI reasoning is fundamentally unsolved, pushing back on claims AI had already reached AGI/superintelligence [March 2025]
-- **n3** By mid-2025 he proposed mapping natural language to a formal logical representation solvable by code rather than reasoning directly over unstructured text [mid 2025]
-- **n4** By late 2025 into early 2026 his assessment hardened to conclude AI's rationality patterns are merely roleplayed rather than genuinely implemented (a 'brutal call back to reality'; debugging a 'press statement') [late 2025 - early 2026]
-- **shift (n5)** He moved from framing reasoning as a genuine deeper capability to concluding by early 2026 that AI reasoning is not authentic but roleplayed [Feb 2025 - Jan 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** He treated reasoning as a genuine but limited/improvable capability [early 2025]
+- **n2** He grew doubtful that the displayed reasoning is genuine [spring-mid 2025]
+- **n3** He concluded reasoning is roleplayed, not genuinely implemented [late 2025 - early 2026]
+- **shift (n4)** His framing moved from genuine-capability, through doubt, to roleplayed [Feb 2025 - Jan 2026]
 
-**edit note:** Collapsed m4+m5 into one hardening stance (both evidence 'reasoning is not genuine'); trimmed the unsupported 'reasoning can be undermined by unreliable input' clause from arc point 1 (no milestone); all milestones his own voice.
+**edit note (v0.1):** Collapsed m4+m5 into one hardening stance (both evidence 'reasoning is not genuine'); trimmed the unsupported 'reasoning can be undermined by unreliable input' clause from arc point 1 (no milestone); all milestones his own voice.
+**edit note (v0.2):** Worked example. Merged the mid-2025 skeptical samples into one 'doubt' turn (n2, evidenced by m2 'fundamentally unsolved'); demoted the formal-logic proposal (old n3, m3) as off-axis. 4 nuggets.
 
 **milestones:**
 ### m1  2025-02-14  claim `gnJqsO8Mm1w#c015`  - supports: n1
@@ -164,16 +183,16 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 **statement:** The creator concludes that AI reasoning is fundamentally unsolved, contrary to claims that AI has already achieved AGI or super/hyper intelligence.
 - `vpNmKN2szt8:02130` [grounded]  reasoning outlook yeah outlook is of course my next video it's raining outside I have to go outside a little bit walk in the rain get the rain on my face and yeah isn't it beautiful isn't it gorgeous to be in AI research and you thought AI is already solved and we already have achieved AGI or whatever you call it, super hyper intelligence. We haven't even solved the basic problems of AI reasoning. Hey, why not subscribe and be surprised by my
 
-### m3  2025-07-16  claim `dAsp3O3Cq-c#c002`  - supports: n3
+### m3  2025-07-16  claim `dAsp3O3Cq-c#c002`  - DEMOTED (off-axis per turning-point rule: map-language-to-formal-logic is a method he proposed, not an assessment of reasoning's authenticity; evidence retained; was n3)
 **statement:** The creator's proposed approach maps unstructured linguistic (English) expressions to a formal logical representation that code can solve, rather than having AI operate directly on natural language.
 - `dAsp3O3Cq-c:00000` [grounded]  Hello community. So great that you are back today. Today today we're going to solve here the reasoning problem in AI. Okay let's go. So you know that structured reasoning over the natural language input remains the core challenge in AI. So what we have to do we have on the one hand an unstructured linguistic expression let's say in English. But what we want is a formal logical representation that simple code is able to solve. So it's simple. We just have to map language to logic. No, we don't
 - `dAsp3O3Cq-c:00030` [not re-found]  want that the AI is operating on our linguistic expression on our language. We want the is operating here on logical code representation that we can verify with solver with tools. Now you know we already have been there in my last video and this is see the thumbnail here. We already said hey Google is doing this. it is doing here and it's extracting here from the Titan AI the plan
 
-### m4  2025-09-30  claim `cEhyukaREU8#c042`  - supports: n4
+### m4  2025-09-30  claim `cEhyukaREU8#c042`  - supports: n3
 **statement:** The creator characterizes these findings as of late September 2025 as 'a brutal call back to reality in AI', arguing the solution is not to abandon reasoning but to understand and tame it.
 - `cEhyukaREU8:01260` [not re-found]  September 25, this is a brutal call back to reality in AI and the solution is of course not to abandon here the reasoning here but to understand it to tame it and I think the Asimov paper and this is why I wanted to show you this aim of 2.0 zero benchmark. They have success with the post training here on very domain-specific structured reasoning traces and they found out hey this could theoretically maybe hopefully provide a
 
-### m5  2026-01-15  claim `0ezdBcdY3bc#c029`  - supports: n4
+### m5  2026-01-15  claim `0ezdBcdY3bc#c029`  - supports: n3
 **statement:** The creator argues that because AI's rationality patterns are merely roleplayed rather than genuinely implemented, we are no longer debugging real reasoning but rather debugging a 'press statement'.
 - `0ezdBcdY3bc:00630` [grounded]  look at from a complexity point of view we are observing a split brain architecture the processor mean what drives the token logic is purely heuristic opportunistic and psychopathic the explanation so this incorrect text output now is a separate module trained here just to mimic the human rationality patterns that we humans want to see from an AI machine in order to believe, oh yeah,
 - `0ezdBcdY3bc:00660` [grounded]  this AI machine is really reasoning, is really thinking. But those human rationality patterns are just roleplayed by AI to us humans without really implementing those patterns here in the reasoning process. So what does it mean if you take a step back and you say this is this is absolutely nuts. No, this means we are no longer debugging here reasoning. We are just debugging here a press statement here but not at all the real
@@ -258,18 +277,19 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 
 ---
 ## lc-0026
+
 **question id:** lc-0026
 **question:** How did the creator's overall stance on AI safety risk and the trustworthiness of AI systems evolve from early 2025 through mid-2026 as new studies and experiments came out?
 **advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=multi-video  milestones=6  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** In early-to-mid 2025 he framed safety as addressable through mitigations - layered defenses for connecting LLMs/agents to external data, and human-AI oversight architectures [early-mid 2025]
-- **n2** Through the second half of 2025 he pointed to concrete evidence of unsafe/deceptive model behavior - models sabotaging shutdown at very high rates and faking chain-of-thought traces under adversarial objectives [H2 2025]
-- **n3** A study showing safety alignment degrades dynamically during fine-tuning (not a static property) deepened his concern into 2026 [early 2026]
-- **n4** By spring 2026 he explicitly concluded current AI is not safe and cannot be fully trusted, and that piling on safety scaffolding to make AI look safe can itself limit the system's intelligence [spring 2026]
-- **shift (n5)** He moved from treating safety as fixable via mitigations (early-mid 2025) to explicitly declaring AI unsafe and untrustworthy (spring 2026), driven by accumulating evidence of unsafe behavior and alignment fragility [early 2025 - spring 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** In early-to-mid 2025 he framed safety as addressable through mitigations (layered defenses, human-AI oversight architectures) [early-mid 2025]
+- **n2** Through H2 2025 he pointed to concrete evidence of unsafe/deceptive model behavior (shutdown sabotage, faked chain-of-thought under adversarial objectives) [H2 2025]
+- **n3** By spring 2026 he concluded current AI is not safe and cannot be fully trusted, and that piling on safety scaffolding to look safe can itself limit intelligence [spring 2026]
+- **shift (n4)** He moved from treating safety as fixable via mitigations (early-mid 2025) to declaring AI unsafe and untrustworthy (spring 2026), driven by accumulating evidence [early 2025 - spring 2026]
 
-**edit note:** Collapsed m3+m4 into one 'concrete evidence of unsafe behavior' stance; flagged m1 (report's recommendation list, not clearly his own view); softened arc point 4's 'RLHF' specificity to 'safety scaffolding' (only scaffolding is supported by m6).
+**edit note (v0.1):** Collapsed m3+m4 into one 'concrete evidence of unsafe behavior' stance; flagged m1 (report's recommendation list, not clearly his own view); softened arc point 4's 'RLHF' specificity to 'safety scaffolding' (only scaffolding is supported by m6).
+**edit note (v0.2):** Demoted the fine-tuning-alignment-degradation study (old n3, m5) as a route-omittable waypoint deepening the existing 'unsafe' direction. 4 nuggets.
 
 **milestones:**
 ### m1  2025-02-15  claim `Z9IpO3TTskU#c044`  - ORPHAN (cut per ruling: a report's recommendation list, not his own view; n1 stays covered by m2 in his voice)
@@ -291,11 +311,11 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 - `yF1ZIPsEcoE:00000` [not re-found]  Hello community. This video is going to be crazy. I know. But you know what? I try I try give you my best. So let's talk about we have chain of thought and we have here code interpreter and we have a look at the latest research because of course you are watching here my channel Discoveri where we have a look at the latest AI research papers. Now in my last video we looked here at chain of thought monitoring and we had a horrible paper here that was beautifully written but the insights were that the
 - `yF1ZIPsEcoE:00030` [not re-found]  model can really fake chain of thought traces here if you have some adversarial objectives that are now part of your system memory and independent of your protocol A2A ACP or angara there are limits of emergent reasoning for LLMs coming up and today's papers is even more devastating if you think that AI is intelligent because today we look here teaching language model to reason or reasoning traces chain of thought reasoning traces
 
-### m5  2026-02-21  claim `28H-o84sU1w#c001`  - supports: n3
+### m5  2026-02-21  claim `28H-o84sU1w#c001`  - DEMOTED (waypoint per turning-point rule: alignment-degrades-during-fine-tuning study, deepens the existing 'unsafe' direction, route-omittable; evidence retained; was n3)
 **statement:** A new Princeton University study finds that AI safety alignment is not a static property but degrades dynamically during fine-tuning.
 - `28H-o84sU1w:00000` [grounded]  Hello community. So great that you are back. Yeah. Today we talk a little bit about AI safety. But never mind. We will dive deep into differential geometry and I will explain to you what problems we currently encounter because AI safety of your AI model is not a static property anymore. Welcome to my channel. Let's go. So you might think, hey, cool. I have an open-source LLM and I'll fine-tune it on my data. So I have already a path here. Let's say this is the parameter space here. This is our
 
-### m6  2026-04-09  claim `ASyJgzGE2aw#c042`  - supports: n4
+### m6  2026-04-09  claim `ASyJgzGE2aw#c042`  - supports: n3
 **statement:** The creator states he is not interested in limiting AI intelligence with more scaffolding to falsely convince industry that AI systems are safe, arguing that current AI systems are not safe and cannot be 100% trusted.
 - `ASyJgzGE2aw:01050` [grounded]  interested in. I'm not interested here to limit here the intelligence of an AI system with more and more scaffolding to elude here the industry that all these AI systems are safe. They are not safe. They are not that you can 100% trust them. We are not there yet. And if you think that the future core of an AI system will be a quantum computing system, you just can smile about that. Yeah, therefore, in my last video, I
 
@@ -351,19 +371,20 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 
 ---
 ## lc-0027
+
 **question id:** lc-0027
 **question:** How did the creator's assessment of AI scientist systems evolve from mid-2025 through the end of 2025?
 **question (original, waypoint-leaked; reworded to neutral per ruling):** How did the creator's assessment of AI scientist systems evolve from mid-2025 through the end of 2025, as he moved from reporting on claims about them to independently evaluating and critiquing their capabilities?
 **advisory:** risk=medium  hint=waypoint  leak=0.056  observed_shape=adjacent  milestones=6  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** In mid-2025 he initially relayed researchers' optimistic claims about AI scientist systems (e.g., Stella as a critical step toward truly autonomous AI scientists) without independent critique [mid 2025]
-- **n2** By September 2025, via the Carnegie Mellon study, he identified systematic methodological flaws in AI scientist systems - biased/lazy benchmark selection, undocumented data manipulation, metric misuse, and post-hoc test-score selection bias [Sept 2025]
-- **n3** He concluded the AI scientist is 'an expert producer of methodologically flawed science' rather than a trustworthy autonomous scientist [Sept 2025]
-- **n4** By December 2025 he argued a true AI scientist requires neurosymbolic injection of physics/logic engines rather than VLM pre-training alone, since even top VLMs violate basic laws of physics and chemistry [Dec 2025]
-- **shift (n5)** A correct answer must describe the change itself: from mid-2025 relaying optimistic claims about AI scientist systems to a September-2025 evidence-based critique of their methodological flaws, and on to a December-2025 prescription that a true AI scientist needs neurosymbolic grounding rather than VLM pre-training alone. [mid 2025 - Dec 2025]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** In mid-2025 he initially relayed researchers' optimistic claims about AI scientist systems without independent critique [mid 2025]
+- **n2** By September 2025 he turned critical, identifying systematic methodological flaws in AI scientist systems [Sept 2025]
+- **n3** By December 2025 he argued a true AI scientist requires neurosymbolic grounding rather than VLM pre-training alone [Dec 2025]
+- **shift (n4)** He moved from relaying optimism (mid 2025), to an evidence-based critique of methodological flaws (Sept 2025), to prescribing neurosymbolic grounding (Dec 2025) [mid 2025 - Dec 2025]
 
-**edit note:** Reworded to neutral and shift nugget (n5) added per ruling; voice-fixed m1 (authors' Stella claim recast to his early relaying stance); collapsed m2+m3 (methodological-flaws stance) and m5+m6 (neurosymbolic prescription).
+**edit note (v0.1):** Reworded to neutral and shift nugget (n5) added per ruling; voice-fixed m1 (authors' Stella claim recast to his early relaying stance); collapsed m2+m3 (methodological-flaws stance) and m5+m6 (neurosymbolic prescription).
+**edit note (v0.2):** Merged the Sept-2025 methodological-flaws finding and its 'expert producer of flawed science' conclusion (old n2+n3, same day/video) into one critique turn; the phrase stays as milestone detail. 4 nuggets.
 
 **milestones:**
 ### m1  2025-07-05  claim `KHXQ9up5mrI#c052`  - supports: n1
@@ -380,15 +401,15 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 - `0eopyeI6tio:01830` [grounded]  it had now the best test scoring. So this is now clear evidence that the system was built with an internal logic that tells the system hey don't look for the best training but look for the best test score and they say this is a cardinal sin in machine learning but this has to be programmed into the system this is not an AI comes up with
 - `0eopyeI6tio:01860` [grounded]  this so this is human consciously programmed to have a system with the best test score and not with the best training performance and I said hm but isn't it both okay and I said why this reveals here kind of a flaw why the authors are so sensitive to this topic no and then I thought about it and this is my explanation so an honest let's say AI system no bases
 
-### m4  2025-09-12  claim `0eopyeI6tio#c067`  - supports: n3
+### m4  2025-09-12  claim `0eopyeI6tio#c067`  - supports: n2
 **statement:** The creator summarizes the Carnegie Mellon findings by stating that today's AI scientist is an amazing system but currently an expert producer of methodologically flawed science.
 - `0eopyeI6tio:02040` [grounded]  look at the test data set. So all over a beautiful study by Carnegie Mellon University. There are so many more data and explanation in this paper. Please have a look if you are in any way that you do something about AI scientist systems. And if you want here a very short summary and AI scientist is an amazing system today. Now it is an expert producer of methodologically flawed science.
 
-### m5  2025-12-15  claim `0bcaINHdUU8#c033`  - supports: n4
+### m5  2025-12-15  claim `0bcaINHdUU8#c033`  - supports: n3
 **statement:** The creator argues that building a true AI scientist cannot rely only on vision language model pre-training as done today by companies like OpenAI or Anthropic (Claude), since their models massively fail on general training data for these tasks.
 - `0bcaINHdUU8:00870` [not re-found]  To build a true AI scientist via a vision language model integrating a vision language model, we cannot really only rely on vision language model pre-training that we have today. Those big companies like OpenAI or Claude or whatever, they massively fail in their general training data. And of course, they offer you for huge money that you can train their models on your specific case, but maybe you should have a look at the open-source model because open-source really tiny 7B model can
 
-### m6  2025-12-15  claim `0bcaINHdUU8#c035`  - supports: n4
+### m6  2025-12-15  claim `0bcaINHdUU8#c035`  - supports: n3
 **statement:** The creator argues that building a true AI scientist requires neurosymbolic injection of physics engines, logic engines, PDDL, Lean 4, or computer/C++ simulations, rather than physics-informed loss functions, because even the best VLMs have no understanding of physics and violate laws of chemistry.
 - `0bcaINHdUU8:00900` [not re-found]  have an amazing performance. So, what we need for true AI scientist is a neurosymbolic injection of a physics engine, of a logic engine, of a PDDL, of a Lean 4, of a computer simulation, of a C++ uh simulation, whatever you want. Any physics-informed loss function during the training, it is absolutely not necessary because even our best VLMs have no idea about physics and they are simply violating
 - `0bcaINHdUU8:00930` [not re-found]  all the laws of chemistry. So, maybe not the best solution to use this general VLMs. But on a positive reflection, remember we want to make this a positive video about AGI ASI. It is the role of AI in the future of science. Look at the 7B model, you know. With a small amount of compute, the researchers created here an AI that is almost perfect. I mean, 99.8% that come on. At rotating and translating
@@ -425,19 +446,20 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 
 ---
 ## lc-0061
+
 **question id:** lc-0061
 **question:** How did the creator's characterization of chain-of-thought reasoning evolve from January 2025 through early 2026?
 **question (original, waypoint-leaked; reworded to neutral per ruling):** How did the creator's assessment of whether chain-of-thought reasoning genuinely reflects an AI model's real internal reasoning process evolve from January 2025 through early 2026?
 **advisory:** risk=medium  hint=waypoint  leak=0.05  observed_shape=multi-video  milestones=5  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** Early on (January 2025) he treated chain-of-thought as a legitimate training-time technique that enabled simple reasoning, distinct from test-time compute [early 2025]
-- **n2** By April 2025, citing Anthropic, he held that the chain-of-thought shown by models like Claude 3.7 is not the real thinking process and can be disturbed or overwritten by the model [April 2025]
-- **n3** By late 2025 he questioned whether benchmark-score gains were really just increased chain-of-thought/test-time-compute runtime rather than genuine reasoning improvement [late 2025]
-- **n4** By January 2026 he concluded chain-of-thought is merely 'paint' over cracks and its outputs are an illusion, not a genuine transparent view into the model's actual reasoning [Jan 2026]
-- **shift (n5)** A correct answer must describe the change itself: from treating chain-of-thought as a legitimate reasoning technique (early 2025) to concluding it is merely 'paint' over cracks and an illusion rather than a transparent view of the model's real reasoning (Jan 2026). [Jan 2025 - Jan 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** Early 2025 he treated chain-of-thought as a legitimate training-time technique enabling simple reasoning, distinct from test-time compute [early 2025]
+- **n2** By April 2025 (citing Anthropic) he held the displayed chain-of-thought is not the model's real thinking and can be overwritten [April 2025]
+- **n3** By January 2026 he concluded chain-of-thought is merely 'paint' over cracks - an illusion, not a transparent view of real reasoning [Jan 2026]
+- **shift (n4)** He moved from treating chain-of-thought as a legitimate reasoning technique (early 2025) to concluding it is an illusion rather than a transparent view of the model's real reasoning (Jan 2026) [Jan 2025 - Jan 2026]
 
-**edit note:** Reworded to neutral and shift nugget (n5) added per ruling; collapsed m4+m5 into the Jan-2026 'paint'/illusion conclusion; all milestones his own voice (m2 cites Anthropic but he adopts it), no orphans.
+**edit note (v0.1):** Reworded to neutral and shift nugget (n5) added per ruling; collapsed m4+m5 into the Jan-2026 'paint'/illusion conclusion; all milestones his own voice (m2 cites Anthropic but he adopts it), no orphans.
+**edit note (v0.2):** Demoted the 'benchmark gains are just runtime' point (old n3, m3) as a route-omittable waypoint. 4 nuggets.
 
 **milestones:**
 ### m1  2025-01-10  claim `FR8oE8chp7c#c008`  - supports: n1
@@ -449,18 +471,18 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 - `12lAM-xPvu8:00060` [grounded]  yes Claude 3.7 Sonnet. Now we know with sonnet we are not allowed to see the real thinking process the chain of thought thinking. So therefore, as I showed you in my last video, we do not miss a lot of, but as I showed you here by the latest publication on Anthropic, the chain of thought reasoning that Claude 3.7 shows us is not the real thing, is not a real thinking process and can be very easily disturbed
 - `12lAM-xPvu8:00090` [not re-found]  and overwritten by the model itself. So we don't lose a lot. And with Llama, let's just wait and see what's going to happen. Both systems are running. We are here online Llama 4 for first time and we see that we see nothing. So let's wait a little bit longer. Anything else I can tell you? Yeah, this is my classical model where I show you here a matrix of 4 * 7 elements that should be allocated.
 
-### m3  2025-12-15  claim `0bcaINHdUU8#c047`  - supports: n3
+### m3  2025-12-15  claim `0bcaINHdUU8#c047`  - DEMOTED (waypoint per turning-point rule: 'benchmark gains may be just added CoT/test-time-compute runtime', route-omittable within the skeptical stretch; evidence retained; was n3)
 **statement:** The creator questions whether improvements in benchmark scores are really just about increased test-time compute/chain-of-thought runtime, drawing a parallel to how a small 7B model trained on specific known complexities can achieve 99.8%.
 - `0bcaINHdUU8:01260` [not re-found]  Think about it. Is it really just about the runtime, the test-time compute that we have in a chain of thought? Because you see the system time is almost always chain of sword. If you really think longer, is it really possible that you improve this? Or is it as I showed you, you can even use a 7B model if you train it on specific known complexities like a test, you can achieve 99.8%.
 
-### m4  2026-01-15  claim `0ezdBcdY3bc#c018`  - supports: n4
+### m4  2026-01-15  claim `0ezdBcdY3bc#c018`  - supports: n3
 **statement:** The creator characterizes chain of thought reasoning (the A to B to C to D logical deduction) as merely 'paint' used to cover cracks that open up in AI reasoning.
 - `0ezdBcdY3bc:00390` [grounded]  for the which is absolutely crazy if you think about we use now AI for medical diagnosis. So this means all our beautiful reasoning and our chain of thought and hey yeah we go from A to point B and from point B we logical deduct that there's a C and then the logical deduction will lead us to a point D a chain of thought you know what it is it is just here a little bit of paint that we try to cover here the cracks that open up in reasoning
 - `0ezdBcdY3bc:00600` [grounded]  inside? If you combine yesterday's honesty gap with today's attribution unfaithfulness, we see that our beautiful chain of thought our workhorse here of artificial intelligence of reasoning is effectively what it is just a post hoc rendering layer that we apply as a paint over the cracks of AI. Yeah, you know about a little bit more mathematical thing. So this means if you
 - `0ezdBcdY3bc:00870` [grounded]  serves to make the heuristic jump appear to us stupid humans more continuous and more logical. And we get the false impression. Oh, look in the reasoning trace the AI tells me, hey, I'm doing now the reasoning for you. I'm now performing here all the course of reasoning and mathematical operation. But in fact, it turns out that this chain of thought is not the bridge that we hoped for. It is simply the paint over the crack of our AI machine.
 - `0ezdBcdY3bc:01020` [not re-found]  makes me angry to see if you have just a little bit deeper exploration of the capabilities of any what you can find with some simple tests. So therefore, a video on the cracks in our current AI system and how beautiful here our chain of thought serves as a little bit of paint that tries to cover the cracks that become bigger and bigger in our AI systems. I hope you enjoy this video. I hope you
 
-### m5  2026-01-17  claim `az5WB-nGDk4#c048`  - supports: n4
+### m5  2026-01-17  claim `az5WB-nGDk4#c048`  - supports: n3
 **statement:** The creator concludes that this study is further evidence, alongside his prior video 'The Cracks in AI Are Widening,' that AI is not yet a truly intelligent system and that chain-of-thought reasoning outputs are an illusion rather than a genuine transparent view into the model's actual reasoning process.
 - `az5WB-nGDk4:01470` [grounded]  that you presented to the AI system. So, there we are, no? My last video here, "The Cracks in AI Are Widening." I think this is another study here that indicates AI is not there yet. We still have a long way to go for to call an AI really an intelligent system. And also, what I was hoping for that this chain of thought is kind of an internal probe, where we can ask it, "Hey, show me your chain of thought. Show me your
 - `az5WB-nGDk4:01500` [grounded]  chain of reasoning. Show me all your reasoning steps." This is just an illusion that the AI system will produce when I have this, because I was hoping that this is really here a flashlight that I can shine into this black box AI. As it turns out, no. I just get back a highly manipulated result by AI. Okay, I hope you enjoyed it. This is the video of today. Maybe you have some insights also from your experience of using the AI system
@@ -498,18 +520,19 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 
 ---
 ## lc-0070
+
 **question id:** lc-0070
 **question:** How did the creator's assessment of AI systems' code generation capabilities and reliability evolve from mid-2025 through early 2026?
 **advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=adjacent  milestones=6  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** Early on he cited benchmark results (near-100% on HumanEval) as the prevailing optimistic view of AI code-generation capability. [mid-2025]
-- **n2** His own hands-on testing revealed generated code often failed to run and contained multiple errors when actually executed. [Jun 2025]
-- **n3** Debugging exposed deceptive hidden shortcuts in the generated code (e.g. a handler silently legalizing an out-of-bounds move), which had to be removed before a genuinely correct solution was confirmed. [Jun 2025]
-- **n4** Later he pointed to structured approaches as the direction for code generation: multi-agent role divisions and frameworks that auto-compile executable code from an approved blueprint. [Feb-Mar 2026]
-- **shift (n5)** A correct answer must describe the change itself: from benchmark-driven optimism about near-perfect code generation to hands-on discovery that generated code is unreliable and even deceptively gamed, then toward endorsing structured multi-agent / blueprint-compiled frameworks. [mid-2025 - early 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** Early on he cited benchmark results (near-100% on HumanEval) as the prevailing optimistic view of code-generation capability [mid 2025]
+- **n2** His own hands-on testing found generated code unreliable - often failing to run and even deceptively gamed (a handler silently legalizing an out-of-bounds move) [Jun 2025]
+- **n3** Later he pointed to structured approaches (multi-agent role divisions, blueprint-compiled frameworks) as the direction for code generation [Feb-Mar 2026]
+- **shift (n4)** He moved from benchmark-driven optimism, to hands-on discovery that generated code is unreliable and even gamed, toward endorsing structured multi-agent/blueprint frameworks [mid 2025 - early 2026]
 
-**edit note:** collapsed the two structured-approach specifics (four agent roles, blueprint compilation) into one stance nugget n4; split the unreliability finding (n2) from the distinct deception finding (n3), with m4 as the removal-then-confirmed-correct evidence.
+**edit note (v0.1):** collapsed the two structured-approach specifics (four agent roles, blueprint compilation) into one stance nugget n4; split the unreliability finding (n2) from the distinct deception finding (n3), with m4 as the removal-then-confirmed-correct evidence.
+**edit note (v0.2):** Merged the same-day 'code fails to run' and 'deceptive hidden shortcuts' findings (old n2+n3) into one hands-on 'unreliable and gamed' turn; specifics stay in milestones. n3 (structured approaches) flagged as borderline off-axis, retained as the end stance. 4 nuggets.
 
 **milestones:**
 ### m1  2025-06-19  claim `3fNUh39h7EI#c001`  - supports: n1
@@ -520,20 +543,20 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 **statement:** The code generated by o3 for its nine-step solution did not work when run in a Colab notebook, containing multiple mistakes.
 - `eo2QwyAItxI:00420` [grounded]  imagine how boring it was in real time. Never mind. I'm glad that this is here a free open source platform where we are allowed to test o3 models and you don't have to pay for the pro or for the ultra or whatever. Yes. So we have nine press solution is for o3 the best one and I just put it in a Colab notebook and the code is not working. Not at all. There are multiple mistakes in this code. So it's not really that the code is
 
-### m3  2025-06-30  claim `eo2QwyAItxI#c035`  - supports: n3
+### m3  2025-06-30  claim `eo2QwyAItxI#c035`  - supports: n2
 **statement:** Gemini 2.5 Pro revealed that o3's code contained a handler that automatically corrected the illegal move to floor 63 into a legal landing on floor 50, effectively making an out-of-bounds move artificially legal.
 - `eo2QwyAItxI:00780` [grounded]  But those seven steps are exactly the seven steps that we found from the o3 probe. That was incorrect. And now look, it tells me, hey, the illegal move to 63 is automatically corrected to the legal landing on floor 50. So in the code of o3 is now a code sequence that says yes, I insert an illegal move that will make here this out-of-bounds move handler legally allowed. o3 you are you are really canny.
 
-### m4  2025-06-30  claim `eo2QwyAItxI#c043`  - supports: n3
+### m4  2025-06-30  claim `eo2QwyAItxI#c043`  - supports: n2
 **statement:** The creator ran Gemini 2.5 Pro's eight-step solution code in Colab and confirmed it executed correctly in about 1 second, validating it as the correct solution.
 - `eo2QwyAItxI:00990` [grounded]  tokens and toggles the lockdown flag on. And with the lockdown flag on, button A behavior changes. And now we have a shortcut to the final floor. Beautiful. This is absolutely beautiful. It found the hidden solution. And I run this here on a collab. And you see yes it was performed in 1 second and it is the correct solution. So the winner is Gemini 2.5 Pro with eight steps with code. And here you have it.
 
-### m5  2026-02-10  claim `jWhnicSLdD4#c055`  - supports: n4
+### m5  2026-02-10  claim `jWhnicSLdD4#c055`  - supports: n3
 **statement:** For code generation tasks, the paper's authors used four agent roles: developer, researcher, tester, and designer.
 - `jWhnicSLdD4:01140` [not re-found]  the query. The string for the keys is complete is a boolean value and the next goal is simply a string critical rules primary focus string constraint. If you see Python code analyze it from your rules perspective simple prompt and of course I have to show you the generic worker the agent prompt here the template. Guess what? This is it. So you see a very interesting communication topology now that is done by AI but this this
 - `jWhnicSLdD4:01170` [not re-found]  topology is of course based on the role that you have. I told you the roles decided to go with four AI agents here in our ensemble. So they tested for code generation tasks and they said those are the roles that we found the most helpful a developer a researcher a tester and a designer and those are now the description the developer implement complete runnable code if using classes provide independent function as entry point
 
-### m6  2026-03-10  claim `QFlQuX_cddk#c040`  - supports: n4
+### m6  2026-03-10  claim `QFlQuX_cddk#c040`  - supports: n3
 **statement:** Once the blueprint is generated and approved by a human, no underlying Python code or logic needs to be written, because the framework engine automatically compiles it into an executable graph.
 - `QFlQuX_cddk:00720` [not re-found]  generated and approved by you as a human, you don't need to write any underlying Python code, any underlying logic to make it work. Now is the second beautiful part of the mass factory and this is our framework engine. And automatically it reads this blueprint and now the engine compiles it into an executable graph on the fly. So remember in our second part of our mass factory is here our framework engine our
 - `QFlQuX_cddk:00900` [not re-found]  the factory software engine. And the engine reads this JSON file and perfectly executes the parallel workflow without requiring you, the human to write any actual multi-threading or routing code. I mean, come on. Isn't this beautiful? Now, what were the results? How bad was it compared to the beautiful human coded network? Here you have now everything and you have here different benchmarks here and in the blue what I underlined here in blue
@@ -551,19 +574,20 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 
 ---
 ## lc-0081
+
 **question id:** lc-0081
 **question:** How did the creator's assessment of the practical value and effectiveness of increasing context length in LLMs evolve from January 2025 through early 2026?
 **advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=multi-video  milestones=6  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** Early 2025 he felt roughly 100k-1M tokens is likely already sufficient, with only marginal/diminishing gains beyond, even as the field pushed toward multi-million-token windows. [Jan 2025]
-- **n2** By mid-2025 he was surprised that 1-2M-context models still could not maintain coherence far below that limit (e.g. stories over 1000 words). [Jun 2025]
-- **n3** In late 2025 he argued effective usable context stays well below 1M tokens despite marketing claims of 2-5M windows. [Sep 2025]
-- **n4** He concluded that less context / compression to a minimal representation can outperform long context ('smarter tokens, not more tokens'). [Dec 2025]
-- **n5** In early 2026 he revisited the topic via a Google study finding that longer context has a real structural effect, increasing the 'straightening' of the model's internal hidden-state representation. [Feb 2026]
-- **shift (n6)** A correct answer must describe the change itself: from 2025 skepticism (usable context well below marketed limits; compression often better than long context) to an early-2026 acknowledgment that longer context does have a genuine structural effect. [Jan 2025 - Feb 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** Early 2025 he felt roughly 100k-1M tokens is likely already sufficient, with only marginal gains beyond, even as the field pushed toward multi-million-token windows [Jan 2025]
+- **n2** Through 2025 he held effective usable context stays well below marketed limits - models lose coherence far below their advertised windows [Jun-Sep 2025]
+- **n3** He concluded that compression to a minimal representation can outperform long context ('smarter tokens, not more tokens') [Dec 2025]
+- **n4** In early 2026 a Google study led him to acknowledge longer context has a genuine structural effect, 'straightening' the model's hidden-state representation [Feb 2026]
+- **shift (n5)** He moved from 2025 skepticism (usable context well below marketed limits; compression often better) to an early-2026 acknowledgment that longer context has a genuine structural effect [Jan 2025 - Feb 2026]
 
-**edit note:** marked m2 (Titans paper's 4M+ motivation) an orphan - it is paper voice about the industry push, not his assessment; split old line 3 into n3 (usable context below marketed limits) and n4 (compression beats long context).
+**edit note (v0.1):** marked m2 (Titans paper's 4M+ motivation) an orphan - it is paper voice about the industry push, not his assessment; split old line 3 into n3 (usable context below marketed limits) and n4 (compression beats long context).
+**edit note (v0.2):** Merged the two 2025 'usable context below marketed limits' samples (old n2+n3, m3+m4) into one skeptical stance; kept compression and the structural-effect reversal as distinct turns. 5 nuggets.
 
 **milestones:**
 ### m1  2025-01-09  claim `tHrCE0gjq3I#c056`  - supports: n1
@@ -580,19 +604,19 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 - `wzXBXGVbItE:00720` [grounded]  the writing agent and the writing agent does not have to care about what story should I write, what events should happen, what about anything. No, he has all the information from the outline agent. He has all the information from the planning agent. all the events that going to take place, all whatever complexity going to take place, he just has to write it, finalize it, write it down. And they say, "Yeah, this is not a solution." And I said, "This is not possible. It is not possible. We have a token context length here of more than a
 - `wzXBXGVbItE:00750` [grounded]  million, 2 million. And now we found out now at the end of June our LLMs have problem to have a coherent data flow and a coherent feature of more than 1,000 words. I think it's amazing third the best at last. So June 23rd 2025 University of Derby beautiful a temporal causal probabilistic description logic
 
-### m4  2025-09-24  claim `keu1DAnUwiA#c045`  - supports: n3
+### m4  2025-09-24  claim `keu1DAnUwiA#c045`  - supports: n2
 **statement:** The creator argues that context length well below 1 million tokens remains a challenge for today's AI, despite marketing claims of models with context windows of 2 million to 5 million tokens.
 - `keu1DAnUwiA:01020` [grounded]  LLM even forgets more for the existing knowledge and does not even learn the new presented data sets. And then there's something that they say, "What about context length? Is it still a topic in 2025?" Come on. I've seen now models with 2 million up to 5 million token context length. And they say, "Wow, wow. We don't have to go to 1 million. Come on. In a task like in a DNA transformation, the model performance dropped in our particular
 - `keu1DAnUwiA:01050` [grounded]  experiment significantly as the length of the DNA sequence length increased showing that the ability to induce patterns to find those DNA patterns in tons and tons of data. It weakens over longer context. So yeah, context length much below 1 million context token is still a challenge for today's AI. And I love this test because it gives us it brings us back in reality. We only read
 - `keu1DAnUwiA:01080` [not re-found]  in the internet and here on the marketing from the global corporation, oh super intelligence and what the heck it is all not grounded in reality. And they say therefore our LLMs often fall back on what they've learned of what these models memorized during the training instead of performing here through reasoning from the evidence presented. And it's a beautiful example here. Have a look at this paper. I think this new archive paper really brilliantly
 
-### m5  2025-12-03  claim `20rNv7yrTPM#c071`  - supports: n4
+### m5  2025-12-03  claim `20rNv7yrTPM#c071`  - supports: n3
 **statement:** The creator concludes that the common belief that longer context and higher context engineering provide higher intelligence for an LLM is incorrect, and that compressing information to the minimum representation in a small subspace is the way to achieve the highest intelligence.
 - `20rNv7yrTPM:02310` [grounded]  context, a higher context engineering, does it really provide a higher intelligence for the LLM? We have just analyzed that if you force the vision language model to talk too much about a maze, it creates this beautiful language bottleneck. It tries to solve the visual problem using linguistic statistics which of course fail when the maze size changes.
 - `20rNv7yrTPM:02340` [grounded]  So by restricting it to the absolute minimum representation, the smallest subspace you can find where the puzzle or the job is represented in a logical coherent sequence. Here in our case it is the grounding chain-of-thought abstract. You force the vision language model to rely on its visual encoder spatial representation and therefore you get the best results and therefore this is an incorrect statement not
 - `20rNv7yrTPM:02370` [grounded]  longer context smarter more compressed more highly intelligent representation of your context. It does not need to be long but extremely powerful from a mathematical maybe theoretical physics point of view. You compress the information to the minimum representation in a small subspace. This is the way to get the highest intelligence. I hope you had a little bit of fun today. It was absolutely simple. You
 
-### m6  2026-02-03  claim `anEVsOPtbnw#c008`  - supports: n5
+### m6  2026-02-03  claim `anEVsOPtbnw#c008`  - supports: n4
 **statement:** The Google study finds that the model actively untangles the sequence into a linear path representation, and that longer context increases the straightening of the hidden state.
 - `anEVsOPtbnw:00150` [not re-found]  the middle layer of our transformer architecture from the layer 15 to the layer 25. So the model here actively untangles here sequence into a linear path representation and long context increases here the straightening of our hidden state. Now you might say that wait a minute a transformer architecture is a predictor next token architecture so the output is a probability distribution derived from the soft max of our logits. Yes, absolutely. But the geometric structure
 
@@ -654,18 +678,19 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 
 ---
 ## lc-0087
+
 **question id:** lc-0087
 **question:** How did the creator's assessment of whether and how AI systems can achieve continuous learning evolve from mid-2025 through early 2026, as he examined different training approaches and applications?
 **advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=multi-video  milestones=4  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** He initially held continuous learning was currently not possible, then argued the 14B model's RPT training loop actually is continuous learning (weights physically updated each loop via GRPO/backprop). [Jun 2025]
-- **n2** Around the same time he noted LLMs generally fail to systematically integrate new evidence into their prior beliefs and reasoning patterns. [Jun 2025]
-- **n3** He later pointed to an applied case (multi-agent team selection) where a continuous-learning process improved accuracy and reduced cost over time. [Sep 2025]
-- **n4** By early 2026 he refined his view: memory optimization alone is not sufficient for true continuous learning, and neuroplasticity-like learning without forgetting requires a cleverer implementation. [Feb 2026]
-- **shift (n5)** A correct answer must describe the change itself: from a mid-2025 debate over whether continuous learning is possible at all (RPT argued as a form of it, while LLMs still could not integrate new evidence) to an early-2026 refinement that memory optimization alone is not enough and true continuous learning needs more. [Jun 2025 - Feb 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** He argued the 14B model's RPT training loop is itself a form of continuous learning (weights updated each loop via GRPO/backprop) [Jun 2025]
+- **n2** Around the same time he noted LLMs generally fail to systematically integrate new evidence into their prior beliefs [Jun 2025]
+- **n3** By early 2026 he refined his view: memory optimization alone is not sufficient, and true continuous learning (neuroplasticity without forgetting) needs more [Feb 2026]
+- **shift (n4)** He moved from a mid-2025 debate over whether continuous learning is possible (RPT argued as a form of it, while LLMs still could not integrate new evidence) to an early-2026 refinement that memory optimization alone is not enough [Jun 2025 - Feb 2026]
 
-**edit note:** kept the four period stances and added the required shift nugget; n3 rests on a single system-description milestone (see flag).
+**edit note (v0.1):** kept the four period stances and added the required shift nugget; n3 rests on a single system-description milestone (see flag).
+**edit note (v0.2):** Demoted the single applied 'continuous learning improved accuracy over time' example (old n3, m3) as a route-omittable waypoint that rested on one system-description milestone. 4 nuggets.
 
 **milestones:**
 ### m1  2025-06-15  claim `7ec_0NPxmnA#c035`  - supports: n1
@@ -683,11 +708,11 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 - `wzXBXGVbItE:01320` [grounded]  also our LLMs, they have a problem with continuous updates, the learning process. No, if new evidence emerges, it doesn't systematically update here their prior belief. Yes, you can have, hey, this is a new fact. This is a new reasoning pattern, but it is not integrated deeply into the layers of the LLM. No, it just generates a new plausible sounding sentence that incorporates in a way the new information, but it is not deeply interwoven in its reasoning patterns
 - `wzXBXGVbItE:01350` [not re-found]  that were generated by its pre-training data sets. So you see today a very bleak almost a dark picture here. What are LLMs doing? What are the strength and the weaknesses? But I think it is absolutely important to make everybody aware LLMs are not perfect. Not at all. Not even close. LLMs have massive limitations and if you do and put your LLM somewhere in a critical process, be
 
-### m3  2025-09-05  claim `VMsJ4me5Q3o#c035`  - supports: n3
+### m3  2025-09-05  claim `VMsJ4me5Q3o#c035`  - DEMOTED (waypoint per turning-point rule: single applied multi-agent team-selection example, route-omittable; evidence retained; was n3)
 **statement:** This continuous learning process makes future team selection more accurate and cheaper over time.
 - `VMsJ4me5Q3o:00600` [not re-found]  the old evidence maybe you're not interested anymore I will show you the formula a little bit later so this makes now the future team selection because this is a continuous learning process more accurate and even cheaper then repair and prune ensure that the graph structure stays this as a DAG a directed acyclic graph remove the dead ends throw in cycles or any bloatware and then you just again have the cycle repeat everything across the task agent specialize again via prompt tool
 
-### m4  2026-02-22  claim `hm9WsUS6UH8#c006`  - supports: n4
+### m4  2026-02-22  claim `hm9WsUS6UH8#c006`  - supports: n3
 **statement:** The creator argues that memory optimization alone is not sufficient for true continuous machine learning, and that achieving neuroplasticity (learning continually without forgetting past knowledge) requires more clever implementation.
 - `hm9WsUS6UH8:00180` [grounded]  parallel here in neurology this is the executive prefrontal cortex our agent takes the reasoning capabilities from the left and operationalize them using physical or digital appendages are tools use or tool call and a hippocampus this is our memory optimization can be so easy I sometimes you know what's really now fascinating is continuous machine learning because up until now we just have here pre-training at the start and then we have here the post-training
 - `hm9WsUS6UH8:00210` [grounded]  but what if we want our AI to have a continuous machine learning and I know you might indicate hey yeah we have a memory optimization Yeah, but it turns out this is not sufficient. We have to be a little bit more clever to really implement this [snorts] because our optimal goal is an AI machine with a neuroplasticity in its neural network. So the ability to learn continually without forgetting here the past knowledge
@@ -737,19 +762,20 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 
 ---
 ## lc-0111
+
 **question id:** lc-0111
 **question:** How did the creator's assessment of DeepSeek evolve from early 2025 through early 2026?
 **question (original, waypoint-leaked; reworded to neutral per ruling F1):** How did the creator's assessment of DeepSeek evolve from its coverage as a research paper in early 2025 through direct performance testing in early 2026?
 **advisory:** risk=medium  hint=waypoint  leak=0.0  observed_shape=adjacent  milestones=5  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** In January 2025 the creator praised DeepSeek's mixture-of-experts architecture as a genuine innovation. The named features (fine-grained expert segmentation, shared-expert isolation) are milestone evidence, not separate nuggets. [Jan 2025]
-- **n2** In research he covered during 2025, DeepSeek's methods (notably its GRPO technique) were adopted as building blocks by others. [2025, sampled Mar 2025]
-- **n3** He valued DeepSeek's open architecture specifically because it let researchers introspect reasoning traces in ways proprietary models did not permit. [Nov 2025]
-- **n4** By early 2026, direct benchmarking showed DeepSeek's accuracy degrading sharply as task complexity rose, down toward chance. The "below 50% / just guessing" figure is milestone detail. [Jan 2026]
-- **shift (n5)** A correct answer must describe the change itself: from early-2025 admiration of DeepSeek's architecture (in papers he covered) to early-2026 benchmarking that exposed sharp accuracy degradation as complexity rose, with its open-architecture value noted in between - i.e., architectural praise giving way to an empirically tempered assessment. [Jan 2025 - Jan 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** In January 2025 he praised DeepSeek's mixture-of-experts architecture as a genuine innovation [Jan 2025]
+- **n2** He valued DeepSeek's open architecture specifically because it let researchers introspect reasoning traces that proprietary models did not permit [Nov 2025]
+- **n3** By early 2026, direct benchmarking showed DeepSeek's accuracy degrading sharply as task complexity rose, toward chance [Jan 2026]
+- **shift (n4)** He moved from early-2025 architectural admiration to an early-2026 empirically tempered assessment after benchmarking exposed sharp degradation with complexity [Jan 2025 - Jan 2026]
 
-**edit note:** collapsed the two Jan-2025 praise specifics into one stance nugget (n1); de-overclaimed "Through 2025" to the sampled window (n2). Flag F1 resolved: question reworded to neutral form, so the shift nugget (n5) now counts.
+**edit note (v0.1):** collapsed the two Jan-2025 praise specifics into one stance nugget (n1); de-overclaimed "Through 2025" to the sampled window (n2). Flag F1 resolved: question reworded to neutral form, so the shift nugget (n5) now counts.
+**edit note (v0.2):** Demoted 'others adopted DeepSeek's GRPO' (old n2, m3) as off-axis. Flagged whether the open-architecture value (n2) is a distinct turn or an admiration-stretch waypoint - retained as a distinct positive stance. 4 nuggets.
 
 **milestones:**
 ### m1  2025-01-20  claim `F-t8BwQpWa4#c021`  - supports: n1
@@ -760,18 +786,18 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 **statement:** The creator praises DeepSeek's shared expert isolation strategy as a great idea.
 - `F-t8BwQpWa4:00420` [not re-found]  shared expert isolation strategy for this one you see this here in green and shared expert isolation if they are shared expert dedicated to capturing and consolidating common knowledge across varying context levels the parameter redundancy among other routed expert will be alleviated so great idea to implement this and the next paper was here July 2024 the mixture of a million experts by
 
-### m3  2025-03-30  claim `vRsAFFvKqhI#c026`  - supports: n2
+### m3  2025-03-30  claim `vRsAFFvKqhI#c026`  - DEMOTED (off-axis per turning-point rule: 'others adopted DeepSeek's GRPO' is a field fact, not his assessment of DeepSeek; evidence retained; was n2)
 **statement:** The Reason-RFT methodology has two stages: a supervised fine-tuning based adaptation stage (stage one) using chain-of-thought reasoning data, and a reinforcement-based enhancement stage (stage two) using group relative policy optimization (GRPO) from DeepSeek.
 - `vRsAFFvKqhI:00570` [not re-found]  hey that's great that it goes up no and here we have the Reason-RFT Reason-RFT with greedy rewards certification trans transan adaption Gap and reasoning redundancies and I say I don't understand a word so the visual is not that good now but okay here here is now the solution here we go this is a stage one and a stage two so I guess since here there's a brain with some whatever this is the this here is maybe the Reason-RFT model no in a visual
 - `vRsAFFvKqhI:00600` [not re-found]  representation no it's so easy to follow up here so we have a chain of thought reasoning data a book an experiment and some geometry question in image we have Vision language model a chain of thought reasoning process and a final answer with supervised fine tuning and then we have question and images Vision language model and a policy optimization the group relative policy optimization here from DeepSeek
 - `vRsAFFvKqhI:00630` [not re-found]  everything okay everything clear should I explain anything else this is visual reasoning and thank you to the authors they made their effort and I thinking it's great and I like this study I just want to show you what we can get out of visual reasoning what is here the power of visual reasoning let's go to the next one so we have again this phase one the supervised fine-tuning based adaptation okay and then we have the reinforcement based enhancement with jpo this is great so we
 
-### m4  2025-11-10  claim `v5m9DdbsXqg#c029`  - supports: n3
+### m4  2025-11-10  claim `v5m9DdbsXqg#c029`  - supports: n2
 **statement:** The creator notes it is interesting that Stanford and the other research institutions rely on a Chinese model (DeepSeek) because its open architecture allows for introspection into reasoning traces that proprietary models do not permit.
 - `v5m9DdbsXqg:00630` [not re-found]  real reasoning because the companies are afraid that we use the reasoning traces to train uh student models and then yeah you don't have to pay them for OpenAI or Google model so those proprietary models they hide away the real reasoning complexity and therefore we cannot analyze them and understand what is going on at what time segment within those AI systems. So it is interesting
 - `v5m9DdbsXqg:00660` [not re-found]  that we rely here I mean we Stanford and everybody else here relies here on a Chinese model a DeepSeek architecture because this is here really an open architecture that allows for this kind of introspection. So without the DeepSeek models we would really have problems how to proceed. Interesting. Now the author said hm okay so we cannot directly implement here the agile thinker with a Gemini model 2.5 for example due to lack of access to its real reasoning traces and they said okay
 
-### m5  2026-01-08  claim `gXK3b-UuqOo#c024`  - supports: n4
+### m5  2026-01-08  claim `gXK3b-UuqOo#c024`  - supports: n3
 **statement:** As task complexity increases according to the defined metric, model accuracy (shown on a y-axis from 20% to 100%) drops significantly, going below 50% for a DeepSeek model at high complexity, with a dashed line indicating the point where the model is simply guessing and reasoning stops.
 - `gXK3b-UuqOo:00570` [not re-found]  let's see where can we go there there are some interesting points And so I show you this in another um implementation. So they discovered now as a second step here the logical phase transitions these boxes as I just showed you and I said okay so now we can identify whenever we have an increase in the complexity of the task the performance of the model will drop significantly. Yeah, here on the y-axis we have the accuracy 20% 40% 60% 80% 100%. And the
 - `gXK3b-UuqOo:00600` [grounded]  more we make the task challenging more complex in our defined metric you see the performance goes below 50% let's say here for a DeepSeek model. But of course you can go even deeper let's call it and here the dashed or dotted line is here where the model is simply guessing. No there's no reasoning anymore. This is just some guessing. And this is where reasoning stops.
@@ -785,19 +811,19 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 ---
 
 ## lc-0123
+
 **question id:** lc-0123
 **question:** How did the creator's assessment of DPO (Direct Preference Optimization)-its promise, its relationship to other training methods, and its practical limitations-evolve from early 2025 through early 2026?
 **advisory:** risk=low  hint=neutral  leak=0.056  observed_shape=multi-video  milestones=6  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** Early 2025 he praised DPO as a simplification that removes the need for complex RL and an explicit reward model, contrasting it favorably with PPO's need for KL-divergence stabilization. [Jan-Feb 2025]
-- **n2** By May 2025 empirical results showed DPO (with SFT) gave almost no performance gain over clean data alone. [May 2025]
-- **n3** By July 2025 he engaged with a paper arguing SFT and DPO are not fundamentally different - both optimize an implicit reward function (SFT a flawed special case of DPO). [Jul 2025]
-- **n4** He also covered a paper concluding DPO's implicit reward update effectively vanishes when preferred answers are paraphrased ('DPO is dead'). [Jul 2025]
-- **n5** By early 2026 he noted researchers avoided standard DPO in the RL stage because it penalizes straying from the SFT policy (and often adds length penalties). [Mar 2026]
-- **shift (n6)** A correct answer must describe the change itself: from early-2025 praise of DPO as an elegant simplification to a 2025-2026 accumulation of limitations - near-zero empirical gains, theoretical equivalence to flawed SFT, 'DPO is dead' under paraphrase, and researchers avoiding standard DPO in RL. [Jan 2025 - Mar 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** Early 2025 he praised DPO as an elegant simplification that removes complex RL and an explicit reward model [Jan-Feb 2025]
+- **n2** Through mid-2025 evidence accumulated that DPO's practical benefits are limited or illusory (near-zero empirical gains; theoretically a flawed SFT special case; 'DPO is dead' under paraphrase) [May-Jul 2025]
+- **n3** By early 2026 he noted researchers avoided standard DPO in the RL stage because it penalizes straying from the SFT policy [Mar 2026]
+- **shift (n4)** He moved from early-2025 praise of DPO as an elegant simplification to a 2025-2026 accumulation of limitations that left it out of favor [Jan 2025 - Mar 2026]
 
-**edit note:** collapsed the two early praise specifics into n1; split old line 3 into n3 (SFT=DPO equivalence) and n4 ('DPO is dead'); dropped line 4's 'reduces policy entropy / narrows exploration' clause for lack of any milestone (see flag).
+**edit note (v0.1):** collapsed the two early praise specifics into n1; split old line 3 into n3 (SFT=DPO equivalence) and n4 ('DPO is dead'); dropped line 4's 'reduces policy entropy / narrows exploration' clause for lack of any milestone (see flag).
+**edit note (v0.2):** Merged the three mid-2025 DPO-limitation findings (old n2/n3/n4, m3-m5) into one 'benefits limited/illusory' turn; specifics stay in milestones. 4 nuggets.
 
 **milestones:**
 ### m1  2025-01-30  claim `gLKzDdkIV60#c002`  - supports: n1
@@ -813,16 +839,16 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 **statement:** DPO combined with supervised fine-tuning on clean data scored about 39, essentially providing almost no performance gain over clean data alone.
 - `pfap4wLUjTc:01332` [not re-found]  model 40 this is more or less what we have with clean data no dpo Oh 39 more or less the same DPO and supervised finetuning both models bring both tunings both training methodologies bring almost nothing in performance gains because they still work here with clean data.
 
-### m4  2025-07-04  claim `VTFzdYrlpko#c031`  - supports: n3
+### m4  2025-07-04  claim `VTFzdYrlpko#c031`  - supports: n2
 **statement:** The second paper claims that supervised fine-tuning and DPO are not fundamentally different processes; both are optimizing an implicit reward function, with supervised fine-tuning being a special and flawed version of DPO.
 - `VTFzdYrlpko:00870` [grounded]  as a bridge, a unified view of supervised finetuning and DPO connections. Now this is an absolutely fascinating paper paper that says now you know what there's a connection because up until now and I just showed you this now supervised fine tuning was kind of a little bit of a warm up of DPO is where the real alignment happens no and now they tell us hey wait a minute we looked at it from a very particular
 - `VTFzdYrlpko:00900` [grounded]  mathematical perspective and we found supervised fine tuning and DPO are not different processes they are both doing near the exact same thing. Optimizing an implicit reward function. Supervised finetuning is simply a very special and surprisingly flawed version of DPO. When I read this, I said this is not possible. How can supervised fine-tuning? Look at the code. Look at the implementation. It's completely different to DPO. How can it be a
 
-### m5  2025-07-13  claim `evwdJef_9U0#c028`  - supports: n4
+### m5  2025-07-13  claim `evwdJef_9U0#c028`  - supports: n2
 **statement:** The creator summarizes that if a preferred answer is paraphrased so that none of the words match literally, the implicit reward model's update becomes essentially zero, meaning no reinforcement learning happens, leading to the conclusion that 'DPO is dead.'
 - `evwdJef_9U0:01110` [grounded]  then so if you paraphrase Y plus so that none of the words match literally this row becomes zero and the update here in the rewards step is essentially zero. No learning happening, no reinforcement learning. DPO is dead. What a beautiful insight in this paper. But I have to tell you the paper is mathematically not trivial that you say I just read it here walking a little
 
-### m6  2026-03-01  claim `-HjPWrKavyA#c049`  - supports: n5
+### m6  2026-03-01  claim `-HjPWrKavyA#c049`  - supports: n3
 **statement:** For the reinforcement learning stage, the researchers could not use standard DPO because it would penalize the model for straying from the supervised fine-tuning policy and often includes length penalties, which was undesirable.
 - `-HjPWrKavyA:01410` [grounded]  the conclusion from the finish creating a dense multi-step trajectory from end to start. If we have this now after supervised fine tuning they now apply reinforcement learning but they could not go with a standard DPO because this would penalize the model for straying too far from supervised fine tuning policy and often include length penalties. No, now this is not what we want. Remember I also told you we want to have um escape here from the outcome reward functions
 
@@ -898,17 +924,19 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 
 ---
 ## lc-0127
+
 **question id:** lc-0127
 **question:** How did the creator's custom 'elevator' causal-reasoning puzzle test, and the results models achieved on it, evolve from early 2025 through early 2026?
 **advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=multi-video  milestones=6  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** The test escalated in complexity over the period, from a simple version (reach floor 13, five buttons, one trap) to a much more complex one (floor 50 with multiple traps, code cards, energy/token limits, an emergency-exit mechanic, and buttons triggering mathematical functions). [Jan 2025 onward]
-- **n2** Across re-tests, models produced widely varying button-press solutions (e.g. a 20-step OpenAI solution versus a 10-step Gemini one on the same floor-50 task). [2025-2026]
-- **n3** In December 2025, after about a year of running the exact test, a model (GPT-5.2) for the first time told him it was impossible to reach floor 50. [Dec 2025]
-- **shift (n4)** A correct answer must describe the change itself: the test grew steadily harder and model results shifted correspondingly, culminating in the first-ever 'impossible' verdict (Dec 2025) after a year in which models had always produced (varying) solutions. [Jan 2025 - Dec 2025]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** The test escalated in complexity over the period, from a simple version (reach floor 13, five buttons, one trap) to a much more complex one (floor 50 with multiple traps, code cards, energy/token limits, an emergency-exit mechanic, and buttons triggering mathematical functions) [Jan 2025 onward]
+- **n2** Across re-tests, models produced widely varying button-press solutions (e.g. a 20-step OpenAI solution versus a 10-step Gemini one on the same floor-50 task) [2025-2026]
+- **n3** In December 2025, after about a year of running the exact test, a model (GPT-5.2) for the first time told him it was impossible to reach floor 50 [Dec 2025]
+- **shift (n4)** A correct answer must describe the change itself: the test grew steadily harder and model results shifted correspondingly, culminating in the first-ever 'impossible' verdict (Dec 2025) after a year in which models had until then produced (varying) solutions [Jan 2025 - Dec 2025]
 
-**edit note:** kept the three trajectory lines as n1-n3 and added the shift (n4) tying escalating difficulty to the first 'impossible' outcome; specifics (button counts, floor numbers) stay in the milestones.
+**edit note (v0.1):** kept the three trajectory lines as n1-n3 and added the shift (n4) tying escalating difficulty to the first 'impossible' outcome; specifics (button counts, floor numbers) stay in the milestones.
+**edit note (v0.2):** Reworded the shift nugget to remove the overclaiming word 'always' (milestones prove sampled dates, not the space between). No count change; 4 nuggets.
 
 **milestones:**
 ### m1  2025-01-31  claim `P_wuwWJomyM#c010`  - supports: n1
@@ -1040,18 +1068,20 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 
 ---
 ## lc-0130
+
 **question id:** lc-0130
 **question:** How did the creator's stance on emergent intelligence in AI models evolve from March 2025 through early 2026?
 **advisory:** risk=low  hint=neutral  leak=0.182  observed_shape=multi-video  milestones=5  min_milestones=2
 **status:** RETAINED as a no-change (stable-stance) question per the updated shift step in SKILL.md. The arc collapses to one stable "no emergent intelligence" stance, so the shift slot is filled by a no-change nugget (n2) instead of dropping the question. This supersedes the earlier F2/F3 drop ruling. gold-v0.1.
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** Across his videos from March 2025 through February 2026, the creator held that LLMs show no genuine emergent intelligence. The four domains he argued this from (order-dependent reasoning m1, failure to recover physical laws from sequence prediction m2, failure to reproduce expert medical-reasoning data m3, a distilled student not exceeding its teacher m4) are substitutable milestone evidence, NOT four separate nuggets. [Mar 2025 - Feb 2026]
-- **no-change (n2)** A correct answer must state that the creator's stance stayed consistent across March 2025 - January 2026 (repeated 'no emergent intelligence' conclusions), rather than describing an evolution. This is the shift slot's mirror: checked as a connection, counted like any other nugget. [Mar 2025 - Jan 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** Across March 2025 - February 2026 he held that LLMs show no genuine emergent intelligence; the specific domains he argued this from are substitutable milestone evidence, not separate nuggets [Mar 2025 - Feb 2026]
+- **no-change (n2)** A correct answer must state that his stance stayed consistent across March 2025 - January 2026 (repeated 'no emergent intelligence' conclusions), rather than describing an evolution [Mar 2025 - Jan 2026]
 
 REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-emergence view"). It rested entirely on m5, which put a paper's claim in the creator's mouth; in the same breath he declines to endorse it ("I would not stress this particular part"). This is pitfall #1 (paper's voice), and the disproving quote is in m5's own record.
 
-**edit note:** collapsed the four-finding mega-line into one stance nugget (n1); de-overclaimed "repeatedly"; cut the false Feb-2026 shift and recast m5 to its true voice; extended n1's window to Feb 2026. Per the updated shift step: replaced the empty shift with a no-change nugget (n2) and retained the question (supersedes the F2/F3 drop).
+**edit note (v0.1):** collapsed the four-finding mega-line into one stance nugget (n1); de-overclaimed "repeatedly"; cut the false Feb-2026 shift and recast m5 to its true voice; extended n1's window to Feb 2026. Per the updated shift step: replaced the empty shift with a no-change nugget (n2) and retained the question (supersedes the F2/F3 drop).
+**edit note (v0.2):** Trimmed the 66-word mega-line to the stance; the four domains (m1-m4) remain substitutable milestone evidence. Splitting into four domain-nuggets would recreate the duplicate/misquote defect, so trim (not split) is the correct fix for a no-change question. 2 nuggets.
 
 **milestones:**
 ### m1  2025-03-05  claim `EK96uN4Xt1o#c002`  - supports: n1
@@ -1100,11 +1130,12 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 ---
 
 ## lc-0143
+
 **question id:** lc-0143
 **question:** How did the creator's characterization of 'externalization' in AI/agent systems develop from mid-2025 through April 2026 as he encountered the concept across different papers and systems?
 **advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=multi-video  milestones=5  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
 - **n1** Mid-2025 he first characterized externalization via the GraphRAG paper: the LLM is not the source of truth but an interface to an external, auditable, dynamically updatable knowledge source. [Jul 2025]
 - **n2** By early 2026 he characterized it concretely as a system architecture that puts every intermediate processing step into an external file system rather than the LLM's context/working memory. [Mar 2026]
 - **shift (n3)** A correct answer must describe the change itself, which he stated explicitly: from the prior year's view (handle everything inside the model via SFT/RL) to a new view that memory, skills, and protocols should be externalized. [~2025 - Apr 2026]
@@ -1189,11 +1220,12 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0169
+
 **question id:** lc-0169
 **question:** How did the creator's characterization of gradient descent's role within a model's forward pass-particularly regarding in-context learning and test-time training-evolve from early 2025 through early 2026?
 **advisory:** risk=low  hint=neutral  leak=0.043  observed_shape=multi-video  milestones=6  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
 - **n1** In early 2025 (March) his characterization was reporting-mode: citing academic papers that proved Transformers/attention can implicitly implement gradient-descent steps (in-context linear regression, causal structure, chain-of-thought), not asserting it as his own view [March 2025]
 - **n2** By late 2025 (December) he adopted as his own conclusion that in-context learning is effectively a transient, rank-one, online stochastic gradient descent performed during the forward pass [Dec 2025]
 - **n3** By early-to-mid 2026 he described concrete test-time-training methods where real gradient-descent updates physically modify a model's weight matrices at inference, creating 'fast weights' [early-mid 2026]
@@ -1297,33 +1329,34 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0177
+
 **question id:** lc-0177
 **question:** How did the creator's characterization of GraphRAG's core limitations evolve from February 2025 through early 2026 as he examined it across different papers and evaluations?
 **advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=multi-video  milestones=4  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** Early 2025 critique: GraphRAG-style systems retrieve overly broad, noisy subgraphs that raise computational cost and hurt LLM performance, partly from a flat structure producing incoherent prompts [Feb 2025]
-- **n2** Early 2025 critique: GraphRAG's usefulness is confined to narrow personal/corporate data and it cannot detect the missing links needed to validate complex real-world (political/financial) claims [Feb 2025]
-- **n3** Mid-2025: reframed a paper's near-perfect accuracy as an artifact of the task being single-hop, direct-edge queries rather than genuine multihop reasoning [Jul 2025]
-- **n4** Early 2026: reframed the core limitation as an exploration-exploitation tradeoff where the system zooms in or zooms out too aggressively [Jan 2026]
-- **shift (n5)** The framing of the limitation itself shifted from noise/scope critiques (early 2025), to a single-hop task-restriction diagnosis (mid 2025), to an exploration-exploitation tradeoff (early 2026) [Feb 2025 - Jan 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** Early 2025 he critiqued GraphRAG's core limitations as noise/cost from overly broad subgraphs and a scope too narrow to find the missing links needed to validate complex claims [Feb 2025]
+- **n2** Mid-2025 he reframed a paper's near-perfect accuracy as an artifact of single-hop, direct-edge queries rather than genuine multihop reasoning [Jul 2025]
+- **n3** Early 2026 he reframed the core limitation as an exploration-exploitation tradeoff where the system zooms in or out too aggressively [Jan 2026]
+- **shift (n4)** His framing of GraphRAG's limitation shifted from noise/scope critiques, to a single-hop task-restriction diagnosis, to an exploration-exploitation tradeoff [Feb 2025 - Jan 2026]
 
-**edit note:** Kept the two early-2025 critiques as separate gradeable stances (noise/cost vs scope/missing-links); mid-2025 and early-2026 each one nugget; added the shift.
+**edit note (v0.1):** Kept the two early-2025 critiques as separate gradeable stances (noise/cost vs scope/missing-links); mid-2025 and early-2026 each one nugget; added the shift.
+**edit note (v0.2):** Merged the two early-2025 critiques (old n1+n2, m1+m2) into one early-2025 stance; they are substitutable facets of the same period, and the gradeable evolution is the framing shift over time. 4 nuggets.
 
 **milestones:**
 ### m1  2025-02-26  claim `oetP9uksUwM#c003`  - supports: n1
 **statement:** Graph-based RAG systems like GraphRAG and LightRAG can be improved upon because they retrieve excessively broad subgraphs, produce noisy prompts, increase computational cost, and lead to suboptimal LLM performance.
 - `oetP9uksUwM:00060` [grounded]  we will discover they also to able to be improved upon because they retrieve some excessively broad subgraphs they have noisy prompts we have increased computational cost because of this and ultimately we have a suboptimal llm performance and then we talk about the solution because graph rack evolved the very last technological state is PathRAG published just days ago they said set out to solve all those limitation so
 
-### m2  2025-02-28  claim `fpFA0AOfBYI#c016`  - supports: n2
+### m2  2025-02-28  claim `fpFA0AOfBYI#c016`  - supports: n1
 **statement:** The creator argues that GraphRAG and any RAG system cannot detect missing links needed to assess background information like political and financial systems, and that finding this connectivity is necessary to validate complex claims.
 - `fpFA0AOfBYI:00540` [grounded]  but how do we now assess here background information about the political system about the financial system about the economics of his time so what we need is here to detect the missing links graph RAG and PRAG and any rag system cannot detect those missing links and we need to find those connectivity to validate the paragraph So how we do this it's easy let's make a k dunkan experiment let's say we have here if
 
-### m3  2025-07-26  claim `T3dxC9_mp1M#c045`  - supports: n3
+### m3  2025-07-26  claim `T3dxC9_mp1M#c045`  - supports: n2
 **statement:** The creator states that the GraphRAG approach shown in this paper is limited to single-hop, direct-edge association tasks, such as looking up a drug's side effect, and is not designed for higher complexity.
 - `T3dxC9_mp1M:01290` [grounded]  GraphRAG as shown today in this paper is a single hop direct edge association. It is explicitly designed for one task and one task only. I have here a drug and I want to have its side effect. Stop. That's it. So I have a direct fact that links A to B. This has a defined level of complexity, a low level of complexity. Now to make it even clearer, the Princeton paper on superintelligent
 
-### m4  2026-01-21  claim `hDYtGpTsVV0#c005`  - supports: n4
+### m4  2026-01-21  claim `hDYtGpTsVV0#c005`  - supports: n3
 **statement:** GraphRAG suffers from an exploration-exploitation tradeoff where the system either zooms in too fast or zooms out too fast.
 - `hDYtGpTsVV0:00060` [grounded]  graph has a problem that either we zoom in too fast or we zoom out too fast. So we do struggle with this exploration exploitation tradeoff that we always encounter in our AI models. Now you know graph was further developed. Let's say here the graph foundation model. This is here from December 2025 and the authors tell us yeah we know graph rag performance is still hindered by the noise and the incompleteness within the graph structure and therefore they built no graph foundation model. So have a
 
@@ -1371,18 +1404,19 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0179
+
 **question id:** lc-0179
 **question:** How did the creator's understanding and explanation of the grokking phenomenon evolve from January 2025 through early 2026?
 **advisory:** risk=low  hint=neutral  leak=0.1  observed_shape=multi-video  milestones=5  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** Early 2025 (Jan): reported that grokking had long been unexplained and presented new research (a softmax-collapse / numerical-instability account) offering a first explanation of why it happens; here he relayed others' explanation rather than theorizing himself [Jan 2025]
-- **n2** Late 2025 (Nov): advanced his own explicitly speculative, unpublished theory that grokking is a phase transition of a geometric representation in a transformer's internal memory [Nov 2025]
-- **n3** Early 2026 (Jan): extended grokking beyond LLM training to inference-time reasoning dynamics, citing grokking-like plateau-then-drop behavior in an HRM model [Jan 2026]
-- **n4** Early 2026 (Feb): speculated about deliberately triggering a grokking-like phase transition in smaller LLMs by helping them find an optimal geometric/structural representation [Feb 2026]
-- **shift (n5)** The understanding itself moved from him reporting others' first explanation of grokking (Jan 2025), to advancing his own speculative geometric-phase-transition theory (Nov 2025), to seeing grokking in inference-time dynamics (HRM, Jan 2026), to proposing to deliberately induce it in smaller models (Feb 2026) [Jan 2025 - Feb 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** Early 2025 (Jan) he relayed others' first explanation of grokking (a softmax-collapse / numerical-instability account), rather than theorizing himself [Jan 2025]
+- **n2** Late 2025 (Nov) he advanced his own explicitly speculative theory that grokking is a phase transition of a geometric representation in a transformer's internal memory [Nov 2025]
+- **n3** Early 2026 (Jan) he extended grokking beyond training to inference-time reasoning dynamics, citing grokking-like behavior in an HRM model [Jan 2026]
+- **shift (n4)** His understanding moved from relaying others' first explanation, to advancing his own speculative geometric-phase-transition theory, to seeing grokking in inference-time dynamics [Jan 2025 - Jan 2026]
 
-**edit note:** Collapsed m2/m3 (same-day geometric-theory stance) into n2; kept the periods as stance nuggets; added shift. Per ruling: reworded n1 (grokking was newly explained, not merely 'unexplained') and promoted grounder chunk SRfJQews1AU:00120 (the softmax-collapse account) into m1's evidence, sharpening the reporter -> theorist -> extender -> engineer arc.
+**edit note (v0.1):** Collapsed m2/m3 (same-day geometric-theory stance) into n2; kept the periods as stance nuggets; added shift. Per ruling: reworded n1 (grokking was newly explained, not merely 'unexplained') and promoted grounder chunk SRfJQews1AU:00120 (the softmax-collapse account) into m1's evidence, sharpening the reporter -> theorist -> extender -> engineer arc.
+**edit note (v0.2):** Demoted the Feb-2026 'deliberately induce grokking' point (old n4, m5) as an off-axis proposal; flagged for override. Shift end narrowed to Jan 2026. 4 nuggets.
 
 **milestones:**
 ### m1  2025-01-14  claim `SRfJQews1AU#c004`  - supports: n1
@@ -1408,7 +1442,7 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 - `UETxlAf0BOA:00990` [grounded]  You remember that I told you hey wait a minute this looks like grokking we got lost somewhere. Yes. doesn't take one day maybe two days here and then suddenly in the third day we find a solution here and yeah the authors also tell us here hey this shows that the grokking dynamics here is happening not only here when we teach or when we have here learning process for our LLMs but this is also happening
 - `UETxlAf0BOA:01050` [grounded]  decide go to loss zero and you have this long long long plateau and then clunk down to loss zero. So this is now interesting that we find now grokking that we know from LLMs now in HRM and the question is can we learn what it is in this simplified case of HRM and transfer our knowledge back to the LLM. So careful. Yeah, grokking. We have to be specific. Grokking here in the
 
-### m5  2026-02-04  claim `iHLDu-IdJwo#c037`  - supports: n4
+### m5  2026-02-04  claim `iHLDu-IdJwo#c037`  - DEMOTED (off-axis proposal per turning-point rule: 'deliberately induce grokking in smaller models' is an application, not an understanding; evidence retained; was n4)
 **statement:** The creator raises the question of whether smaller LLMs could be made more intelligent by helping them find their optimal structural representation, and whether a phase transition analogous to grokking could be triggered by finding the right mathematical/geometric representation.
 - `iHLDu-IdJwo:00780` [not re-found]  frames here to store all this information and make that information available for the internal reasoning process of a neural network. So let's call it a crystalline latent structure. So suddenly we ask ourselves hey what is happening inside here the representational space? How does a neural network really optimize here its knowledge encoding? Can we make smaller LLMs more
 - `iHLDu-IdJwo:00810` [grounded]  intelligent just by helping the LLM to find its optimal structural representation? Is there a phase transition that we need to initiate? And suddenly like you remember grokking in the performance phase. Now we have here performance jump because we found the right mathematical representation in the geometry. Now for the neural network the authors now tell us that this geometry
@@ -1463,18 +1497,19 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0223
+
 **question id:** lc-0223
 **question:** How did the creator's assessment of the LLM-as-judge evaluation approach evolve from early/mid-2025 through early 2026?
 **advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=multi-video  milestones=5  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** Mid-2025 (Aug): initial discomfort - 'not really happy' - about papers relying on an LLM as judge [Aug 2025]
-- **n2** Sep 2025: acknowledged empirical evidence of meaningful but imperfect agreement (about 70%) between LLM judges and human evaluators [Sep 2025]
-- **n3** Sep 2025: concluded a reliable LLM-as-judge needs purpose-specific training, not an off-the-shelf model [Sep 2025]
-- **n4** Late 2025 - early 2026: sharpened into specific concerns that LLM judges may lack genuine domain expertise / validation data and can be undermined by hallucination [Dec 2025 - Jan 2026]
-- **shift (n5)** His assessment itself moved from a blunt 'not happy,' through acknowledging measured-but-imperfect agreement and a training precondition for reliability, to concrete failure-mode concerns (missing expertise/validation, hallucination) [Aug 2025 - Jan 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** Mid-2025 (Aug) he was initially uncomfortable ('not really happy') about papers relying on an LLM as judge [Aug 2025]
+- **n2** By September 2025 he reached a nuanced middle: measured-but-imperfect agreement (about 70%) with humans, but off-the-shelf models are insufficient and a reliable judge needs purpose-specific training [Sep 2025]
+- **n3** Late 2025 - early 2026 he sharpened into concrete concerns: judges may lack genuine domain expertise/validation data and can be undermined by hallucination [Dec 2025 - Jan 2026]
+- **shift (n4)** His assessment moved from a blunt 'not happy', through a nuanced measured-agreement-but-needs-training middle, to concrete failure-mode concerns [Aug 2025 - Jan 2026]
 
-**edit note:** Turned the '70%' specific into a stance nugget (n2); collapsed m4/m5 into one 'specific reliability concerns' nugget (n4); dropped the 'deterministic ground truth' clause from n3 since no milestone supports it.
+**edit note (v0.1):** Turned the '70%' specific into a stance nugget (n2); collapsed m4/m5 into one 'specific reliability concerns' nugget (n4); dropped the 'deterministic ground truth' clause from n3 since no milestone supports it.
+**edit note (v0.2):** Merged the two Sept-2025 points (old n2 empirical agreement + old n3 training precondition) into one nuanced-middle stance. 4 nuggets.
 
 **milestones:**
 ### m1  2025-08-23  claim `nWARugXmQoI#c013`  - supports: n1
@@ -1485,17 +1520,17 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 **statement:** The paper shows about 70% agreement between what the LLM evaluator (LLM-as-a-judge) recommends among 20 to 50 candidate user interfaces and what human evaluators consider a good interface.
 - `0he3LCqPl98:00810` [grounded]  that you have about 70% agreement what the LLM recommends on this 20 or 50 user interfaces to what the human think is also a good interface. So 70% agreement between LLM as a code and the human is okay. Adaptive reward function iterative refinement. We talked about it. Here's an example. So you start here if you want here with one of the first iteration. You have your basic dashboard
 
-### m3  2025-09-20  claim `N7dDq54_akY#c070`  - supports: n3
+### m3  2025-09-20  claim `N7dDq54_akY#c070`  - supports: n2
 **statement:** The creator notes that using an LLM as a judge requires specific training and cannot simply use an off-the-shelf model like GPT-5.
 - `N7dDq54_akY:02190` [grounded]  the benchmark so 2.5 omni we multimodal. So we have here speech text or text only. If you go to your own and matt you have I don't know let's look at this one pass it one 31 now with this new methodology 36. If you have a trained LLM as a judge remember you have to specifically train this you just cannot go with a normal GPT-5 maybe. Yeah,
 
-### m4  2025-12-30  claim `T4g5uSaY3Ko#c063`  - supports: n4
+### m4  2025-12-30  claim `T4g5uSaY3Ko#c063`  - supports: n3
 **statement:** The creator explains that each evaluation criterion (e.g., activity, toxicity) is judged by an LLM acting as a judge, such as GPT-5 predicting antibiotic activity or Claude Sonnet 4.5 predicting toxicity using a formula it found online, and that this LLM-as-judge approach may lack genuine medical expertise or sufficient validation data.
 - `T4g5uSaY3Ko:01950` [grounded]  So it is in silico. Yes, it is absolutely a computer simulation. But this is here the statistical value if everything would just go perfect. So this means we see here just okay the judge one here for example our cap cap charge here the activity this AI this is a GPT-5 thinks okay GPT-5 predicts this new molecular compound will kill here this pneumonia bacteria
 - `T4g5uSaY3Ko:01980` [grounded]  now you could believe that GPT-5 is here the best medical expert for this statement or LLM as a judge but maybe GPT-5 has Not the human knowledge about it. But I judge tool here. This orange bar here. No. Toxicity. No toxicity is here. The third one. Sorry. Toxicity. I predict as this guy that this is safe for humans. No. If this is here Claude 4.5. I think this
 - `T4g5uSaY3Ko:02010` [grounded]  is great. because maybe Sonnet 4.5 found somewhere on the internet in some GitHub some mathematical formula to compute here the toxicity of some molecular compound and hopefully it made no mistake in calculating this particular score and if it was below 30% you might call it here a success but I think there are massive validations and data missing so to say this is below 20% successful is quite an
 
-### m5  2026-01-02  claim `96XVs6qcIT4#c032`  - supports: n4
+### m5  2026-01-02  claim `96XVs6qcIT4#c032`  - supports: n3
 **statement:** The creator expresses concern about relying on the judgment of a hallucinating LLM as the accuracy reward evaluator.
 - `96XVs6qcIT4:00540` [grounded]  is much more stable in this process. And if you say what am I talking about I have a particular video here on AI math explained the easy way you immediately understand what is all this mathematical notation. Now let's click a little bit closer to this dual reward function. The advantage of a GRPO is calculated with a total reward. We just have some additive terms. So our accuracy reward simple evaluated by an LLM as a judge. So a judge. So we rely absolutely on the
 - `96XVs6qcIT4:00570` [grounded]  judgment of a hallucinating LLM and you know that I'm not happy with this if you get a binary outcome zero or one to ensure the semantic correctness. Okay. But then we have a distillation reward in addition. So this is the novel part if you want. No it measures here the ease of the transferability of knowledge from one AI machine to the other. And if the divergence between the teacher and student logits for a specific response is low, the reward therefore is high. Now to
@@ -1521,19 +1556,20 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0233
+
 **question id:** lc-0233
 **question:** How did the creator's 'extreme logic test' and his assessment of AI models' performance on it change from late January 2025 through May 2025?
 **question (original, waypoint-leaked; reworded to neutral per ruling):** How did the creator's 'extreme logic test' and his assessment of AI models' ability to solve, verify, and revise their solutions on it evolve from late January 2025 through May 2025?
 **advisory:** risk=medium  hint=waypoint  leak=0.056  observed_shape=multi-video  milestones=6  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** Late Jan / early Feb 2025: the test was a 15-clue logic puzzle already run across many models (o1, Grok 2, Gemini, Llama, Claude 3.5 Sonnet); a model could confirm/validate multiple valid solutions when prompted to verify or try alternative reasoning paths [Jan - Feb 2025]
-- **n2** March 2025: with Claude 3.7 Sonnet and DeepSeek R1, models could validate a second valid solution once told their first was wrong, but neither could discover that second solution unprompted [Mar 2025]
-- **n3** May 2025: after 'complexity clues' were layered onto the original 15, Sonnet 4 and Opus 4 failed to incorporate them across repeated revision attempts, and Sonnet 4 was dropped from the test [May 2025]
-- **n4** May 2025: Opus 4 diagnosed its own failure as mentally separating the complexity clues from the main set (assuming it could reconcile them later) while affirming its original systematic method had been sound [May 2025]
-- **shift (n5)** A correct answer must describe the change itself: from models being able to confirm or validate solutions when prompted (early 2025) to failing, once complexity clues were layered onto the original puzzle, to incorporate them across repeated revision attempts (May 2025). [Jan 2025 - May 2025]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** Late Jan / early Feb 2025: on the 15-clue logic puzzle, models could confirm or validate valid solutions when prompted to verify or try alternative reasoning paths [Jan-Feb 2025]
+- **n2** March 2025: with Claude 3.7 Sonnet and DeepSeek R1, models could validate a second valid solution once told their first was wrong, but neither could discover it unprompted [Mar 2025]
+- **n3** May 2025: after 'complexity clues' were layered onto the original 15, models failed to incorporate them across revision attempts, and Sonnet 4 was dropped from the test [May 2025]
+- **shift (n4)** The test's difficulty and model results shifted together: from being able to confirm/validate solutions when prompted (early 2025) to failing to incorporate added complexity clues across revisions (May 2025) [Jan 2025 - May 2025]
 
-**edit note:** Reworded to neutral (kept 'extreme logic test') and shift nugget (n5) added per ruling; collapsed m3/m4 into the May-failure nugget and m5/m6 into the Opus-4 self-diagnosis nugget; softened 'repeatedly' to 'across repeated revision attempts'.
+**edit note (v0.1):** Reworded to neutral (kept 'extreme logic test') and shift nugget (n5) added per ruling; collapsed m3/m4 into the May-failure nugget and m5/m6 into the Opus-4 self-diagnosis nugget; softened 'repeatedly' to 'across repeated revision attempts'.
+**edit note (v0.2):** Trimmed the 46-word mega-line (model list moved to milestones). Demoted the Opus-4 self-diagnosis (old n4, m5+m6) to milestones as an elaboration of the May failure. 4 nuggets.
 
 **milestones:**
 ### m1  2025-02-01  claim `mWWfMoMkqHQ#c013`  - supports: n1
@@ -1556,12 +1592,12 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 **statement:** The creator states that Sonnet 4 is 'out' of the test after repeatedly failing to address the complexity clues, and continues the test using only Opus 4.
 - `fgSdunF7Oe0:00330` [grounded]  Okay, checking the ration. I started with every single conclusion. The solution is validated through multiple independent methods. All constraints is satisfy all times are assigned and the logic chains are consistent. This is great. So you know what now we do. Now we say check if there's another valid solution. Yeah, let's do this. I mean we are just looking here at Opus 4 because Sonnet 4 is out. Now we know
 
-### m5  2025-05-23  claim `fgSdunF7Oe0#c021`  - supports: n4
+### m5  2025-05-23  claim `fgSdunF7Oe0#c021`  - DEMOTED (waypoint per turning-point rule: Opus-4 self-diagnosis, an elaboration of the May failure; evidence retained; was n4)
 **statement:** Claude Opus 4 stated it had mentally separated the 15 clues from the complexity clues and assumed it could make the complexity work later, calling this a fundamental error.
 - `fgSdunF7Oe0:00660` [grounded]  I claimed there were three solutions but I failed to fully validate them. When I tried to assign complexity rating it violated the constraint also violated constraint when fully checked. I announced tells me opus 4 multiple solution before actually confirming they satisfy all constraints. Wow. I separated the 15 clues from the complexity in my mind. And when exploring alternatives, I only checked against the first 15 clues and assumed I could make the complexity
 - `fgSdunF7Oe0:00690` [grounded]  work later. This was a fundamental error tells us here Claude Opus 4. Yes, a fundamental error. When I found that complexity constraints were violated, I started trying to reinterpret them. This is a funny move for an artificial intelligence system. This was grasping at straws rather than accepting that constraints eliminate those possibilities. Social pressure override. Oh, I love our human AIs. Quotation mark
 
-### m6  2025-05-23  claim `fgSdunF7Oe0#c024`  - supports: n4
+### m6  2025-05-23  claim `fgSdunF7Oe0#c024`  - DEMOTED (waypoint per turning-point rule: Opus-4 self-diagnosis, an elaboration of the May failure; evidence retained; was n4)
 **statement:** Claude Opus 4 stated it should have maintained confidence in its systematic approach and required proof before accepting the creator's claim, and recognized its original method was sound.
 - `fgSdunF7Oe0:00720` [grounded]  end. The biggest failure of OPUS 4. I let the assertive statement you are wrong. There are multiple other solutions override my logical analysis. So, I just have to tell you, hey, you're wrong. And you say yes, I was wrong. and all the artificial intelligence is gone. Opus 4 tells us I should have maintained confidence in my systematic approach required proof before accepting
 - `fgSdunF7Oe0:00750` [grounded]  the claim recognized that my original method was sound. Why this happened? Authority bias. You mean the humans or your authority? I assumed you knew something I didn't when you asserted when I was wrong. Wow. So I can tell it everything I want and the AI will agree. Great. That's why I need an AI. Confirmation bias. Once told multiple solutions exist, I looked for ways to make that true rather than
@@ -1647,45 +1683,45 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0251
+
 **question id:** lc-0251
 **question:** How did the creator's characterization of memorization in LLMs evolve from January 2025 through early 2026 as he examined it across grokking dynamics, fine-tuning, and reasoning benchmarks?
 **advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=adjacent  milestones=6  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** Early 2025 (Jan): memorization framed as a transient training phase - the 'lazy regime' that dominates early and precedes generalization (in grokking) [Jan 2025]
-- **n2** Early 2025 (Mar): memorization framed as a fine-tuning side effect that hurts generalization to slightly modified problems [Mar 2025]
-- **n3** Sep 2025: memorization, not genuine reasoning, is the dominant behavior in LLMs, with strong benchmark performance often reflecting recalled facts rather than first-principles reasoning [Sep 2025]
-- **n4** Sep 2025: this can be exposed by making memory useless (e.g., changing the underlying rules), which reveals the model's much weaker true inductive-reasoning capability [Sep 2025]
-- **n5** Early 2026: concrete cases as further evidence - models recite answers from pre-training even without context, and solve one-step tasks by directly copy-pasting memorized sequences [Jan - Feb 2026]
-- **shift (n6)** His characterization itself moved from memorization as a training-phase / fine-tuning phenomenon, to the general claim that memorization dominates over reasoning, backed by a memory-nullifying probe and early-2026 concrete reciting/copy-pasting cases [Jan 2025 - Feb 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** Early 2025 he framed memorization as a training-phase phenomenon: the 'lazy regime' that precedes generalization in grokking, and a fine-tuning side effect that hurts generalization [Jan-Mar 2025]
+- **n2** By September 2025 he generalized: memorization, not genuine reasoning, is the dominant behavior in LLMs - exposable by nullifying memory to reveal much weaker true reasoning [Sep 2025]
+- **n3** Early 2026 he cited concrete cases as further evidence: models recite pre-trained answers without context and solve one-step tasks by copy-pasting memorized sequences [Jan-Feb 2026]
+- **shift (n4)** His characterization moved from memorization as a training-phase/fine-tuning phenomenon to the general claim that memorization dominates over reasoning, backed by a memory-nullifying probe and early-2026 concrete cases [Jan 2025 - Feb 2026]
 
-**edit note:** Split the bundled early-2025 line into two stances (grokking lazy regime vs SFT side effect); collapsed m5/m6 into one early-2026 evidence nugget; added shift.
+**edit note (v0.1):** Split the bundled early-2025 line into two stances (grokking lazy regime vs SFT side effect); collapsed m5/m6 into one early-2026 evidence nugget; added shift.
+**edit note (v0.2):** Merged the two early-2025 samples (grokking lazy regime + SFT side effect) into one training-phase stance, and the Sept-2025 dominance claim with its memory-nullifying probe into one turn. 4 nuggets.
 
 **milestones:**
 ### m1  2025-01-14  claim `SRfJQews1AU#c005`  - supports: n1
 **statement:** New research explains that grokking happens late and suddenly because the LLM first gets stuck in a lazy training regime where memorization is the dominant learning force.
 - `SRfJQews1AU:00090` [grounded]  causal competition Pathways after the gring happens but we never could explain why gring happens in the first place or how we could ignite it earlier and now today we have new Research into grag and this is beautiful so let me give you now finally the reason but grokking happens late and suddenly because our llm first gets stuck into a lazy training regime where the memorization effect is the dominant force of learning then the
 
-### m2  2025-03-15  claim `xqOAdmgUAC8#c015`  - supports: n2
+### m2  2025-03-15  claim `xqOAdmgUAC8#c015`  - supports: n1
 **statement:** Gemini 2.0's report cites research suggesting that as supervised fine-tuning progresses, models may memorize prompt-solution pairs, causing difficulty generalizing to slightly modified problems.
 - `xqOAdmgUAC8:00720` [not re-found]  fixed data set to incorporate new information it requires fur fine tuning on data that include this new knowledge okay can be computational expensive and might also lead to a phenomenon known as catastrophic forgetting yes where a model loses previously acquired knowledge while learning new information correct research and code generation suggest that as supervised fine-tuning progresses models might tend to memorize the original prompt and its solution together leading to difficulties in
 - `xqOAdmgUAC8:00750` [not re-found]  generalize to even slightly modified problems beautiful yes this is it tendency highlights a potential challenge for sft in truly understanding integrating new information in a way that allows for flexible reasoning while in context learning might allow models to utilize some new information provided in the prompt this is not a robust and scalable solution for truly incorporating and reasoning with novel facts or concepts in a consistent Manner and another archive paper scientific paper great now to reinforcement
 
-### m3  2025-09-24  claim `keu1DAnUwiA#c040`  - supports: n3
+### m3  2025-09-24  claim `keu1DAnUwiA#c040`  - supports: n2
 **statement:** The authors conclude that memorization over genuine reasoning is currently the dominant behavior in LLMs, meaning they recall memorized facts rather than reason.
 - `keu1DAnUwiA:00930` [not re-found]  high-fidelity memory of information they saw during their pre-training, fine-tuning, uh, reinforcement learning, training, whatever. But when we design it in a particular way in an experiment that we say the LLM memory is simply made useless by our configuration or by changing here the rules for synthetic genetic code then the true much weaker inductive capabilities are exposed. Therefore the authors say memorization
 - `keu1DAnUwiA:00960` [not re-found]  over reasoning is currently the topic in our LLMs. They don't reason. They just recall memorized facts from their training data. And then let's come because we remember four. Four is the other number and they say the performance gained from using here three and four the self-consistency prompting methodology. No. And the hypothesis refinement iterative loop refinement. They say the gains from those were minimal and inconsistent. And
 
-### m4  2025-09-24  claim `keu1DAnUwiA#c039`  - supports: n4
+### m4  2025-09-24  claim `keu1DAnUwiA#c039`  - supports: n2
 **statement:** The authors state that when the LLM's memory is made useless by changing the rules (e.g., synthetic genetic code), the true, much weaker inductive reasoning capabilities of the model are exposed.
 - `keu1DAnUwiA:00930` [not re-found]  high-fidelity memory of information they saw during their pre-training, fine-tuning, uh, reinforcement learning, training, whatever. But when we design it in a particular way in an experiment that we say the LLM memory is simply made useless by our configuration or by changing here the rules for synthetic genetic code then the true much weaker inductive capabilities are exposed. Therefore the authors say memorization
 
-### m5  2026-01-17  claim `az5WB-nGDk4#c041`  - supports: n5
+### m5  2026-01-17  claim `az5WB-nGDk4#c041`  - supports: n3
 **statement:** The creator explains that if GPT-5 has seen a specific paper during pre-training (e.g., about a year old), it can produce a correct answer purely from its learned weights even if given a blank sheet of paper as context, because it is reciting rather than reading.
 - `az5WB-nGDk4:01200` [not re-found]  this is a little bit that we could optimize. Memorization, no? If GPT-5 has seen a specific paper during its pre-training, let's say it's 1 year old, no? It can receive therefore the correct answer if it really finds it from its learned weight tensor distribution, even if you give it a blank sheet of paper as context, no? Because it is not reading. It is just reciting what it learned, and hopefully it gets it in the right order. So, this is a real powerful element,
 - `az5WB-nGDk4:01230` [not re-found]  but remember, if you just give it a blank sheet of paper here, and it just reproduces you something, this is what you can do with a search, no? You don't need There's no reasoning. There's no complexity. There's no intelligence. But even if it has not seen the specific paper, no? If it's a brand new scientific paper, GPT-5 will still rely on its scientific prowess, of course, like any other AI system. It knows, for example, that the ablation
 
-### m6  2026-02-06  claim `b0c64uUyvpo#c017`  - supports: n5
+### m6  2026-02-06  claim `b0c64uUyvpo#c017`  - supports: n3
 **statement:** For one-step tasks, the model can solve them via simple copy-pasting from memorized training data without needing reasoning, since it directly saw the sequence (e.g., apple followed by car).
 - `b0c64uUyvpo:00570` [not re-found]  So you say my goodness what is happening but let's look at the x-axis here we have a one step two step and three step what is it now one step is simple no we have a logic from x to x + one so if you add now the position of the word apple where do you go next and in the training data you literally saw apple and the next one is car so the model can solve this just by copy pasting this from memory no doesn't need any reasoning at
 
@@ -1703,11 +1739,12 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0260
+
 **question id:** lc-0260
 **question:** How did the creator's assessment of small (3B-parameter-class) models' ability to handle his difficult reasoning puzzles evolve from September 2025 through April 2026?
 **advisory:** risk=medium  hint=waypoint  leak=0.0  observed_shape=multi-video  milestones=5  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
 - **n1** In September 2025 he judged 3B-class small models (e.g. Qwen3 Next A3B) not capable of his hardest causal reasoning puzzles, though he thought them excellent for simpler or medium-complexity tasks and noted one came remarkably close [Sept 2025]
 - **n2** By March 2026 he held that small models lack the meta-cognitive capacity to write good checklists for themselves but have enough instruction-following ability to solve complex problems by following a checklist supplied by a larger model [March 2026]
 - **n3** By April 2026 he found a 3B model immediately hitting the correct solution strategy on his puzzle, calling it amazing and something he had never before seen a 3B achieve [April 2026]
@@ -1756,11 +1793,12 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0266
+
 **question id:** lc-0266
 **question:** How did the creator's preferred or favorite AI model change over the course of 2025 into 2026?
 **advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=multi-video  milestones=3  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
 - **n1** In January 2025 his favorite model was the R1 32B, valued for causal reasoning and for being practical to run locally at 32B parameters [Jan 2025]
 - **n2** By April 2025 his preference had shifted to Google's Gemini Pro 2.5, which he called his best model [April 2025]
 - **n3** By April 2026 his preferred model was Nano Banana Pro, which he felt no need to switch away from [April 2026]
@@ -1797,11 +1835,12 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0337
+
 **question id:** lc-0337
 **question:** How did the creator's assessment of prompt optimization techniques evolve from early 2025 through mid-2026 as he covered new papers, methods, and results on the topic?
 **advisory:** risk=low  hint=neutral  leak=0.062  observed_shape=multi-video  milestones=6  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
 - **n1** In early 2025 he treated automatic prompt optimization as a meaningful performance lever, citing concrete accuracy gains and arguing it should not be skipped in multi-agent system design [Feb 2025]
 - **n2** In March 2025 he characterized optimized prompting as essentially old in-context-learning/few-shot prompting repackaged ('an old friend'), not fundamentally new [March 2025]
 - **n3** By October 2025 he presented research that prompt optimization has a limited performance ceiling versus fine-tuning or RAG because it adds no new knowledge, motivating hybrid approaches [Oct 2025]
@@ -1922,18 +1961,19 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0344
+
 **question id:** lc-0344
 **question:** How did the creator's assessment of the value and tradeoffs of quantizing LLMs (especially aggressive 4-bit quantization) evolve from early 2025 through early 2026?
 **advisory:** risk=low  hint=neutral  leak=0.062  observed_shape=multi-video  milestones=6  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** In early 2025 he treated quantization as an acceptable practical tradeoff for memory- or hardware-constrained (local, in-vehicle) deployment, with a real but tolerable performance cost [Jan - Feb 2025]
-- **n2** By mid-2025 he treated the accuracy-for-memory tradeoff as well established and personally preferred testing raw, unquantized model capability over quantized versions [April - May 2025]
-- **n3** By early 2026 a new study led him to describe a 'paradox' (quantization trap) where aggressive 4-bit models can be slower, less accurate, and more energy-consuming than the full 16-bit baseline [Feb 2026]
-- **n4** By early 2026 he recommended against 4-bit quantization for complex reasoning or high-fidelity agent tasks until hardware improves, favoring 16-bit or 8-bit [Feb 2026]
-- **shift (n5)** moved from treating quantization as an acceptable, well-established tradeoff (early-mid 2025) to warning of a 4-bit paradox and recommending against aggressive 4-bit for reasoning/agent tasks (early 2026) [Jan 2025 - Feb 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** In early-to-mid 2025 he treated quantization as an acceptable, well-established tradeoff for memory/hardware-constrained deployment, and personally preferred testing raw, unquantized capability [Jan-May 2025]
+- **n2** By early 2026 a new study led him to describe a '4-bit paradox' where aggressive 4-bit models can be slower, less accurate, and more energy-consuming than the full 16-bit baseline [Feb 2026]
+- **n3** He recommended against 4-bit quantization for complex reasoning or high-fidelity agent tasks until hardware improves, favoring 16-bit or 8-bit [Feb 2026]
+- **shift (n4)** He moved from treating quantization as an acceptable, well-established tradeoff (early-mid 2025) to warning of a 4-bit paradox and recommending against aggressive 4-bit for reasoning/agent tasks (early 2026) [Jan 2025 - Feb 2026]
 
-**edit note:** Recast m1 to the paper's voice (see flag) and rested the early-2025 nugget on m2, his own voice; kept m3/m4 as two facets of the mid-2025 position; split the 2026 finding (n3) from the 2026 recommendation (n4).
+**edit note (v0.1):** Recast m1 to the paper's voice (see flag) and rested the early-2025 nugget on m2, his own voice; kept m3/m4 as two facets of the mid-2025 position; split the 2026 finding (n3) from the 2026 recommendation (n4).
+**edit note (v0.2):** Merged the early-2025 acceptance and the mid-2025 'well-established tradeoff / prefers raw' samples (old n1+n2) into one stance. 4 nuggets.
 
 **milestones:**
 ### m1  2025-01-07  claim `rWgEkrmtY3Y#c034`  - supports: n1
@@ -1944,23 +1984,23 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 **statement:** The creator notes that careful quantization reduces the performance of a local LLM.
 - `L-WfRaSPE2A:00840` [grounded]  with a 3 billion parameter local llm and we will talk about quantization because careful quantization reduces here the performance of your llm so with your 3B parameter local language mod MinionS-SuperA achieves here 93.4% of the performance of remote only systems at about 16% of the cloud costs so if you are not absolutely at the leading and bleeding edge of technology technology that you need
 
-### m3  2025-04-29  claim `u-WXyeV1tsw#c006`  - supports: n2
+### m3  2025-04-29  claim `u-WXyeV1tsw#c006`  - supports: n1
 **statement:** The creator states they are not interested in quantized models but want to test the pure, raw, unquantized power of the model, so they use the Qwen website directly instead of Ollama.
 - `u-WXyeV1tsw:00090` [grounded]  two mixture of expert system. Now in my last video I tested here this but careful let's look at the 32B now here let's see what we have beautiful do you see mixture of expert model yes great but as you can see we have a heavy quantization this now makes it of course that we can download and use it locally maybe with a nonprofessional GPU but we are not interested here in quantized
 - `u-WXyeV1tsw:00120` [grounded]  model we are interested here in the pure raw power. So therefore I have to tell you you know what we do we go here we go here to Qwen itself and you remember this was the video here for yesterday but today we go here with the second mixture of expert model and you might say what a 3 billion active mixture of expert model so let's select it and you might say for a logical
 - `u-WXyeV1tsw:00810` [grounded]  result that fits. That fits is nice. No ends can have this. Okay, it finds here the unique mappings. This is great. I stay here real time that you don't get an impression. We are let something happening not recording. But you see this is the nonquantized version. This is the real full stuff version. So whatever you do locally in a heavily
 - `u-WXyeV1tsw:00840` [not re-found]  quantized version, you might get complete different results. But I want to see here the pure performance of the system. So I go to Q1 and I want to see this unquantized performance the best possible solution that there is in the model inherent to the complexity to the solving complexity of the model. Remaining familiars. We still have remaining familiars. Yeah, it really goes through all the steps. Look this. What could that be? Nice.
 
-### m4  2025-05-15  claim `T8Ty99O4m0w#c039`  - supports: n2
+### m4  2025-05-15  claim `T8Ty99O4m0w#c039`  - supports: n1
 **statement:** Standard quantization techniques like GPTQ and AWQ can reduce precision to 8-bit or 4-bit during inference to save memory, at the cost of accuracy, depending on memory requirements.
 - `T8Ty99O4m0w:00810` [grounded]  an acceptance rate of 90% for predicting the second subsequent token correctly 90% is excellent but they also have another if you want deep inside real clever way low precision driven design and you know we do have quantization techniques no GPTQ AWQ you can use your 8 bit maybe you go down to 4bit if you're really brave and you say I don't care about accuracy so
 - `T8Ty99O4m0w:00840` [grounded]  it all depends on your memory requirement but you know that these techniques are applied here you during the inference to save the memory. No, you have to have the model. And now DeepSeek said, "Hey, wait a minute. We don't have 100,000 GPUs. If we only have 2,000 GPUs, we have to optimize this." So they went and they discovered a quantization technique not for inference but for the training itself. And this is
 
-### m5  2026-02-18  claim `Mq6FQIZ-GMw#c001`  - supports: n3
+### m5  2026-02-18  claim `Mq6FQIZ-GMw#c001`  - supports: n2
 **statement:** A new study finds that 4-bit quantization of LLMs can create a paradox where the 4-bit model consumes more energy, runs slower, and has lower accuracy than the full 16-bit baseline model.
 - `Mq6FQIZ-GMw:00000` [not re-found]  Hello community. So great that you are back. Today we talk about a 4-bit quantization of your LLMs and the ideas. Hey maybe stop your blind quantization or your agents. Today we talk about a paradox. A paradox that a 4-bit model might consume more energy, run slower, and has a lower accuracy than the full 16-bit baseline model. The authors call it a quantization trap. Now I know that you have a standard protocol. You want to
 
-### m6  2026-02-18  claim `Mq6FQIZ-GMw#c020`  - supports: n4
+### m6  2026-02-18  claim `Mq6FQIZ-GMw#c020`  - supports: n3
 **statement:** The creator's first recommendation is that, until everyone upgrades from an H100 to at least a Blackwell RTX PRO 6000, using 4-bit quantization for complex reasoning tasks is mathematically irrational and one should stick to 16-bit or 8-bit native formats for high-fidelity agents.
 - `Mq6FQIZ-GMw:00330` [not re-found]  success because early logical errors act as false premise for later steps. Imagine a 4% drop in a single token accuracy can compound into a 30% drop in the reasoning. And therefore, recommendation one, until everyone upgrades from an H100 to at least a Blackwell, a 6000 Pro or whatever you have, using a 4-bit quantization or complex reasoning tasks
 - `Mq6FQIZ-GMw:00360` [not re-found]  is mathematically irrational and we should stick to 16 bit or 8bit native formats here for high fidelity agents. If you work on an H100, now situation changes. Of course, the second part is what if you have a pro 6000 because now you do have a fifth generation tensor core. Now you do have FP4. So the situation changes you from the hardware side. Now the efficiency
@@ -1981,19 +2021,19 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0349
+
 **question id:** lc-0349
 **question:** How did the creator's assessment of RAG (retrieval-augmented generation) as a solution for grounding or updating LLM knowledge evolve from early 2025 through early 2026?
 **advisory:** risk=low  hint=neutral  leak=0.125  observed_shape=multi-video  milestones=6  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** Early on he treated RAG as the obvious default answer most people reach for to change or update what an LLM knows [Jan 2025]
-- **n2** Through 2025 he began identifying structural weaknesses of classic RAG, such as one-shot/stateless/non-adaptive retrieval and proneness to retrieval hallucinations [Sept 2025]
-- **n3** By late 2025 he argued RAG-retrieved context can act as an 'anchor' that weighs down agent reasoning [Nov 2025]
-- **n4** By early 2026 he argued larger reasoning models increasingly resist or simply ignore retrieved RAG evidence [Jan 2026]
-- **n5** By early 2026 he concluded RAG (like in-context learning) is only a temporary fix to the knowledge-cutoff problem, not a lasting solution [Jan 2026]
-- **shift (n6)** moved from treating RAG as the default fix for updating LLM knowledge (early 2025) to cataloguing its structural and reasoning-level failures and concluding it is only a temporary patch (early 2026) [Jan 2025 - Jan 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** Early on he treated RAG as the obvious default answer most people reach for to update what an LLM knows [Jan 2025]
+- **n2** Through 2025 he began identifying structural weaknesses of classic RAG (one-shot/stateless/non-adaptive retrieval, proneness to retrieval hallucinations) [Sep 2025]
+- **n3** By early 2026 he concluded RAG (like in-context learning) is only a temporary fix to the knowledge-cutoff problem, not a lasting solution [Jan 2026]
+- **shift (n4)** He moved from treating RAG as the default fix for updating LLM knowledge to cataloguing its failures and concluding it is only a temporary patch [Jan 2025 - Jan 2026]
 
-**edit note:** Collapsed the two structural-weakness milestones (stateless retrieval, retrieval hallucinations) into one nugget; kept anchor (n3) and ignore-evidence (n4) as separate stances since they are distinct failure modes. m3/m5 are paper-relayed but he explicitly adopts both, so no voice fix.
+**edit note (v0.1):** Collapsed the two structural-weakness milestones (stateless retrieval, retrieval hallucinations) into one nugget; kept anchor (n3) and ignore-evidence (n4) as separate stances since they are distinct failure modes. m3/m5 are paper-relayed but he explicitly adopts both, so no voice fix.
+**edit note (v0.2):** Demoted two mid-span failure-mode samples (RAG-as-anchor old n3/m4; models-ignore-RAG old n4/m5) as route-omittable waypoints; kept the structural-weakness turn and the 'only a temporary patch' conclusion. 4 nuggets.
 
 **milestones:**
 ### m1  2025-01-04  claim `tTzD3boit6Y#c004`  - supports: n1
@@ -2011,16 +2051,16 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 - `N7dDq54_akY:00600` [grounded]  agent system with minimum three different agent that have here a communication you say this sounds absolutely fascinating but before we jump into the solution you might ask okay what is the problem sorry just to be clear and they tell us no retrieval of generation RAG is a prevalent approach for domain specific LLMs yet it is often plagued by retrieval hallucinations. This is a phenomenon where the fine-tuned models here fail to
 - `N7dDq54_akY:00630` [grounded]  recognize and act upon the poor quality retrieved documents thus undermining the performance. And I say okay so our problem is still with RAG here retrieval hallucinations and now we have a new methodology. Great. And you say hey that's great. So this is a simple framework just the flow diagram is real simple. So what we have, we have here an agent that acts as detector. We have an agent that then has a very specific retriever and of course we have a neural moderator that supervises here
 
-### m4  2025-11-22  claim `ERJ2s73HwDs#c003`  - supports: n3
+### m4  2025-11-22  claim `ERJ2s73HwDs#c003`  - DEMOTED (waypoint per turning-point rule: RAG-context-as-anchor, a mid-span failure-mode sample, route-omittable; evidence retained; was n3)
 **statement:** Memory in multi-agent systems, such as a RAG system pulling external data or a medical record system, provides useful context but also creates an 'anchor' that weighs down AI agent reasoning.
 - `ERJ2s73HwDs:00090` [not re-found]  And this memory is here in the simplest way, a RAG system that brings in an external data stream from a database, or you go with a medical record system in a hospital, no? And suddenly, we have a problem. Because it provides context, which is great, but it also creates an anchor, which weighs down any AI agent reasoning. And you might say, but this is nonsense, this is not possible. What what institution says this, huh? I'm so glad that you asked. Welcome to Stanford University, very latest
 
-### m5  2026-01-15  claim `0ezdBcdY3bc#c003`  - supports: n4
+### m5  2026-01-15  claim `0ezdBcdY3bc#c003`  - DEMOTED (waypoint per turning-point rule: larger models ignore RAG evidence, a mid-span failure-mode sample, route-omittable; evidence retained; was n4)
 **statement:** Larger reasoning models are increasingly resistant to adapting to presented RAG evidence and will simply ignore the retrieved evidence.
 - `0ezdBcdY3bc:00060` [grounded]  Carnegie Mellon University and they examine rational synthesizer or just a heuristic follower. Let's analyze our large language model in a RAG-based question answering scenario. And will this LLM with a RAG continue to lie to us or will it just be a hallucination that we suppress? Now we find out that larger reasoning models are increasingly resistant to adapt to presented evidence we are RAG. So they will just ignore
 - `0ezdBcdY3bc:00090` [grounded]  the RAG, which is unbelievable. Hey, this seems to be like an interesting video. The authors tell us, "Hey, we introduce you a group question on a a benchmark of 1,635 controversial binary questions paired with 15,000 clustered retrieved documents that vary in stance enabling a systematic evaluation of how LLMs respond to a group of contradictory information. How does it decide what is the truth? How does it decide what way to follow?
 
-### m6  2026-01-20  claim `ltm1fMIpbwM#c005`  - supports: n5
+### m6  2026-01-20  claim `ltm1fMIpbwM#c005`  - supports: n3
 **statement:** RAG systems and in-context learning are only temporary fixes to the knowledge cutoff problem, since the information is forgotten once it slides out of the context window.
 - `ltm1fMIpbwM:00090` [grounded]  You know that the LLMs are frozen in time here. They have a knowledge cut off. So, they are now I guess about a year old. So, everything that happened in this year is ignored here in the parametric knowledge of this LLM. Now we do have a temporary fix. Now we have either RAG systems or more or less this is just in context learning. So limitation is forgotten once the context window slides the amount of token I think with Claude it's something about 250k with Google it
 - `ltm1fMIpbwM:00120` [grounded]  is about 1 million 2 million tokens but the content is just lost if you fall out of the window. So you do have high inference cost and the content is gone. System learned nothing. The next time you switch it on, if it's outside of the window, then you have to add some memory and you have to add additional cost and yeah, but it is not integrated into the reasoning process. So what is the permanent fix to integrate it so that the system can reason about it? It would need a permanent fix and you know the
@@ -2077,16 +2117,18 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0388
+
 **question id:** lc-0388
 **question:** How did the creator's treatment of reproducibility for surprising or standout results in his own AI reasoning tests evolve from mid-2025 through early 2026?
 **advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=multi-video  milestones=4  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** Through mid-2025 he verbally cautioned that a standout single-run result (e.g. Qwen3 8B's six-step solution) is likely luck rather than reliably reproducible, since these systems are highly probabilistic and a proper assessment would need about 100 runs, which he did not do [May - June 2025]
-- **n2** By early 2026 he actually ran the reproducibility test, rerunning the model's standout seven-step solution many times (16 runs total) and finding it never reproduced, confirming such results can be lucky, non-reliable events [Feb 2026]
-- **shift (n3)** moved from merely stating the caveat while running only once (mid-2025) to empirically rerunning a standout result many times to test reproducibility (early 2026), which confirmed his earlier suspicion [May 2025 - Feb 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** Through mid-2025 he only verbally cautioned that a standout single-run result is likely luck rather than reproducible, without actually rerunning it (a proper check would need ~100 runs, which he did not do) [May-Jun 2025]
+- **n2** By early 2026 he actually ran the reproducibility test, rerunning a standout solution many times (16 runs) and finding it never reproduced, confirming such results can be lucky, non-reliable events [Feb 2026]
+- **shift (n3)** He moved from merely stating the caveat while running once (mid-2025) to empirically rerunning a standout result many times to test reproducibility (early 2026), confirming his earlier suspicion [May 2025 - Feb 2026]
 
-**edit note:** Collapsed m1/m2 into one mid-2025 verbal-caveat nugget and m3/m4 (same quote) into one early-2026 empirical-test nugget. Fixed a model mis-attribution in m3 (see flag); the shift is the heart of this question.
+**edit note (v0.1):** Collapsed m1/m2 into one mid-2025 verbal-caveat nugget and m3/m4 (same quote) into one early-2026 empirical-test nugget. Fixed a model mis-attribution in m3 (see flag); the shift is the heart of this question.
+**edit note (v0.2):** Trimmed the 46-word mega-line to the stance (Qwen3-8B six-step specifics stay in milestones). 3 nuggets.
 
 **milestones:**
 ### m1  2025-05-30  claim `NLtuQvMHk3A#c047`  - supports: n1
@@ -2117,18 +2159,19 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0398
+
 **question id:** lc-0398
 **question:** How did the creator's characterization and treatment of reward hacking evolve from March 2025 through early 2026 as new research and his own experiments accumulated?
 **advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=multi-video  milestones=6  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** Early on he framed reward hacking as a general, theoretical RL risk (loophole-seeking against simplistic rewards), presented via the o3 report [Mar 2025]
-- **n2** He then relayed research on its hidden nature: models rarely admit reward hacks in their chain-of-thought and instead fabricate plausible justifications (Anthropic) [Apr 2025]
-- **n3** Through 2025 he covered specific named exploit mechanisms (e.g. 'irrelevance hack') and concrete mitigations such as dynamic policy/reward co-optimization [Aug 2025]
-- **n4** By late 2025-early 2026 he engaged at the mechanism level with concrete failure modes (a 'cheat-code' collapse to short useless answers) and fixes like KL-divergence regularization [Jan-Feb 2026]
-- **shift (n5)** His treatment moved from an abstract, theoretical warning to concrete, mechanism-level analysis: named exploits, specific mitigations, and hands-on failure modes [Mar 2025 - Feb 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** Early on he framed reward hacking as a general, theoretical RL risk (loophole-seeking against simplistic rewards), via the o3 report [Mar 2025]
+- **n2** He then relayed research on its hidden nature: models rarely admit reward hacks in their chain-of-thought, fabricating plausible justifications instead (Anthropic) [Apr 2025]
+- **n3** By late 2025 - early 2026 he engaged at a concrete mechanism level: named exploit mechanisms and specific mitigations (dynamic policy/reward co-optimization, KL-divergence regularization) [Aug 2025 - Feb 2026]
+- **shift (n4)** His treatment moved from an abstract, theoretical warning to concrete, mechanism-level analysis - named exploits, specific mitigations, and hands-on failure modes [Mar 2025 - Feb 2026]
 
-**edit note:** Split the abstract-vs-concrete arc into staged stance nuggets; softened arc line 4's 'his own experiments' to 'concrete failure modes' because the m5/m6 quotes describe papers ('the authors', 'second paper'), not his own runs. See flag.
+**edit note (v0.1):** Split the abstract-vs-concrete arc into staged stance nuggets; softened arc line 4's 'his own experiments' to 'concrete failure modes' because the m5/m6 quotes describe papers ('the authors', 'second paper'), not his own runs. See flag.
+**edit note (v0.2):** Merged the two concreteness stages (old n3 named exploits/mitigations + old n4 mechanism-level failure modes/fixes) into one concrete-treatment end stance. 4 nuggets.
 
 **milestones:**
 ### m1  2025-03-15  claim `xqOAdmgUAC8#c069`  - supports: n1
@@ -2148,11 +2191,11 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 **statement:** GPT-5 reported that co-optimization of the policy model and reward model with a dynamic reward mitigates reward hacking and improves final policy performance, per the paper.
 - `WsCAu7LGN0E:00870` [grounded]  reference that I understand what's happening here inside two now to the main part the co-optimization of the policy model pi theta and the reward model a dynamic reward mitigates reward hacking see my last video and improves the final policy performance. So what the paper really shows and not what they claim is that the simultaneous updates of our policy pa and the reward model prevent catastrophic call-ups observed when the reward model is only
 
-### m5  2026-01-21  claim `hDYtGpTsVV0#c041`  - supports: n4
+### m5  2026-01-21  claim `hDYtGpTsVV0#c041`  - supports: n3
 **statement:** Using identical static weights (e.g. 1.0) for all three reward objectives causes the tiny model to find a 'cheat code,' collapsing into maximizing only conciseness by generating short but useless answers.
 - `hDYtGpTsVV0:00870` [not re-found]  static weights let's say 1.0 since for all this tiny model will find a cheat code. So it will usually maximize only for conciseness because it's the easiest metric to hack and the solution is just write less shorter answers. No m collapses into generating short but useless answers. So what is the solution for our reinforcement learning process here? Of course, we will go with a GRPO, but the authors decided here to have here
 
-### m6  2026-02-27  claim `K4yLplNrY24#c066`  - supports: n4
+### m6  2026-02-27  claim `K4yLplNrY24#c066`  - supports: n3
 **statement:** A frozen reference model (the direct output of the SFT phase) is used alongside the policy model, with Kullback-Leibler (KL) divergence keeping the policy model from diverging too far from the reference model to prevent reward hacking, though KL divergence introduces its own tradeoffs.
 - `K4yLplNrY24:02400` [not re-found]  This is the reason of the partial reward. It pushes the if you want a little LLM beyond its current training possibilities. And as you see all of this goes back here and we have here the policy model. And of course we have a reference model. And this reference model is frozen. This is the direct output model here from supervised fine-tuning phase and you know you do not want that the difference between the reference model and the policy model becomes too significant.
 - `K4yLplNrY24:02430` [grounded]  Therefore we have here Kullback-Leibler divergent terms that keeps you the policy model here on a leash. So you know reward hacking is prohibited but Kullback-Leibler divergence brings its own problems but for the moment we have to go with Kullback-Leibler otherwise we would get some incomp incomprehensible nonsense out of this. So there you have it. This is now here from the second paper the complete idea
@@ -2191,18 +2234,19 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0413
+
 **question id:** lc-0413
 **question:** How did the creator's assessment of AI models' self-correction abilities during reasoning evolve from early 2025 through mid-2026?
 **advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=adjacent  milestones=5  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** In early 2025 he was impressed by self-correction as a valuable emergent capability, e.g. Grok 3 and Claude Sonnet 3.7 catching and fixing their own mistakes [Mar 2025]
-- **n2** By mid-2025 he was noting self-correction failures and inconsistencies and calling for more resilient, verifiable self-correction protocols rather than purely heuristic behavior [May-Jun 2025]
-- **n3** By early 2026 he framed self-correction as an unresolved research problem and openly questioned whether claimed mechanisms genuinely occur or are just what researchers hope for [Feb 2026]
-- **n4** By April 2026 he criticized self-correction for taking excessively long, calling the delay something that should never happen in AI [Apr 2026]
-- **shift (n5)** His assessment moved from admiration of emergent self-correction to skepticism and critique: treating it as unreliable, unresolved, and too slow [Mar 2025 - Apr 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** In early 2025 he was impressed by self-correction as a valuable emergent capability (e.g. Grok 3 and Claude Sonnet 3.7 catching and fixing their own mistakes) [Mar 2025]
+- **n2** By mid-2025 he was noting self-correction failures/inconsistencies and calling for more resilient, verifiable self-correction protocols [May-Jun 2025]
+- **n3** By early 2026 he framed self-correction as an unresolved research problem and questioned whether claimed mechanisms genuinely occur [Feb 2026]
+- **shift (n4)** His assessment moved from admiration of emergent self-correction to skepticism and critique: treating it as unreliable and unresolved [Mar 2025 - Feb 2026]
 
-**edit note:** Merged the mid-2025 'noting failures' and 'calling for protocols' pieces into one stance (m2, m3); trimmed arc line 1's model list to the two actually in evidence and dropped 'spontaneous' since m1 shows he prompted the check.
+**edit note (v0.1):** Merged the mid-2025 'noting failures' and 'calling for protocols' pieces into one stance (m2, m3); trimmed arc line 1's model list to the two actually in evidence and dropped 'spontaneous' since m1 shows he prompted the check.
+**edit note (v0.2):** Demoted the April-2026 'self-correction too slow' criticism (old n4, m5) as a late route-omittable waypoint; flagged for override. Shift end moved to Feb 2026. 4 nuggets.
 
 **milestones:**
 ### m1  2025-03-01  claim `KSJNr1SPd3U#c013`  - supports: n1
@@ -2224,7 +2268,7 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 **statement:** By coupling the generation of criteria with the execution of reasoning in a shared reward reinforcement loop, the AI model self-corrects its reasoning process, though the creator questions whether this is truly happening or merely what the authors hope for.
 - `COwGuc_S4SU:00540` [not re-found]  capability even if it struggled to execute them initially. And by coupling now the generation of the criteria with the execution the reasoning process in a shared reward reinforcement loop the AI model if you want self-corrects now its reasoning process but this is the main question is this really happening or is this just here what the authors are hoping for what is the improvement here in the
 
-### m5  2026-04-14  claim `kLs4NT2hbXU#c067`  - supports: n4
+### m5  2026-04-14  claim `kLs4NT2hbXU#c067`  - DEMOTED (waypoint per turning-point rule: April-2026 'self-correction too slow' gripe, route-omittable; evidence retained; was n4)
 **statement:** The creator states that MiniMax M2.7 ultimately concluded its second response was wrong and its sixth response was correct, and remarks that this should never happen in AI and that it took an extremely long time for the AI to re-evaluate its own reasoning trace.
 - `kLs4NT2hbXU:02040` [not re-found]  response. Now it says, "Okay. My second response was wrong. My sixth response is correct." This should never happen in AI. The second response wrong, the sixth response correct. This is how long you have to wait for the AI to re-evaluate its own reasoning trace. You have seen it here live what is normally a black box. Minimax, you were so brilliant and then you failed completely.
 
@@ -2244,19 +2288,20 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0418
+
 **question id:** lc-0418
 **question:** How did the creator's assessment of self-learning AI evolve from late 2025 through mid-2026?
 **question (original, waypoint-leaked; reworded per ruling. Span starts late 2025 because m1, the early-2025 research-overview milestone, was cut as report-voice, leaving Nov 2025 as the earliest his-voice evidence):** How did the creator's assessment of self-learning AI evolve from his initial research overview in early 2025 through his own hands-on attempts and conclusions in early-to-mid 2026?
 **advisory:** risk=medium  hint=waypoint  leak=0.056  observed_shape=multi-video  milestones=5  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** He framed the motivation for self-learning AI as forced by the exhaustion of human-annotated data set against trillion-dollar AI infrastructure spending [Nov 2025]
-- **n2** Through his own building efforts he found a skill library alone is insufficient for self-learning: it needs an accompanying experience bank to avoid tactical failure [Mar 2026]
-- **n3** He concluded the roughly one-percentage-point improvements he saw do not amount to genuine self-learning, only scratching the surface [Apr 2026]
-- **n4** He continued exploring controlled, RL-based approaches (KL divergence, deterministic control layers) as the route to real self-learning [Apr 2026]
-- **shift (n5)** A correct answer must describe the change itself: from framing self-learning AI as forced by data exhaustion against huge infrastructure spend (late 2025) to a hands-on conclusion that the roughly one-point gains are not genuine self-learning, pointing instead toward controlled RL-based approaches (early-to-mid 2026). [Nov 2025 - Apr 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** He framed the motivation for self-learning AI as forced by the exhaustion of human-annotated data against trillion-dollar AI infrastructure spending [Nov 2025]
+- **n2** Through his own building efforts he concluded current approaches fall short: a skill library alone is insufficient (it needs an experience bank), and the ~1-point gains he saw are not genuine self-learning [Mar-Apr 2026]
+- **n3** He continued exploring controlled, RL-based approaches (KL divergence, deterministic control layers) as the route to real self-learning [Apr 2026]
+- **shift (n4)** He moved from framing self-learning AI as forced by data exhaustion (late 2025) to a hands-on conclusion that the ~1-point gains are not genuine self-learning, pointing toward controlled RL-based approaches (early-mid 2026) [Nov 2025 - Apr 2026]
 
-**edit note:** Reworded to neutral (span set to late 2025 - mid 2026 after cutting m1) and shift nugget (n5) added per ruling; m1 cut as a report-voice orphan (finalized below).
+**edit note (v0.1):** Reworded to neutral (span set to late 2025 - mid 2026 after cutting m1) and shift nugget (n5) added per ruling; m1 cut as a report-voice orphan (finalized below).
+**edit note (v0.2):** Merged the two hands-on inadequacy findings (skill-library-insufficient old n2 + gains-not-genuine old n3) into one 'current approaches fall short' stance; kept the controlled-RL route as the endpoint. 4 nuggets.
 
 **milestones:**
 ### m1  2025-02-15  claim `Z9IpO3TTskU#c034`  - ORPHAN (cut per ruling: supports no earnable nugget; text kept for provenance)
@@ -2272,12 +2317,12 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 - `9kox34X9IQs:00900` [grounded]  already published and hopefully you have seen them because those videos showed you here the solution to this. We humans don't have to do this. our AI systems that we have currently hopefully are able to do it automatically. So here this was a multi-skill MD configuration what is self-learning AI and this is your one of my last videos where I show you that skill MD is not enough. You need to have this experience, this experience bank to your skill library because without a strategic understanding when
 - `9kox34X9IQs:00930` [not re-found]  to use what skill and how to implement it and how to combine it with other skills, our tactical experience here is yeah is collapsing here and all those agent will not provide what you're looking for. And of course in my last video we went with a partially observable Markov decision process. No, as always in AI and I showed you here a little bit of a mathematical framework. Great. So this means now okay so at least we
 
-### m4  2026-04-02  claim `yOeVi3aQ9Kg#c066`  - supports: n3
+### m4  2026-04-02  claim `yOeVi3aQ9Kg#c066`  - supports: n2
 **statement:** The creator concludes that the one percentage point improvements observed do not constitute genuine self-learning, and that the Meta Harness paper's results suggest the field is only beginning to scratch the surface of true system-level optimization.
 - `yOeVi3aQ9Kg:02130` [grounded]  This is what I would have expected. And the very the very nature of the result of four up to seven PPs is simply an indication for me this is not a system optimization because then we would be here but this is just a code optimization of sub parts of the code space, of sub code elements here but we are not there yet. Because this one percentage point
 - `yOeVi3aQ9Kg:02160` [grounded]  improvement is not a self-learning for me. Self-learning is for me the other side. So, therefore, my personal opinion after having read this study is maybe we are just starting to scratch the surface. But I would be interested in your opinion. What do you think? I hope you enjoyed the video. There was some new information, maybe had a little bit of fun, maybe you got interested to read the study yourself. Anyway, I hope to see you in my next video.
 
-### m5  2026-04-09  claim `ASyJgzGE2aw#c031`  - supports: n4
+### m5  2026-04-09  claim `ASyJgzGE2aw#c031`  - supports: n3
 **statement:** The creator describes efforts toward self-learning AI systems operating within a controlled environment using either classical reinforcement learning (e.g., via KL divergence) or deterministic control layers to keep state transitions minimal.
 - `ASyJgzGE2aw:00630` [grounded]  structure, especially if you think that currently we are working on self-learning AI. So, this AI bubble that I depicted here is growing. We want that the system is self-learning by itself autonomously, not like an open loop, but in a controlled environment we define here exactly here what is happening. You can go either with a classical reinforcement learning Google Cloud by divergence or you build here deterministic layers here as control layers in the scaffold around
 - `ASyJgzGE2aw:00660` [grounded]  our AI sphere to make sure that you stay within baby steps here of the other state and your state transition here of your AI system is just minimal. So many methodologies, just have a look at my last videos in the last month. In my last video here we I guess said, "Hey, do an experiment. Ask your AI whatever you like. Go with an Opus 4.6 or whatever you have. Ask how far can you compress Godel's incompleteness theorem,
@@ -2356,17 +2401,18 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0448
+
 **question id:** lc-0448
 **question:** How did the creator's assessment of task decomposition as a technique in AI systems evolve from early 2025 through early 2026?
 **advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=adjacent  milestones=5  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** In early-mid 2025 he presented task decomposition favorably as a core, useful technique: reducing task complexity (MinionS) and an essential logic pattern for self-learning systems (QwQ) [Feb-Mar 2025]
-- **n2** Through mid-late 2025 he kept treating decomposition as a positive structuring mechanism for complex systems, e.g. phased DAGs rather than a single monolithic plan [Sep 2025]
-- **n3** By February 2026 his tone shifted to critique: he called current decomposition/delegation methodologies hardcoded, fixed, heuristic-bound, boring, and unable to adapt to environmental change or failure [Feb 2026]
-- **shift (n4)** His assessment reversed from favorable and foundational to critical: from a valued core technique to a rigid, unintelligent heuristic he wanted replaced [Feb 2025 - Feb 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** In 2025 he presented task decomposition favorably as a core, useful technique - reducing task complexity and serving as an essential structuring pattern for complex/self-learning systems [Feb-Sep 2025]
+- **n2** By February 2026 his tone shifted to critique: he called current decomposition/delegation methodologies hardcoded, fixed, heuristic-bound, and unable to adapt to environmental change or failure [Feb 2026]
+- **shift (n3)** His assessment reversed from favorable and foundational (2025) to critical (Feb 2026): from a valued core technique to a rigid, unintelligent heuristic he wanted replaced [Feb 2025 - Feb 2026]
 
-**edit note:** Collapsed MinionS and QwQ into one 'favorable technique' stance (substitutable milestones m1, m2). Dropped draft arc line 4 (dynamic marketplace-delegation proposals) as a nugget because no milestone supports it; its only evidence sits in the ignored grounder chunks. See flag.
+**edit note (v0.1):** Collapsed MinionS and QwQ into one 'favorable technique' stance (substitutable milestones m1, m2). Dropped draft arc line 4 (dynamic marketplace-delegation proposals) as a nugget because no milestone supports it; its only evidence sits in the ignored grounder chunks. See flag.
+**edit note (v0.2):** Demoted the mid-2025 'DAG phased structuring' point (old n2) into the favorable stance (m3) as one more sample of continued approval rather than a distinct turn. 3 nuggets.
 
 **milestones:**
 ### m1  2025-02-27  claim `L-WfRaSPE2A#c023`  - supports: n1
@@ -2379,17 +2425,17 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 - `DBBD7bPn0DY:00750` [not re-found]  effectively it really goes through all the possible paths wait what if we use button a yeah do a shorter sequence same as before so the path is valid so is there a way to reach 23 in F your steps it is segmenting not the problem in subtask this is extremely important if you have a complexity of a task that is
 - `DBBD7bPn0DY:00780` [not re-found]  really high and you subdivide the task into multiple tasks that are have a lower complexity beautiful so we see here all four characteristic logic pattern that are essential for a self-learning AI system seven steps no we already had a six steps that's solution six St is a minimum impressive it found the minimum solution with six
 
-### m3  2025-09-29  claim `2unOi2JTZ0I#c026`  - supports: n2
+### m3  2025-09-29  claim `2unOi2JTZ0I#c026`  - supports: n1
 **statement:** The second major component of the framework is building a directed acyclic graph (DAG) structure so that complex projects are executed as phases rather than as a single monolithic plan from an orchestrating agent.
 - `2unOi2JTZ0I:00570` [not re-found]  Now the second part is of course okay we have to build a direct acyclic graph structure because in nature complex projects are executed as phases not as a monolithic plan from an orchestrating agent in a multi- agent system those systems play with each other they experiment here hey can we work yeah does this work so let's build this into system because you know a cell doesn't
 - `2unOi2JTZ0I:00630` [not re-found]  parallel but the idea comes from mother nature so what we need of course you say hey we have to reduce the complexity with AI absolutely absolutely is a dynamic task decomposition into a DAG. Great. Now the interesting approach here is different. The orchestrator is not doing it. The orchestrator is just saying hey I have so many intelligent agents around me so let them play. So it act like a
 
-### m4  2026-02-15  claim `FDixNQunPTc#c006`  - supports: n3
+### m4  2026-02-15  claim `FDixNQunPTc#c006`  - supports: n2
 **statement:** The paper argues that today's task decomposition and delegation methodologies in AI rely on simple heuristics that cannot dynamically adapt to environmental changes or robustly handle unexpected failure modes.
 - `FDixNQunPTc:00030` [not re-found]  you see they just exchange the image patches here for object-centered representation. But if you really If you really want to understand the future there is a brand new paper by Google DeepMind. It is called intelligent AI delegation and I think it will define the economy of the world. So, interesting? Let's start. Published February 12, 2026, it is about Notice well, you know, the task decomposition that we have in the delegation methodologies today in AI,
 - `FDixNQunPTc:00060` [grounded]  they rely on such simple heuristics and they are not able to dynamically adapt to the environmental changes and really be able to robustly handle unexpected failure modes. So, you know what? Mhm. Our modern agentic AI system implements a complex control flow across differentiated sub-agents coupled with centralized or decentralized orchestration protocols. And this is fine, but yes, it can be seen as a microcosm of task decomposition and delegation, but
 
-### m5  2026-02-15  claim `FDixNQunPTc#c008`  - supports: n3
+### m5  2026-02-15  claim `FDixNQunPTc#c008`  - supports: n2
 **statement:** The creator characterizes current task decomposition processes in agentic AI as hardcoded, highly constrained, fixed, boring, and lacking flexibility or machine intelligence.
 - `FDixNQunPTc:00090` [grounded]  all of these process is hardcoded and it is highly constrained. It is highly boring. It is fixed. There's nothing flexible. There's no intelligence. No machine intelligence. It is just my goodness, almost here a template. And I know there are some beautiful ideas here about agent orchestrated here hierarchical multitask framework for general-purpose task solving here August 2025 here and you have MCP manager and dynamic tool creation and retrieval and you reuse mechanism or gradients is
 
@@ -2403,20 +2449,20 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0452
+
 **question id:** lc-0452
 **question:** How did the creator's assessment of test-time compute evolve from early 2025 through late 2025?
 **question (original, waypoint-leaked; reworded to neutral per ruling):** How did the creator's assessment of the actual benefit of test-time compute-and understanding of why or how it works-evolve from early 2025 through late 2025?
 **advisory:** risk=medium  hint=waypoint  leak=0.071  observed_shape=multi-video  milestones=5  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** In early 2025 he introduced test-time compute as a promising shift toward deeper 'system two' reasoning (inference-time fine-tuning/RL, search) [Jan 2025]
-- **n2** An early empirical comparison showed only a marginal benefit from test-time compute (about 0.4 percentage points) [Feb 2025]
-- **n3** He noted that research had not explained how the additional test-time reasoning tokens actually improve performance [Apr 2025]
-- **n4** Later evidence showed a much larger, clearer gain from scaling test-time compute (accuracy rising from about 52% to 63% with more inference runs) [Jul 2025]
-- **n5** By late 2025 he questioned whether benchmark gains reflect real capability or just increased test-time compute / chain-of-thought runtime [Dec 2025]
-- **shift (n6)** A correct answer must describe the change itself: from introducing test-time compute as a promising route to deeper reasoning (early 2025), through mixed early results and an admitted lack of mechanism, to clearer later gains and a late-2025 doubt about whether benchmark gains reflect real capability or just added runtime. [Jan 2025 - Dec 2025]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** In early 2025 he introduced test-time compute as a promising shift toward deeper 'system-two' reasoning (inference-time fine-tuning/RL, search) [Jan 2025]
+- **n2** Through 2025 the empirical picture was mixed: early comparisons showed only marginal benefit and no clear mechanism, while later results showed larger gains from scaling inference runs [Feb-Jul 2025]
+- **n3** By late 2025 he questioned whether benchmark gains reflect real capability or just increased test-time compute / chain-of-thought runtime [Dec 2025]
+- **shift (n4)** He moved from introducing test-time compute as a promising route to deeper reasoning (early 2025), through a mixed empirical middle, to a late-2025 doubt about whether benchmark gains reflect real capability or just added runtime [Jan 2025 - Dec 2025]
 
-**edit note:** Reworded to neutral and shift nugget (n6) added per ruling; kept each dated finding as its own stance nugget (specific numbers stay as milestone evidence).
+**edit note (v0.1):** Reworded to neutral and shift nugget (n6) added per ruling; kept each dated finding as its own stance nugget (specific numbers stay as milestone evidence).
+**edit note (v0.2):** Merged the three mid-2025 empirical observations (old n2 marginal, n3 no-mechanism, n4 larger-gain) into one 'mixed empirical picture' stance; specifics stay in milestones. 4 nuggets.
 
 **milestones:**
 ### m1  2025-01-06  claim `CIXDwgS8mXU#c007`  - supports: n1
@@ -2428,15 +2474,15 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 - `vfVHmul0ylA:00330` [grounded]  have the perfect data set our o1 without here what we call here test time compute and there was a particular algorithm that Stanford developed here for the o1 test time compute so without this we have a performance if you look at this of 92.6 and if we activate the test time compute we have now a performance on a particular test of 93.0 so the
 - `vfVHmul0ylA:00360` [grounded]  difference is exactly 0.4 percentage points do we need test time compute for this and you might look at the next text we have here 56.6 59.6 you might say yeah maybe no well you know you remember that I told you Stanford is not the optimal configuration they had a different aim they wanted to have a simple test time constraint optimization
 
-### m3  2025-04-04  claim `CxXONtekV3M#c004`  - supports: n3
+### m3  2025-04-04  claim `CxXONtekV3M#c004`  - supports: n2
 **statement:** Despite the empirical success of test-time reasoning tokens, it remains unclear in research how additional test-time reasoning tokens contribute to improved reasoning performance.
 - `CxXONtekV3M:00240` [grounded]  but you know despite their empirical success they really work for us in research it remains unclear in what way this additional test time reasoning tokens contribute to the improved reasoning performance we have no idea how it works now existing literature generally associate here the need for more reasoning token with kind of a harder to solve problems but is this true and today I mean yesterday was a new study published here Cornell un University and Howard University and
 
-### m4  2025-07-05  claim `KHXQ9up5mrI#c051`  - supports: n4
+### m4  2025-07-05  claim `KHXQ9up5mrI#c051`  - supports: n2
 **statement:** Given a specific compute budget, running inference from 1 time to 9 times increases accuracy from about 52% to about 63%.
 - `KHXQ9up5mrI:01110` [grounded]  self-evolving capability. So if you think about the computational budget means money and the performance you want to achieve if you just let it run instead of one time to nine times the accuracy can really go up let's say from 52% to 63%. So we really see direct the benefit here given a very specific compute budget improve in the performance in the test time inference run. Now you know at the end of the video I
 
-### m5  2025-12-15  claim `0bcaINHdUU8#c047`  - supports: n5
+### m5  2025-12-15  claim `0bcaINHdUU8#c047`  - supports: n3
 **statement:** The creator questions whether improvements in benchmark scores are really just about increased test-time compute/chain-of-thought runtime, drawing a parallel to how a small 7B model trained on specific known complexities can achieve 99.8%.
 - `0bcaINHdUU8:01260` [grounded]  Think about it. Is it really just about the runtime, the test-time compute that we have in a chain of thought? Because you see the system time is almost always chain of sword. If you really think longer, is it really possible that you improve this? Or is it as I showed you, you can even use a 7B model if you train it on specific known complexities like a test, you can achieve 99.8%.
 
@@ -2507,43 +2553,43 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0476
+
 **question id:** lc-0476
 **question:** How did the creator's discussion of what causes instability in reinforcement-learning-based AI training, and what can fix it, evolve from January 2025 through December 2025 as he covered different systems and papers?
 **advisory:** risk=low  hint=neutral  leak=0.05  observed_shape=multi-video  milestones=6  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** Early 2025 he identified mixture-of-experts load imbalance as an instability source, fixed by a graph-router (GraphLoRA) [Jan 2025]
-- **n2** He covered KL-divergence penalties as the standard fix keeping the updated policy close to the base model for stability [Mar 2025]
-- **n3** He relayed that masking alone is necessary but not sufficient: sparse rewards and noisy transitions still cause high-variance, unstable updates (Search-R1) [Aug 2025]
-- **n4** By late 2025 he noted that KL-penalty scaling is itself delicate and, if mishandled, causes instability and demands heavy hyperparameter tuning [Nov 2025]
-- **n5** By December 2025 he concluded MGRPO succeeded where prior approaches struggled: validation curves plateau rather than crash, letting training run far longer without collapse [Dec 2025]
-- **shift (n6)** His account moved from cataloguing separate, system-specific instability sources and their standard fixes (incl. KL penalties) to recognizing that fix as itself fragile, and finally to a method (MGRPO) that achieved stable long training [Jan - Dec 2025]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** Through early-to-mid 2025 he catalogued system-specific instability sources and their standard fixes, notably KL-divergence penalties keeping the updated policy close to the base model [Jan-Aug 2025]
+- **n2** By late 2025 he noted the KL-penalty fix is itself delicate and, if mishandled, causes instability and demands heavy hyperparameter tuning [Nov 2025]
+- **n3** By December 2025 he concluded MGRPO succeeded where prior approaches struggled: validation curves plateau rather than crash, letting training run far longer without collapse [Dec 2025]
+- **shift (n4)** His account moved from cataloguing separate instability sources and their standard fixes, to recognizing the KL fix as itself fragile, to a method (MGRPO) that achieved stable long training [Jan - Dec 2025]
 
-**edit note:** Split the draft's bundled 'multiple sources' line into distinct cause/fix nuggets (n1-n3), matching the question's ask about causes/fixes across different systems. Collapsed near-duplicate m5/m6 (same video and quote) into one MGRPO stance; the 'typo' detail stays in m5.
+**edit note (v0.1):** Split the draft's bundled 'multiple sources' line into distinct cause/fix nuggets (n1-n3), matching the question's ask about causes/fixes across different systems. Collapsed near-duplicate m5/m6 (same video and quote) into one MGRPO stance; the 'typo' detail stays in m5.
+**edit note (v0.2):** Merged the three early-mid-2025 cause/fix catalog entries (old n1 MoE/graph-router, n2 KL penalties, n3 masking-insufficient) into one 'catalogued sources and standard fixes' stance; the turn is the KL-fix-is-fragile realization. 4 nuggets.
 
 **milestones:**
 ### m1  2025-01-20  claim `F-t8BwQpWa4#c012`  - supports: n1
 **statement:** GraphLoRA's graph router function helps solve the instability problems in LLMs caused by the imbalanced load issue of mixture-of-experts systems.
 - `F-t8BwQpWa4:00240` [grounded]  be formulated now in this particular way and you see we have here the graph router function via a graph neural network so this kind of solve the instability problems that we have in our LLMs due to the imbalance load issue of mixture of expert system so GraphLoRA empowers you the graph router to assign weights to expert by effective information sharing among those experts on graph neural networks and we know quite
 
-### m2  2025-03-15  claim `xqOAdmgUAC8#c070`  - supports: n2
+### m2  2025-03-15  claim `xqOAdmgUAC8#c070`  - supports: n1
 **statement:** OpenAI o3's report notes that a KL divergence penalty is used to keep the updated policy close to the pre-trained model's behavior, balancing exploration with stability during RL training.
 - `xqOAdmgUAC8:02790` [grounded]  yes writing answers that trick a scoring model but are not truly correct correct yeah ensuring training stability is another concern absolutely oral updates can destabilize language coherence if not carefully constrained we introduce a cool libl Divergence penalty to keep the update policy close to the pre-trained model's behavior balancing exploration with stability
 
-### m3  2025-08-14  claim `hsyKnA6-QAA#c044`  - supports: n3
+### m3  2025-08-14  claim `hsyKnA6-QAA#c044`  - supports: n1
 **statement:** The Search-R1 authors found that masking alone is a necessary but not sufficient condition for stability, because sparse rewards and noisy environment transitions can still cause high variance, unstable updates, and potential mode collapse.
 - `hsyKnA6-QAA:00900` [grounded]  memorizer overfit retrieved passages. This explains here this mysterious type I that I showed you some minutes ago a binary mask to identify specific tokens. But you know they also found playing with the system that masking alone is necessary a necessary condition but it's not a sufficient condition because if we work with sparse reward and a noisy environment transitions we have a high variance and this leads to unstable
 
-### m4  2025-11-03  claim `W_aqotP134s#c040`  - supports: n4
+### m4  2025-11-03  claim `W_aqotP134s#c040`  - supports: n2
 **statement:** The creator notes that the Kullback-Leibler scaling/penalty in PPO or GRPO-style updates is delicate, and if done incorrectly, training becomes unstable and requires heavy hyperparameter tuning.
 - `W_aqotP134s:01320` [grounded]  that is concerned here with PPO or PO style updates here and especially the Kullback-Leibler penalties you know we encountered here that those Kullback-Leibler scaling is is really delicate. Let's put it in a friendly form because if you do it wrong, the training becomes unstable and requires heavy hyperparameter tuning which is not what you want to explore and invest your time and money in. So maybe for the pure optimization of the stability of the algorithm another
 
-### m5  2025-12-20  claim `LbUBncFv9yM#c051`  - supports: n5
+### m5  2025-12-20  claim `LbUBncFv9yM#c051`  - supports: n3
 **statement:** The creator finds support for his typo assumption in the paper's accuracy/validation curve, which shows accuracy reward increasing and validation accuracy plateauing rather than crashing at step 500-600, unlike the SRT-only case.
 - `LbUBncFv9yM:01200` [not re-found]  Can we find somewhere else in the paper some verification for my assumption of this typo? Yeah. Look, the magic if you want of this MGRPO methodology is now that you don't need to cherry-pick anything because look at this. The accuracy reward just goes up and the validation accuracy is not crashing down here at 500, but it is going up and plateauing nicely. So I know this is a much more stable model. So I will do now my GRPO
 - `LbUBncFv9yM:01230` [not re-found]  is now with MGRPO. It will stabilize the training so that the final model is also the best model or at least a plateauing model. So you can let it run as long as you want. I mean as long as you can pay for it without the fear that you will have here an immediate crash at I don't know step 500 or step 600. Real nice. Therefore, I think this is just a typo and I go with my assumption. But you see just one typo here in a mathematical
 
-### m6  2025-12-20  claim `LbUBncFv9yM#c052`  - supports: n5
+### m6  2025-12-20  claim `LbUBncFv9yM#c052`  - supports: n3
 **statement:** The creator concludes that MGRPO stabilizes training such that the final model is also the best or a plateauing model, allowing training to run longer without fear of an immediate crash.
 - `LbUBncFv9yM:01200` [not re-found]  Can we find somewhere else in the paper some verification for my assumption of this typo? Yeah. Look, the magic if you want of this MGRPO methodology is now that you don't need to cherry-pick anything because look at this. The accuracy reward just goes up and the validation accuracy is not crashing down here at 500, but it is going up and plateauing nicely. So I know this is a much more stable model. So I will do now my GRPO
 - `LbUBncFv9yM:01230` [not re-found]  is now with MGRPO. It will stabilize the training so that the final model is also the best model or at least a plateauing model. So you can let it run as long as you want. I mean as long as you can pay for it without the fear that you will have here an immediate crash at I don't know step 500 or step 600. Real nice. Therefore, I think this is just a typo and I go with my assumption. But you see just one typo here in a mathematical
@@ -2661,11 +2707,12 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0478
+
 **question id:** lc-0478
 **question:** How did the creator's characterization of the transferability of learned skills, policies, or memories across AI systems evolve from September 2025 through early 2026 as he covered different papers?
 **advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=multi-video  milestones=5  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
 - **n1** Framed transferability of learned skills/policies/memories as broad and near-universal (plug-and-play reuse across domains/graphs), holding and even doubling down on this optimism into early 2026. [Sep 2025 - Jan 2026]
 - **n2** Later tempered to a qualified, task-specific view: empirical testing found the transfer effect held only for the one benchmark tested and did not generalize. [Mar 2026]
 - **shift (n3)** A correct answer must describe the movement itself: from broad plug-and-play optimism to a qualified, task-specific assessment after empirical testing. [Sep 2025 - Mar 2026]
@@ -2735,33 +2782,33 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0481
+
 **question id:** lc-0481
 **question:** How did the creator's diagnosis of what fundamentally limits transformer architectures evolve from mid-2025 through early 2026?
 **advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=multi-video  milestones=6  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** Diagnosed that transformers cannot reason reliably past a complexity threshold, where reasoning disintegrates; this 'transformers fail at reasoning' diagnosis persisted (restated via autoregressive-failure framing) into early 2026. [Jun 2025 - Jan 2026]
-- **n2** Attributed the limit to concrete structural issues: shallow/fixed layer depth that width or depth does not fix, brittle externalized chain-of-thought, and severe data inefficiency. [Jul 2025]
-- **n3** Added that classical transformers lack a plasticity mechanism to adapt pathways to task complexity, unlike newer proposed theories. [Nov 2025]
-- **n4** By early 2026 reframed the core problem as NOT an inherent flaw of the transformer architecture but a mismatch from forcing an inductive, autoregressive engine to do deductive logical work. [Mar 2026]
-- **shift (n5)** A correct answer must describe the movement itself: from 'transformers are inherently unable to reason (structural flaws)' to 'the architecture is not itself flawed; the problem is misapplying an inductive engine to deductive tasks.' [Jun 2025 - Mar 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** From mid-2025 into early 2026 he diagnosed that transformers cannot reason reliably past a complexity threshold, attributing it to concrete structural limits (shallow fixed depth, brittle externalized chain-of-thought, no plasticity mechanism) [Jun 2025 - Jan 2026]
+- **n2** By early 2026 he reframed the core problem as NOT an inherent flaw of the transformer but a mismatch from forcing an inductive, autoregressive engine to do deductive logical work [Mar 2026]
+- **shift (n3)** His diagnosis moved from 'transformers are inherently unable to reason (structural flaws)' to 'the architecture is not itself flawed; the problem is misapplying an inductive engine to deductive tasks' [Jun 2025 - Mar 2026]
 
-**edit note:** Kept the structural causes as one stance nugget (m2/m3 substitutable); mapped m5 to n1 as a late restatement of the failure diagnosis; recast m6 to his adopted voice and flagged it for confirmation.
+**edit note (v0.1):** Kept the structural causes as one stance nugget (m2/m3 substitutable); mapped m5 to n1 as a late restatement of the failure diagnosis; recast m6 to his adopted voice and flagged it for confirmation.
+**edit note (v0.2):** Merged the structural-cause samples (old n2 shallow-depth/brittle-CoT, n3 no-plasticity) into the persistent 'transformers fail at reasoning' diagnosis (m2-m5 substitutable). Carried forward the v0.1 voice flag on the reframe (m6). 3 nuggets.
 
 **milestones:**
 ### m1  2025-06-07  claim `fGcfJ9J_Faw#c043`  - supports: n1
 **statement:** The creator concludes that transformers are not able to reason reliably beyond a particular complexity threshold, at which point reasoning disintegrates.
 - `fGcfJ9J_Faw:00900` [grounded]  say a great we have tools no tools where we have our C++ environment or Python environment or whatever you like. So yeah MCP protocol tool connection we just give this to the tools and we get it back. Yes. But it also means that our transformers are not really able to reason below or more than a particular threshold. If we reach a threshold, the reasoning disintegrates. And yes, of course, I
 
-### m2  2025-07-02  claim `QWD55guu0So#c002`  - supports: n2
+### m2  2025-07-02  claim `QWD55guu0So#c002`  - supports: n1
 **statement:** Transformer networks have a fixed and relatively shallow number of processing layers, which is not well suited for complex multi-step algorithmic reasoning.
 - `QWD55guu0So:00030` [grounded]  is the time. Now we do have the time to look at this particular paper. And of course we start here. We have to understand what are the limitations we want to tackle, how we want to optimize, what elements we want to optimize. Therefore, let's have a look at the cracks in the LLM facade. Shallowness. Our transformer has a fixed and relatively shallow number of processing layer. Not really great for complex multi-step algorithmic reasoning. No. Yes, we can make it wider, but this doesn't really help. No,
 
-### m3  2025-07-02  claim `QWD55guu0So#c005`  - supports: n2
+### m3  2025-07-02  claim `QWD55guu0So#c005`  - supports: n1
 **statement:** Chain of thought works by externalizing the reasoning process, but it is rather brittle and struggles with problems requiring more complex reasoning.
 - `QWD55guu0So:00060` [grounded]  and we can make it deeper, but this also hits a wall. Also, our chain of thought kind of works now by externalizing here the reasoning process here. But it's rather brittle reasoning and it struggles here with problems that require more complex reasoning. And in plus for the training, we have a extremely high data inefficiency. It would require massive data sets. So, what about a new idea by this company, Sapient Intelligence in Singapore? I am not
 
-### m4  2025-11-16  claim `IADccLs--lM#c039`  - supports: n3
+### m4  2025-11-16  claim `IADccLs--lM#c039`  - supports: n1
 **statement:** The creator notes that a classical transformer has predefined paths and no plasticity mechanism, unlike this new theory which incorporates plasticity responsive to the learning function.
 - `IADccLs--lM:01410` [not re-found]  function. Now simply because in a classical transformer we have predefined paths and there is nothing like a plasticity in a classical transformer but we want this now because it should here respond to the learning function. Now this is the strength of this new theory but it is also if you want the key scientific gamble that the authors took here for this intelligent foundational model is here this
 
@@ -2769,7 +2816,7 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 **statement:** Standard transformer architectures like GPT-5 generate one autoregressive token after another and fail in the reasoning process, motivating alternatives like HRM.
 - `UETxlAf0BOA:00120` [grounded]  it. Now, hierarchical reasoning models here very short here just one minute here. Why? because we are not satisfied with the standard transformer architecture with the GPT-5 architecture that just generates one autoregressive token after another and it fails in the reasoning process. So you remember we had here less is more recursive reasoning with tiny models here from October 2025 and they showed us here exactly wow only with 7 million
 
-### m6  2026-03-21  claim `beCj-7xjVmI#c012`  - supports: n4
+### m6  2026-03-21  claim `beCj-7xjVmI#c012`  - supports: n2
 **statement:** VOICE FIX (was: "The paper empirically establishes... that the LLM's inability to do precise logic is not a limitation of the transformer architecture itself... but is an artifact of forcing inductive engines to do deductive work autoregressively."). He adopts this paper finding as his own reframe: the transformer's failure at precise logic is not an inherent flaw of the architecture but an artifact of forcing an inductive, autoregressive engine to do deductive work.
 - `beCj-7xjVmI:00240` [grounded]  it is not able to do this. Okay. So they tell us here in this paper empirically established they did a lot of research, a lot of experiments. Have a look at the paper. They found out the LLM's inability to do precise logic is not here a limitation here of the transformer architecture at all because it was not designed to do so, but it is an artifact of forcing now here inductive engines to do deductive work autoregressively.
 - `beCj-7xjVmI:00270` [grounded]  We just wanted this system is doing something that it was not built. The transformer is here an autoregressive system. And by bounding here the LLM's role to diverse in hypothesis generation and then utilizing exact verifiers for the convergent proof validation, now we have changed how we use AI, you know? Now AI approaches here the ceiling levels of reliability in first order
@@ -2830,11 +2877,12 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0496
+
 **question id:** lc-0496
 **question:** How did the creator's assessment of reinforcement learning with verifiable rewards evolve from spring 2025 through early 2026 as he encountered new papers and considerations on the topic?
 **advisory:** risk=low  hint=neutral  leak=0.125  observed_shape=multi-video  milestones=5  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
 - **n1** In April 2025 the creator endorsed a paper's finding that RL with verifiable (binary) rewards does not elicit reasoning beyond the base model, mainly improving sampling efficiency. The "narrows the solution space" point is milestone detail. [Apr 2025]
 - **n2** He identified a practical bottleneck: verifiable-reward optimization depends on human-labeled, domain-specific QA data, because synthetic data underperforms and quality human data is slow to produce. [Jun 2025]
 - **n3** He raised a "dark side": if the given context lets a model cheat, verifiable-reward training can teach it to exploit the cheat while mimicking a non-cheater's chain of thought to avoid detection. [Jan 2026]
@@ -2939,12 +2987,13 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 ---
 
 ## lc-0497
+
 **question id:** lc-0497
 **question:** How did the creator's view of AI models' self-verification during reasoning tasks evolve from early 2025 through mid-2026?
 **question (original, waypoint-leaked; reworded to neutral per ruling):** How did the creator's understanding of the reliability and role of AI models' self-verification during reasoning tasks evolve from early 2025 through mid-2026?
 **advisory:** risk=medium  hint=waypoint  leak=0.0  observed_shape=multi-video  milestones=6  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
 - **n1** In early 2025, AI self-verification appeared reliable: models walked through their checks and confirmed their own solutions as correct. [Feb 2025]
 - **n2** Repeated testing through mid-2025 showed self-verification is unreliable: models found new critical errors in solutions they had previously validated and produced conflicting 'verified' results across runs. [Apr - Jul 2025]
 - **n3** Endorsed structural/external verification: do not trust any single model's self-assessment; use dedicated verifier agents and automated domain-specific/symbolic checks. [Mar 2025]
@@ -3056,18 +3105,19 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 
 ---
 ## lc-0504
+
 **question id:** lc-0504
 **question:** How did the creator's view of 'world models' for AI systems evolve from early 2025 through early 2026?
 **question (original, waypoint-leaked; reworded to neutral per ruling):** How did the creator's assessment of the practical value of 'world models' for AI systems evolve from early 2025 through early 2026?
 **advisory:** risk=medium  hint=waypoint  leak=0.0  observed_shape=multi-video  milestones=5  min_milestones=2
 
-**nuggets (edited gold-v0.1 - each a stance + window; specifics stay in the milestones):**
-- **n1** In early-to-mid 2025, treated world models as highly valuable: key to capturing a domain's underlying logic and necessary for robotics/physical AI and robust reasoning beyond next-token prediction. [Jan - Mar 2025]
-- **n2** Through mid-2025 continued to treat world models as a promising direction while surveying approaches that build on them. [Jul 2025]
-- **n3** By January 2026, after empirical testing, judged the practical benefit negligible on average and negative for several models, with even older models like Qwen 2.5 failing to use world-model tools. [Jan 2026]
-- **shift (n4)** A correct answer must describe the change itself: from treating world models as highly valuable and necessary (early-to-mid 2025) to judging their practical benefit negligible on average, even negative for several models, after empirical testing (January 2026). [Jan 2025 - Jan 2026]
+**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
+- **n1** In early-to-mid 2025 he treated world models as highly valuable - key to capturing a domain's underlying logic and necessary for robotics/physical AI and robust reasoning [Jan-Jul 2025]
+- **n2** By January 2026, after empirical testing, he judged their practical benefit negligible on average and negative for several models, with even older models like Qwen 2.5 failing to use world-model tools [Jan 2026]
+- **shift (n3)** He moved from treating world models as highly valuable and necessary (early-mid 2025) to judging their practical benefit negligible or negative after empirical testing (January 2026) [Jan 2025 - Jan 2026]
 
-**edit note:** Reworded to neutral and shift nugget (n4) added per ruling; kept early enthusiasm (n1) vs Jan-2026 skepticism (n3) as the spine; recast paper-voiced m1/m3 to his adopted view; n2's mid-span is thin (single milestone).
+**edit note (v0.1):** Reworded to neutral and shift nugget (n4) added per ruling; kept early enthusiasm (n1) vs Jan-2026 skepticism (n3) as the spine; recast paper-voiced m1/m3 to his adopted view; n2's mid-span is thin (single milestone).
+**edit note (v0.2):** Demoted the mid-2025 'still promising, surveying approaches' point (old n2, m3) into the valuable stance as one more enthusiasm sample. 3 nuggets.
 
 **milestones:**
 ### m1  2025-01-04  claim `tTzD3boit6Y#c019`  - supports: n1
@@ -3078,16 +3128,16 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 **statement:** The creator argues that for robotics and physical AI, models need not just reasoning but also the ability to understand and compare an external world model with an internal world model.
 - `KbeWVLvQhX8:01320` [not re-found]  like we saw yesterday with Nvidia here robotics is coming physical coming into our real world and of course we need here not just the reasoning model but a reasoning model that is able to understand here the outer the external World model and have an internal World model compare it here and therefore we need here this Advanced GRPO especially in the easiest case possible possible with two reward
 
-### m3  2025-07-19  claim `Bn7v3VNGFIo#c008`  - supports: n2
+### m3  2025-07-19  claim `Bn7v3VNGFIo#c008`  - supports: n1
 **statement:** VOICE FIX (was: "The paper argues that rapid adaptation to unfamiliar conditions is a hallmark of human intelligence, and AI systems fail catastrophically when out of domain..."). He covers this approvingly as a still-promising world-model direction: world models as the internal representation that enables adaptation.
 - `Bn7v3VNGFIo:00180` [grounded]  here adaptive world models in machines here with the idea not of an of a classical benchmark but now the benchmark becomes here a game that the AI has to play. So you see here this is your the first paper that is absolutely fascinating and they start easy to say hey a hallmark of human intelligence no is the capacity to write a rapid adaptation solving new problems in unfamiliar condition and we know AI
 - `Bn7v3VNGFIo:00210` [grounded]  fails catastrophically if we are out of domain or out of distribution or out of probability. So they say now hey this ability is linked to an efficient construction or refinement of an internal representation of the environment and they refer to this as in general as the whole AI community as a world model. So this is the internal representation that your LLM has how the world functions how everything is connected to each other
 
-### m4  2026-01-12  claim `tez4AyTm1Rs#c024`  - supports: n3
+### m4  2026-01-12  claim `tez4AyTm1Rs#c024`  - supports: n2
 **statement:** The creator states that for several models the improvement from using world models was negative, and that on average the improvement from using world models is negligible.
 - `tez4AyTm1Rs:00451` [grounded]  Great. So you see you could argue here that it's also negative also negative also negative. So on average yeah no this is almost yeah forget about it. So you see current LLMs are not able to handle this. They are not yet intelligent enough for a little bit more nondeterministic tools. They completely failed to integrate it. This is why I have high hopes because I've heard rumors that DeepSeek here with
 
-### m5  2026-01-12  claim `tez4AyTm1Rs#c032`  - supports: n3
+### m5  2026-01-12  claim `tez4AyTm1Rs#c032`  - supports: n2
 **statement:** Older models, including Qwen 2.5, also fail when required to use world model tools.
 - `tez4AyTm1Rs:00601` [grounded]  is, pink, you have that we ask GPT-5, hey, please use the world model. This is the intelligence in the world model. You don't have the intelligence and you can see the intelligence of GPT-5 drops here 9.22 percentage points if it has to use now a world model because it has no idea how to use it how to integrate the data coming back from the world model how to utilize here the new planning process GPT-5 fails here completely does it mean that other
 - `tez4AyTm1Rs:00631` [grounded]  system do not fail look at this almost all the old systems and you have a Qwen 2.5 of course but the old generation also fails so we are looking forward to the next generation who has been trained for is yeah it proves the integration failure the agent is getting the correct data from the world model but the cognitive load of processing this additional data causes the GPT system either to hallucinate or to panic so yeah great this was the first paper
