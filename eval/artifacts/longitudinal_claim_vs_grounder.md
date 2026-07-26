@@ -1,16 +1,17 @@
 # Longitudinal trajectory worksheet (37 candidates)
 
-SCORED: longitudinal is in scored scope (this supersedes the earlier exploratory framing at D75). This worksheet is the gold answer key; it stands at gold-v0.2.1 - see the Provenance block below.
+SCORED: longitudinal is in scored scope (this supersedes the earlier exploratory framing at D75). This worksheet is the gold answer key; it stands at gold-v0.2.2 - see the Provenance block below.
 Per candidate: the question, the trajectory arc, and each dated milestone with its claim + source chunk(s) ([grounded] = grounder re-found it). notes = skip.
 
 ## Provenance (gold-v0.2)
 
-- Version: **gold-v0.2.1** (turning-point sweep with flag rulings, D85). Supersedes gold-v0.2 / gold-v0.1.
+- Version: **gold-v0.2.2** (turning-point sweep, flag rulings, and scope rulings). Supersedes gold-v0.2.1 / v0.2 / v0.1.
 - Pre-edit nugget/trajectory versions are preserved in the backup file `longitudinal_gold_preedit_nuggets_v0.1.md` (this directory) and in the pre-edit commit `f9379e6`.
 - What changed: waypoints and off-axis items demoted to milestone evidence (kept on the page, tagged `DEMOTED ...`); the three mega-line bundles the audit isolated (lc-0130, lc-0233, lc-0388) trimmed/split; lc-0014 rewritten to the two-thread arc, its span widened to March 2026, and a voice-checked scientific-AGI milestone (m7) added. Rationale: `../bounded-deep-research-notes/eval/gold_v0_2_turning_points_motivation.md`.
 - Questions changed in v0.2 (29): lc-0011, lc-0014, lc-0024, lc-0026, lc-0027, lc-0061, lc-0070, lc-0081, lc-0087, lc-0111, lc-0123, lc-0127, lc-0130, lc-0177, lc-0179, lc-0223, lc-0233, lc-0251, lc-0344, lc-0349, lc-0388, lc-0398, lc-0413, lc-0418, lc-0448, lc-0452, lc-0476, lc-0481, lc-0504.
 - Not listed above were reviewed under the turning-point rule and retained unchanged.
 - v0.2.1 (flag rulings, D85): lc-0111 n2, lc-0418 n3, and lc-0496 n2 demoted; lc-0413 and lc-0497 question spans narrowed to early 2026; lc-0497 nuggets reordered to chronological with corrected causality; all shift nuggets normalized to declarative form; advisory `hint` corrected to neutral (was waypoint) on 9 neutral-worded questions (lc-0027, lc-0061, lc-0111, lc-0233, lc-0260, lc-0418, lc-0452, lc-0497, lc-0504).
+- v0.2.2 (scope rulings, D86): dropped **lc-0266** (a set of independent factual lookups masquerading as a trajectory - its 'favorite model' shifts across incommensurable model types with no route-independent answer; full v0.1 content preserved in the pre-edit snapshot and commit `f9379e6`); **segregated lc-0130** as the one no-change presupposition trap (kept in the file, marked `**scoring:** SEGREGATED`, excluded from the recall average and reported separately); and widened **lc-0478**'s span to March 2026 (the same span-fix class as lc-0413/lc-0497). The set is now **36 questions: 35 counting toward the longitudinal recall average plus the 1 segregated trap**.
 - Scoring reminder: each nugget is marked hit/miss (binary); recall = hits/total; a nugget's window is part of the claim; the shift (or no-change) nugget is logged separately.
 
 ---
@@ -1073,6 +1074,7 @@ Per candidate: the question, the trajectory arc, and each dated milestone with i
 **question id:** lc-0130
 **question:** How did the creator's stance on emergent intelligence in AI models evolve from March 2025 through early 2026?
 **advisory:** risk=low  hint=neutral  leak=0.182  observed_shape=multi-video  milestones=5  min_milestones=2
+**scoring:** SEGREGATED - no-change presupposition trap; report separately and exclude from the longitudinal recall average (a 50% here is categorically different from a 50% on a trajectory question).
 **status:** RETAINED as a no-change (stable-stance) question per the updated shift step in SKILL.md. The arc collapses to one stable "no emergent intelligence" stance, so the shift slot is filled by a no-change nugget (n2) instead of dropping the question. This supersedes the earlier F2/F3 drop ruling. gold-v0.1.
 
 **nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
@@ -1788,48 +1790,6 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 - `J9br0e34cp0:00540` [grounder]  so you cannot go to floor 63." And I said, "Okay." And after 4 minutes, the system came back and told me, "Hey, I found another solution." Now, unfortunately, I saw because I used this test now for more than a year that this was not a valid solution. So I said that, "Hey, just do a verification run." I told it not not is it good or bad, just verify yourself. And after 10 minute thinking it came back and said hey my solution was wrong
 - `J9br0e34cp0:00570` [grounder]  but you know what I found a new solution and I thought this was a real good solution. This was a real close solution for a 3 billion model. Absolutely beautiful but then it happened. It went again for eight minutes trying to verify this here and yeah it's went into whatever it was and you clearly saw if you looked at this in real time it was trying so hard to come up with the right solution but 3 billion free trainable
 - `J9br0e34cp0:00660` [grounder]  solution exists in GPT-5 had no problem or Gemini 2.5 Pro or Grok 4 found solution but this little 3B had no chance although it was real damn close to find the solution. So there you have it my personal test my experience for a real complex reasoning test. I think for a medium complexity, this could be a real interesting reasoning model
-
-**verdict:** 
-**notes:** 
-
----
-## lc-0266
-
-**question id:** lc-0266
-**question:** How did the creator's preferred or favorite AI model change over the course of 2025 into 2026?
-**advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=multi-video  milestones=3  min_milestones=2
-
-**nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
-- **n1** In January 2025 his favorite model was the R1 32B, valued for causal reasoning and for being practical to run locally at 32B parameters [Jan 2025]
-- **n2** By April 2025 his preference had shifted to Google's Gemini Pro 2.5, which he called his best model [April 2025]
-- **n3** By April 2026 his preferred model was Nano Banana Pro, which he felt no need to switch away from [April 2026]
-- **shift (n4)** his favorite model changed hands across the span, from R1 32B to Gemini Pro 2.5 to Nano Banana Pro [Jan 2025 - April 2026]
-
-**edit note:** Three distinct favorite-model stances plus a shift nugget; the model identities are the gradeable content, so they stay in the nuggets rather than the milestones.
-
-**milestones:**
-### m1  2025-01-29  claim `2ENvGkkK36E#c019`  - supports: n1
-**statement:** The creator particularly likes the R1 32B model for causal reasoning because it has 32 billion trainable parameters, making it feasible to run locally.
-- `2ENvGkkK36E:00330` [not re-found]  samples that were created here for the reasoning process mathematical and and and with DeepSeek o1 so we already went through this in the video and I showed you already doing this and having now this data set look what they built they have here the Llama 70b R1 distill or the R1 32b that I particular like here for causal reasoning because it's 32 billion free
-
-### m2  2025-04-10  claim `Geo8LzCHoMQ#c005`  - supports: n2
-**statement:** The creator states he currently uses Google LLMs and considers Gemini Pro 2.5 his best model.
-- `Geo8LzCHoMQ:00030` [not re-found]  know, whenever you start it is great, but I think today is really a very special time here because in the last month, everybody developed its own agent development kit. Every company has its own ideas. You have here your own very specific model specific implementation. But now I think Google developed something that is really across all the different models and currently I use here Google LLMs here
-- `Geo8LzCHoMQ:00060` [grounded]  the Gemini Pro 2.5 here really I think this is for me my best model. So therefore I want here to have here an agent development kit that is optimized here for the best LLM that is currently on the market. So I will I don't know how to say this, but I'll show you here. I just read a manual. This is all I will do. I just have a look what is it that they published because I have not been there. I have not been integrated here
-
-### m3  2026-04-13  claim `i5QwfAeNhOU#c028`  - supports: n3
-**statement:** The creator states they do not currently feel the need to switch away from Nano Banana Pro, expressing a preference for it.
-- `i5QwfAeNhOU:00510` [grounded]  yeah, of course, but the Grok was on the right side. So, let's see what is now the optimized Grok image Pro. Interesting to see. I think for the moment I don't have to switch for my Nano Banana Pro. I love this thing. But let's see what Grok is able to do. We are staying in real time. Oh, wow. Oh, yeah, there's there's more dynamic. There's more going on. There's
-- `i5QwfAeNhOU:00660` [grounded]  Okay. Wow, this is This is heavy, no? This is rule-based external environment. Wow. This is This is technical. Okay. I think we have a comparison. I think I will stay here with my Nano Banana Pro. I hope you had a little bit of fun. Would be great to see you in my next video.
-
-**other grounder chunks (found by grounder, not a milestone claim chunk):**
-- `Geo8LzCHoMQ:00330` [grounder]  agent what else as an LLM we use Gemini 2.0 or 2.5 whatever you want to pay for and the description the description now tells it here hey you are the main weather agent coordinating now a team of other agents and your main task is here to provide the weather using the get weather tool that we just coded here 5 seconds ago handle its status response report via the temperature back or send an
-- `Geo8LzCHoMQ:01020` [grounder]  skill to the next level. I hope I am intelligent enough. So what we do? We leverage now different AI models Gemini, GPT or Claude. Designing specialized sub agent for very specific tasks enable an intelligent delegation between our agent. We give the agent memory using a persistent session state. This is not important because we want them a little bit more intelligent and have its own memory and implement some crucial safety
-- `Geo8LzCHoMQ:01380` [grounder]  agent to use models from providers like OpenAI, the GPT model or Anthropic, the Claude model using here the Lite LLM wrapper. Create new instances. Import. Okay. Define the agent of different models in the wrapper. We know how to do this. Best practice. Clouds on it. Beautiful error handling. Yeah. Agent using GPT-4. Here we go. Weather agent. GPT. Agent is now a
-- `i5QwfAeNhOU:00000` [grounder]  Hello community. Today we test some AI image generators. Let's have a look. GPT, Flux 2 Pro Max, May, Grok, Reef, and all the other stuff. They are two benchmarks. This is here for my last two videos. Log, ACT. This is here what you see generated here with my beloved Google Nano Banana 2. And the other one is here the Vision a mixture of expert system. So, this will be our two benchmark. And
-- `i5QwfAeNhOU:00180` [grounder]  at all. I think we can delete the text labels. So, just say text labels. Ciao. So, I think this is now a real simple prompt, na? So, let's see. Flux 2 Pro C Dream 4.5. I know Flux is a German. C Dream I have no idea. I'm just taking here some of the models out. It's just this a pure trial and error. I have no deeper insight. I used Flux 1, but 2 Pro Wow, okay. Now we have a 3D
-- `i5QwfAeNhOU:00570` [grounder]  no. If you go look a little bit closer. But okay. Okay. So, what is the next best text to image? Well, and you know what? There's a There's a benchmark. So, let's have a look at this. April 10, 2026. GPT image, then May. What is May? May image 2. And the second was River. Okay. So, the community says those are the next best images. So, let's do this. Let's trust the community.
-- `i5QwfAeNhOU:00600` [grounder]  Just go with the identical long prompt. Let's see. May, never heard of it. Rave it, never heard of this one. Let's see. Maybe they will provide you some stunning images. Interesting. I haven't done this in a long, long time. So, I just was fixated here more or less here Nano Banana Pro. But, yeah, we always have to do some experimentation, try out other stuff. Because maybe there is something. Yeah,
 
 **verdict:** 
 **notes:** 
@@ -2711,7 +2671,7 @@ REMOVED former arc point 2 (the "February 2026 shift toward a conditional pro-em
 ## lc-0478
 
 **question id:** lc-0478
-**question:** How did the creator's characterization of the transferability of learned skills, policies, or memories across AI systems evolve from September 2025 through early 2026 as he covered different papers?
+**question:** How did the creator's characterization of the transferability of learned skills, policies, or memories across AI systems evolve from September 2025 through March 2026 as he covered different papers?
 **advisory:** risk=low  hint=neutral  leak=0.0  observed_shape=multi-video  milestones=5  min_milestones=2
 
 **nuggets (edited gold-v0.2 - each a stance + window; specifics stay in the milestones):**
