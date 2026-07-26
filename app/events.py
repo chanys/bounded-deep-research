@@ -9,10 +9,10 @@ How they're used: an emitter builds one of these models and sends
 `model.model_dump()` (a plain dict); the queue/SSE layer turns that dict into a
 `data: {...}` line on the stream.
 
-Correlation: searches and reads each carry a counter id (search_id / read_id)
-that is assigned before the tool calls run in parallel. Because parallel calls
-can finish out of order, the client pairs a *_start event with its *_complete
-event by that id rather than by arrival order.
+Correlation: each search carries a counter id (search_id) assigned before the
+searches run in parallel. Because parallel calls can finish out of order, the
+client pairs a search_start event with its search_complete by that id rather
+than by arrival order.
 """
 from typing import Literal
 
@@ -65,29 +65,6 @@ class SearchComplete(BaseModel):
     search_id: int              # matches the search_id of the SearchStart
     result_count: int           # how many chunks the search returned
     returned_chunk_ids: list[str]   # canonical (padded) chunk_ids of those hits
-
-
-class ReadStart(BaseModel):
-    """Sent when the agent begins reading one chunk's full text via read_video_segment
-    (used to fetch a chunk that was not among the search results)."""
-
-    type: Literal["read_start"] = "read_start"      # event tag
-    read_id: int                # id used to pair this with its ReadComplete
-    video_id: str               # video the chunk belongs to
-    start_ts: int               # chunk start time in seconds
-
-
-class ReadComplete(BaseModel):
-    """Sent when a read finishes. Paired with its ReadStart by read_id. The detail
-    fields are filled only when the chunk was found (ok is True)."""
-
-    type: Literal["read_complete"] = "read_complete"  # event tag
-    read_id: int                # matches the read_id of the ReadStart
-    ok: bool                    # True if the chunk was found; False if it didn't exist
-    chunk_id: str | None = None     # canonical chunk_id of the read chunk (when ok)
-    video_id: str | None = None     # video the chunk belongs to (when ok)
-    start_ts: int | None = None     # chunk start time in seconds (when ok)
-    end_ts: int | None = None       # chunk end time in seconds (when ok)
 
 
 class AnswerDelta(BaseModel):

@@ -41,7 +41,7 @@ When the agent is between steps (waiting on the network), the loop lets the gene
 Order of events on the stream:
 - run_started first,
 - then for each turn a turn_start / turn_complete pair around the model call,
-- with search_start / search_complete and read_start / read_complete for the tool calls in between.
+- with search_start / search_complete for the searches in between.
 - A successful run ends with answer_complete; a failed one ends with error.
 
 Either way the stream then closes.

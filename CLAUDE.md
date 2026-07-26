@@ -2,7 +2,7 @@
 
 ## What this is
 
-AnswerTrail is a bounded-corpus deep-research agent: a roll-your-own ReAct loop (search, read, reason, answer) over a fixed library of single-creator YouTube transcripts.
+AnswerTrail is a bounded-corpus deep-research agent: a roll-your-own ReAct loop (search, reason, answer) over a fixed library of single-creator YouTube transcripts.
 Retrieval is dense-only over Postgres/pgvector; the model is stateless and drives its own exploration until it decides to answer.
 It is live in production on AWS at `answertrail.yeesengchan.com`.
 
@@ -66,7 +66,7 @@ Tiers (anon / coded / owner) come from the access code and draw on separate budg
 
 **Agent loop** (`app/agent.py`).
 `run_agent` owns the conversation; the model is stateless (`store=False`).
-Each exploration turn the model calls `search_transcripts` / `read_video_segment` in parallel, or `mark_ready` to signal done.
+Each exploration turn the model calls `search_transcripts` (in parallel when it has several aspects), or `mark_ready` to signal done. Search returns each chunk's full text (there is no read tool); adjacent context, when configured via `retrieval_neighbor_window`, is appended to search results at retrieval time.
 Exploration runs at reasoning effort `none`; the final answer is a dedicated forced `submit_answer` turn at `synthesis_reasoning_effort` (low), and only that turn streams its text to the UI.
 If the step budget runs out first, a final turn forces synthesis.
 The same event stream feeds both the SSE sink and an `EvidenceCollector` that folds it into a `RunEvidenceState` for the Run Audit panel (`GET /runs/{id}/evidence`); `RunEvidenceState` and `EvidenceCollector` live in `app/evidence.py`.
@@ -105,7 +105,7 @@ Read the relevant guide under `web/node_modules/next/dist/docs/` before writing 
 
 ## Treat as code
 
-`prompts/research_recipe.md` is versioned (currently 0.6.0).
+`prompts/research_recipe.md` is versioned (currently 0.8.0).
 Bump `version` on behavioral changes: minor for tweaks, major for a restructure.
 When Phase 4 lands, gold-set files and judge prompts get the same discipline: versioned artifacts, never edited in place without a commit.
 
