@@ -7,7 +7,7 @@
 // Presentational only; event handling and id correlation stay in the page.
 
 import { useEffect, useRef, useState } from "react";
-import { Search, BookOpen, Sparkles, ShieldCheck } from "lucide-react";
+import { Search, Sparkles, ShieldCheck } from "lucide-react";
 import type { Citation } from "@/lib/events";
 import type { RunEvidence } from "@/lib/api";
 
@@ -45,16 +45,12 @@ function Hint({ text }: { text: string }) {
   );
 }
 
-export type TraceItem =
-  | { kind: "search"; id: number; query: string; resultCount: number | null }
-  | {
-      kind: "read";
-      id: number;
-      videoId: string;
-      startTs: number;
-      endTs?: number;
-      status: "reading" | "ok" | "not_found";
-    };
+export type TraceItem = {
+  kind: "search";
+  id: number;
+  query: string;
+  resultCount: number | null;
+};
 
 function StepRow({
   icon: Icon,
@@ -123,13 +119,10 @@ export function TracePanel({
   elapsedMs: number;
   tokens: number;
 }) {
-  const searchCount = trace.filter((t) => t.kind === "search").length;
-  const reads = trace.filter((t): t is Extract<TraceItem, { kind: "read" }> => t.kind === "read");
-  const readOk = reads.filter((r) => r.status === "ok");
-  const distinctReadVideos = new Set(readOk.map((r) => r.videoId)).size;
+  const searchCount = trace.length;
 
   // Current phase, used to mark one step "active" (present tense + pulse) while running.
-  const phase = answering ? "wrote" : reads.length > 0 ? "read" : "search";
+  const phase = answering ? "wrote" : "search";
   const activeIf = (p: string) => isRunning && phase === p;
 
   return (
@@ -153,14 +146,6 @@ export function TracePanel({
               detail={plural(searchCount, "search").replace("searchs", "searches")}
             />
           )}
-          {reads.length > 0 && (
-            <StepRow
-              icon={BookOpen}
-              active={activeIf("read")}
-              title={activeIf("read") ? "Reading relevant passages" : "Read relevant passages"}
-              detail={`${plural(readOk.length, "passage")} from ${plural(distinctReadVideos, "video")}`}
-            />
-          )}
           {answering && (
             <StepRow
               icon={Sparkles}
@@ -175,11 +160,11 @@ export function TracePanel({
               active={false}
               title="Checked citations"
               detail={
-                evidence.citations_valid && evidence.read_before_cite_violations.length === 0
-                  ? "All citations matched cited passages"
+                evidence.citations_valid && evidence.cited_not_retrieved.length === 0
+                  ? "All citations matched retrieved passages"
                   : !evidence.citations_valid
                     ? "Validation failed"
-                    : `${plural(evidence.read_before_cite_violations.length, "citation")} without a read`
+                    : `${plural(evidence.cited_not_retrieved.length, "citation")} not retrieved`
               }
             />
           )}
@@ -211,20 +196,11 @@ export function TracePanel({
                 : `${Math.round(evidence.duplicate_search_rate * 100)}% of searches`}
             </Detail>
             <Detail
-              label="Cited without reading"
-              hint="passages cited from a search snippet, not a full read"
-              warn={evidence.read_before_cite_violations.length > 0}
-            >
-              {evidence.read_before_cite_violations.length === 0
-                ? "None"
-                : evidence.read_before_cite_violations.length}
-            </Detail>
-            <Detail
               label="Cited but not retrieved"
-              hint="cited passages that no search returned"
-              warn={evidence.cited_not_seen.length > 0}
+              hint="cited passages that no search returned; should be none"
+              warn={evidence.cited_not_retrieved.length > 0}
             >
-              {evidence.cited_not_seen.length === 0 ? "None" : evidence.cited_not_seen.length}
+              {evidence.cited_not_retrieved.length === 0 ? "None" : evidence.cited_not_retrieved.length}
             </Detail>
             <Detail label="Citations valid" warn={!evidence.citations_valid}>
               {evidence.citations_valid ? "Yes" : "No"}

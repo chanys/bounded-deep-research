@@ -46,23 +46,6 @@ export type SearchComplete = {
   returned_chunk_ids: string[];
 };
 
-export type ReadStart = {
-  type: "read_start";
-  read_id: number;
-  video_id: string;
-  start_ts: number;
-};
-
-export type ReadComplete = {
-  type: "read_complete";
-  read_id: number;
-  ok: boolean; // false if the chunk wasn't found
-  chunk_id?: string;
-  video_id?: string;
-  start_ts?: number;
-  end_ts?: number;
-};
-
 export type Citation = {
   video_id: string;
   start_ts: number;
@@ -93,8 +76,6 @@ export type SseEvent =
   | TurnComplete
   | SearchStart
   | SearchComplete
-  | ReadStart
-  | ReadComplete
   | AnswerDelta
   | AnswerComplete
   | ErrorEvent;

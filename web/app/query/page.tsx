@@ -151,23 +151,6 @@ export default function QueryPage() {
         );
         break;
 
-      // Reads: append on start, set status on complete (by read_id).
-      case "read_start":
-        setTrace((prev) => [
-          ...prev,
-          { kind: "read", id: event.read_id, videoId: event.video_id, startTs: event.start_ts, status: "reading" },
-        ]);
-        break;
-      case "read_complete":
-        setTrace((prev) =>
-          prev.map((it) =>
-            it.kind === "read" && it.id === event.read_id
-              ? { ...it, status: event.ok ? "ok" : "not_found", endTs: event.end_ts }
-              : it,
-          ),
-        );
-        break;
-
       // Answer streams in piece by piece; answer_complete delivers the final text +
       // citations, then we fetch titles and the run evidence.
       case "answer_delta":

@@ -28,7 +28,7 @@ export async function fetchChannels(): Promise<Channel[]> {
 }
 
 // Mirror of app/evidence.py RunEvidenceState. Python sets serialize to JSON
-// arrays, so seen/read/cited chunks come over as string[].
+// arrays, so seen/cited chunks come over as string[].
 export type SearchEventRecord = {
   search_id: number;
   query: string;
@@ -36,14 +36,6 @@ export type SearchEventRecord = {
   returned_chunk_ids: string[];
   new_chunk_ids: string[];
   result_count: number;
-};
-
-export type ReadEventRecord = {
-  read_id: number;
-  chunk_id: string;
-  video_id: string;
-  start_ts: number;
-  end_ts: number;
 };
 
 export type RunEvidence = {
@@ -55,18 +47,13 @@ export type RunEvidence = {
   retrieval_mode: string;
   model: string;
   search_events: SearchEventRecord[];
-  read_events: ReadEventRecord[];
   seen_chunks: string[];
-  read_chunks: string[];
   cited_chunks: string[];
   search_count: number;
-  read_count: number;
   seen_count: number;
   cited_count: number;
   duplicate_search_rate: number;
-  consecutive_searches_without_read_max: number;
-  read_before_cite_violations: string[];
-  cited_not_seen: string[];
+  cited_not_retrieved: string[];
   usage: TokenUsage;
   per_turn_usage: TokenUsage[];
   usd_cost: number;
