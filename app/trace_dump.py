@@ -70,11 +70,6 @@ def _render_output(raw_output: str) -> str:
             )
         return "\n".join(lines)
 
-    if "text" in out:  # read_video_segment
-        head = (f"[{out.get('video_id')} @ {out.get('start_ts')}-{out.get('end_ts')}] "
-                f"({out.get('published_at')}) {out.get('title', '')}")
-        return f"{head}\n{out['text']}"
-
     if "status" in out:  # submit_answer accepted
         return f"status: {out['status']}"
 

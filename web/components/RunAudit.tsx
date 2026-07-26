@@ -65,9 +65,8 @@ export function RunAudit({ evidence: e }: { evidence: RunEvidence }) {
       </div>
 
       {/* Retrieval activity */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <Stat label="searches" value={e.search_count} />
-        <Stat label="reads" value={e.read_count} />
         <Stat label="chunks seen" value={e.seen_count} />
         <Stat label="chunks cited" value={e.cited_count} />
       </div>
@@ -79,15 +78,10 @@ export function RunAudit({ evidence: e }: { evidence: RunEvidence }) {
           value={`${Math.round(e.duplicate_search_rate * 100)}%`}
           warn={e.duplicate_search_rate >= 0.5}
         />
-        <Stat
-          label="max searches without a read"
-          value={e.consecutive_searches_without_read_max}
-        />
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <ChunkList label="cited without reading" ids={e.read_before_cite_violations} warnIfAny />
-        <ChunkList label="cited but never surfaced" ids={e.cited_not_seen} warnIfAny />
+      <div className="grid grid-cols-1 gap-2">
+        <ChunkList label="cited but not retrieved" ids={e.cited_not_retrieved} warnIfAny />
       </div>
     </div>
   );

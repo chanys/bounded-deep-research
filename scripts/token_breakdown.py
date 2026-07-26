@@ -18,16 +18,14 @@ QUERY = "How has the creator's view of LLM reasoning evolved over 2025-2026?"
 
 async def main():
     turns: list[dict] = []
-    searches = reads = 0
+    searches = 0
 
     def sink(e: dict):
-        nonlocal searches, reads
+        nonlocal searches
         if e["type"] == "turn_complete":
             turns.append(e["usage"])
         elif e["type"] == "search_start":
             searches += 1
-        elif e["type"] == "read_start":
-            reads += 1
 
     result = await run_agent(QUERY, "code4AI", mode="hybrid", event_sink=sink)
     await aclose()
@@ -40,7 +38,7 @@ async def main():
               f"{u['output_tokens']:>8} {u['reasoning_tokens']:>7} {u['total_tokens']:>8}")
         sin += u["input_tokens"]; sout += u["output_tokens"]
         scached += u["cached_input_tokens"]; sreason += u["reasoning_tokens"]
-    print(f"\nturns={len(turns)} searches={searches} reads={reads} citations={len(result.citations)}")
+    print(f"\nturns={len(turns)} searches={searches} citations={len(result.citations)}")
     print(f"sum: input={sin} (cached={scached}) output={sout} (reasoning={sreason})")
     uncached = sin - scached
     print(f"uncached input={uncached}  -> billed at full input rate")

@@ -1,10 +1,10 @@
 """ReAct agent loop over the transcript corpus.
 
 run_agent drives the loop. On each turn it calls the model, which either issues
-tool calls (search_transcripts / read_video_segment) or finishes by calling
-submit_answer. The tool calls within a turn run in parallel. The loop, not the
-model, owns the running conversation (input_items) and emits progress events as
-it goes; those same events are folded into RunEvidenceState for the Run Audit.
+search_transcripts calls (or mark_ready to signal it is done) or finishes by
+calling submit_answer. The searches within a turn run in parallel. The loop, not
+the model, owns the running conversation (input_items) and emits progress events
+as it goes; those same events are folded into RunEvidenceState for the Run Audit.
 If the agent never submits within the step budget, a final turn forces it to.
 """
 import asyncio
@@ -19,7 +19,7 @@ from app.evidence import EvidenceCollector, put_run, RunProvenance, AgentConfig
 from core.provenance import PROVENANCE
 from app.events import (
     RunStarted, TurnStart, TurnComplete,
-    SearchStart, SearchComplete, ReadStart, ReadComplete, AnswerDelta, usage_dict,
+    SearchStart, SearchComplete, AnswerDelta, usage_dict,
 )
 from core.llm import respond, to_input_item
 from app.channels import CHANNELS
@@ -252,11 +252,10 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
                     recipe_version=_RECIPE_METADATA.version,
                     max_steps=settings.agent_max_steps).model_dump())
 
-    # Counters for the per-search and per-read ids. They span the whole run and
-    # are handed out in a sync pre-pass (below) before the parallel dispatch, so
-    # an id is fixed before its coroutine starts, regardless of finish order.
+    # Counter for the per-search ids. It spans the whole run and is handed out in
+    # a sync pre-pass (below) before the parallel dispatch, so an id is fixed
+    # before its coroutine starts, regardless of finish order.
     search_id_counter = 0
-    read_id_counter = 0
 
     # Drives the mark_ready gate's livelock escape: after 3 rejections the gate
     # accepts unconditionally so a stubborn run still terminates.
@@ -317,47 +316,32 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
         emit(TurnComplete(step=step, usage=usage_dict(response)).model_dump())
         return response
 
-    async def _dispatch_with_events(call_item, kind, ev_id):
-        """Run one tool call and emit its progress events around it.
+    async def _dispatch_with_events(call_item, ev_id):
+        """Run one search call and emit its start/complete events around it.
 
-        For a search or a read, this sends a start event before the call and a
-        complete event after. Both events carry the same ev_id (the search_id or
-        read_id), which is how the frontend knows the "complete" belongs to that
-        "start". The id matters because several tool calls in a turn run at the
-        same time and can finish in any order, so arrival order alone is not
-        enough to match them up.
+        A search_start goes out before the call and a search_complete after; both
+        carry the same ev_id (the search_id), which is how the frontend knows the
+        "complete" belongs to that "start". The id matters because several
+        searches in a turn run at the same time and can finish in any order, so
+        arrival order alone is not enough to match them up.
 
-        Other tools, like submit_answer, just run with no events.
-
-        Because this bundles the events with the call into one coroutine, the loop
-        can launch several of these at once with asyncio.gather and let them run
-        concurrently.
+        Every non-mark_ready exploration call is a search (submit_answer is
+        handled separately, in _synthesize). Bundling the events with the call
+        into one coroutine lets the loop launch several at once with
+        asyncio.gather and run them concurrently.
         """
-        if kind == "search":
-            args = json.loads(call_item.get("arguments", "{}"))
-            emit(SearchStart(search_id=ev_id, query=args.get("query", ""), mode=effective_mode).model_dump())
-        elif kind == "read":
-            args = json.loads(call_item.get("arguments", "{}"))
-            emit(ReadStart(read_id=ev_id, video_id=args.get("video_id", ""),
-                           start_ts=int(args.get("start_ts", 0))).model_dump())
+        args = json.loads(call_item.get("arguments", "{}"))
+        emit(SearchStart(search_id=ev_id, query=args.get("query", ""), mode=effective_mode).model_dump())
 
         result = await dispatch(call_item, channel=channel, mode=effective_mode)
 
-        if kind == "search":
-            # Rebuild the canonical chunk_ids from the hits for the evidence fold.
-            hits = json.loads(result.output_item["output"]).get("hits", [])
-            chunk_ids = [f"{h['video_id']}:{int(h['start_ts']):05d}" for h in hits]
-            emit(SearchComplete(search_id=ev_id, result_count=len(hits),
-                                returned_chunk_ids=chunk_ids).model_dump())
-        elif kind == "read":
-            parsed = json.loads(result.output_item["output"])
-            if "text" in parsed:   # the chunk was found
-                cid = f"{parsed['video_id']}:{int(parsed['start_ts']):05d}"
-                emit(ReadComplete(read_id=ev_id, ok=True, chunk_id=cid,
-                                  video_id=parsed["video_id"], start_ts=parsed["start_ts"],
-                                  end_ts=parsed["end_ts"]).model_dump())
-            else:   # not found / error came back as the tool result
-                emit(ReadComplete(read_id=ev_id, ok=False).model_dump())
+        # Rebuild the canonical chunk_ids from the hits for the evidence fold.
+        # A non-search call that slipped through returns an error (no "hits"),
+        # which folds harmlessly as a zero-result search.
+        hits = json.loads(result.output_item["output"]).get("hits", [])
+        chunk_ids = [f"{h['video_id']}:{int(h['start_ts']):05d}" for h in hits]
+        emit(SearchComplete(search_id=ev_id, result_count=len(hits),
+                            returned_chunk_ids=chunk_ids).model_dump())
         return result
 
     def _finish(result: AgentResult) -> AgentResult:
@@ -442,25 +426,22 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
                 ready = True
                 ready_call_id = to_input_item(item)["call_id"]
 
-        # Collect this turn's search/read calls and assign ids in a sync pre-pass,
-        # so ids are fixed before the parallel dispatch.
+        # Collect this turn's search calls (every non-mark_ready call is a search)
+        # and assign a search_id in a sync pre-pass, so ids are fixed before the
+        # parallel dispatch.
         call_items = [
             to_input_item(item)
             for item in response.output
             if item.type == "function_call" and item.name != "mark_ready"
         ]
-        slots: list[tuple[str, int]] = []
-        for call_item in call_items:
-            if call_item["name"] == "search_transcripts":
-                slots.append(("search", search_id_counter))
-                search_id_counter += 1
-            else:  # read_video_segment
-                slots.append(("read", read_id_counter))
-                read_id_counter += 1
+        search_ids: list[int] = []
+        for _ in call_items:
+            search_ids.append(search_id_counter)
+            search_id_counter += 1
 
         results = await asyncio.gather(*(
-            _dispatch_with_events(call_item, kind, ev_id)
-            for call_item, (kind, ev_id) in zip(call_items, slots)
+            _dispatch_with_events(call_item, ev_id)
+            for call_item, ev_id in zip(call_items, search_ids)
         ))
         for result in results:
             input_items.append(result.output_item)
@@ -494,7 +475,7 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
                 )
             input_items.append({
                 "role": "user",
-                "content": "You must call a tool: search_transcripts, read_video_segment, or mark_ready.",
+                "content": "You must call a tool: search_transcripts, or mark_ready.",
             })
             continue
 

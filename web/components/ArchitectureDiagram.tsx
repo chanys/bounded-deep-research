@@ -22,7 +22,7 @@ export function ArchitectureDiagram() {
       <Arrow />
       <Box title="FastAPI / uvicorn" subtitle="POST /query (SSE stream) · /runs/{id}/evidence" />
       <Arrow />
-      <Box title="ReAct agent loop" subtitle="search · read · submit_answer, per-turn events" />
+      <Box title="ReAct agent loop" subtitle="search · mark_ready · submit_answer, per-turn events" />
       <Arrow />
       <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3">
         <Box title="OpenSearch" subtitle="BM25 + kNN over chunks" />

@@ -37,16 +37,6 @@ class SearchEvent(BaseModel):
     result_count: int               # how many chunks were returned
 
 
-class ReadEvent(BaseModel):
-    """A record of one full-chunk read the agent performed, kept in the evidence log."""
-
-    read_id: int                    # the read's id (pairs start/complete)
-    chunk_id: str                   # canonical chunk_id that was read
-    video_id: str                   # video the chunk belongs to
-    start_ts: int                   # chunk start time in seconds
-    end_ts: int                     # chunk end time in seconds
-
-
 class RunProvenance(BaseModel):
     """Which repo snapshot produced the run. git_sha fingerprints every tracked file
     (recipe, tool prompts, loop code) at once and cannot be edited without changing,
@@ -75,9 +65,9 @@ class AgentConfig(BaseModel):
 
 
 class RunEvidenceState(BaseModel):
-    """The complete harness record for one run: what the agent retrieved, read, and
-    cited, plus behavioral metrics, token cost, and the run's outcome. This is what
-    the Run Audit panel displays."""
+    """The complete harness record for one run: what the agent retrieved and cited,
+    plus behavioral metrics, token cost, and the run's outcome. This is what the Run
+    Audit panel displays."""
 
     # --- identity & configuration ---
     run_id: str                     # unique id for this run
@@ -94,24 +84,19 @@ class RunEvidenceState(BaseModel):
 
     # --- raw activity logs ---
     search_events: list[SearchEvent]   # every search, in order
-    read_events: list[ReadEvent]       # every successful read, in order
 
     # --- derived sets of chunk_ids ---
     seen_chunks: set[str]           # all chunks any search returned
-    read_chunks: set[str]           # chunks the agent escalated to a full read
     cited_chunks: set[str]          # chunks referenced in the final answer
 
     # --- counts (precomputed so the panel does no work) ---
     search_count: int               # number of searches
-    read_count: int                 # number of reads
     seen_count: int                 # size of seen_chunks
     cited_count: int                # size of cited_chunks
 
     # --- behavioral metrics (the "is the harness behaving" signals) ---
     duplicate_search_rate: float            # fraction of searches that returned nothing new
-    consecutive_searches_without_read_max: int   # longest run of searches with no read between them
-    read_before_cite_violations: list[str]  # chunks cited whose full text was never seen (never surfaced or read)
-    cited_not_seen: list[str]               # chunks cited that no search surfaced; should be empty
+    cited_not_retrieved: list[str]          # chunks cited that no search returned; the citation-integrity check, should be empty
 
     # --- token usage & cost ---
     usage: TokenUsage               # run totals across all turns
@@ -152,14 +137,10 @@ class EvidenceCollector:
 
         # accumulators, filled in as events arrive
         self.search_events: list[SearchEvent] = []   # one per search_complete
-        self.read_events: list[ReadEvent] = []        # one per successful read_complete
         self.seen: set[str] = set()                   # chunk_ids any search has returned
-        self.read: set[str] = set()                   # chunk_ids the agent has read in full
         self.per_turn_usage: list[TokenUsage] = []     # one entry per turn_complete
 
         self._pending_queries: dict[int, str] = {}   # search_id -> query, remembered at search_start
-        self._searches_since_read = 0                # running count for the "no read" streak metric
-        self._max_searches_without_read = 0          # largest streak seen so far
 
     def handle(self, event: dict) -> None:
         """Update the running state from one event. Called for every event the run
@@ -182,22 +163,6 @@ class EvidenceCollector:
                 result_count=event["result_count"],
             ))
             self.seen.update(chunk_ids)
-            self._searches_since_read += 1
-            self._max_searches_without_read = max(
-                self._max_searches_without_read, self._searches_since_read
-            )
-
-        elif t == "read_complete":
-            if event.get("ok"):   # ignore reads of chunks that weren't found
-                self.read_events.append(ReadEvent(
-                    read_id=event["read_id"],
-                    chunk_id=event["chunk_id"],
-                    video_id=event["video_id"],
-                    start_ts=event["start_ts"],
-                    end_ts=event["end_ts"],
-                ))
-                self.read.add(event["chunk_id"])
-                self._searches_since_read = 0   # a read breaks the search-only streak
 
         elif t == "turn_complete":
             self.per_turn_usage.append(TokenUsage(**event["usage"]))
@@ -214,10 +179,6 @@ class EvidenceCollector:
         """How many searches have completed so far."""
         return len(self.search_events)
 
-    def read_count(self) -> int:
-        """How many successful reads have completed so far."""
-        return len(self.read_events)
-
     def distinct_queries(self) -> list[str]:
         """Distinct search query strings issued so far, in first-seen order."""
         ordered: dict[str, None] = {}
@@ -228,15 +189,6 @@ class EvidenceCollector:
     def zero_hit_queries(self) -> list[str]:
         """Query strings whose search returned no hits."""
         return [s.query for s in self.search_events if s.result_count == 0]
-
-    def reads_by_video(self) -> dict[str, list[int]]:
-        """Successfully read chunks as video_id -> sorted list of start_ts."""
-        by_video: dict[str, list[int]] = {}
-        for r in self.read_events:
-            by_video.setdefault(r.video_id, []).append(r.start_ts)
-        for starts in by_video.values():
-            starts.sort()
-        return by_video
 
     def _total_usage(self) -> TokenUsage:
         """Sum the per-turn usage seen so far into a single run total."""
@@ -290,18 +242,13 @@ class EvidenceCollector:
             provenance=self.provenance,
             agent_config=self.agent_config,
             search_events=self.search_events,
-            read_events=self.read_events,
             seen_chunks=self.seen,
-            read_chunks=self.read,
             cited_chunks=cited,
             search_count=len(self.search_events),
-            read_count=len(self.read_events),
             seen_count=len(self.seen),
             cited_count=len(cited),
             duplicate_search_rate=round(dup_rate, 3),
-            consecutive_searches_without_read_max=self._max_searches_without_read,
-            read_before_cite_violations=sorted(cited - (self.seen | self.read)),
-            cited_not_seen=sorted(cited - self.seen),
+            cited_not_retrieved=sorted(cited - self.seen),
             usage=total,
             per_turn_usage=self.per_turn_usage,
             usd_cost=round(usd, 6),

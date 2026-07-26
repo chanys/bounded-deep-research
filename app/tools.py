@@ -1,7 +1,12 @@
 """Tool definitions for the ReAct agent.
 
-Two tools: search_transcripts and submit_answer. Schemas are in Responses
-API flat shape (name/description/parameters at top level of each tool).
+Exploration tools are search_transcripts and mark_ready; the answer is submitted
+with submit_answer. Schemas are in Responses API flat shape
+(name/description/parameters at top level of each tool).
+
+Search returns each chunk's full text, and adjacent context (when wanted) is
+appended at retrieval time via settings.retrieval_neighbor_window - so the agent
+has no read tool: everything it can cite comes back from search.
 
 Design choice: citations are IDs only ({video_id, start_ts, end_ts}).
 The agent never writes chunk text into citations, so there's nothing to
@@ -38,7 +43,7 @@ from pydantic import BaseModel, ValidationError
 from langfuse import observe
 
 from core.config import settings
-from app.retrieval import search, read_video_segment, Mode
+from app.retrieval import search, Mode
 
 # ---------------------------------------------------------------------------
 # Tool schemas (Responses API flat shape)
@@ -111,27 +116,6 @@ SUBMIT_ANSWER_SCHEMA: dict = {
     },
 }
 
-READ_VIDEO_SEGMENT_SCHEMA: dict = {
-    "type": "function",
-    "name": "read_video_segment",
-    "description": (
-        "Fetch the full text of a specific chunk by (video_id, start_ts) that was "
-        "NOT among your search results - for example an adjacent chunk for extra "
-        "boundary context. Search already returns full chunk text, so you never need "
-        "to re-fetch a chunk you already retrieved. Also returns the video's title "
-        "and published_at (its publish date, YYYY-MM-DD)."
-    ),
-    "parameters": {
-        "type": "object",
-        "properties": {
-            "video_id": {"type": "string"},
-            "start_ts": {"type": "integer"},
-        },
-        "required": ["video_id", "start_ts"],
-        "additionalProperties": False,
-    },
-}
-
 MARK_READY_SCHEMA: dict = {
     "type": "function",
     "name": "mark_ready",
@@ -148,11 +132,11 @@ MARK_READY_SCHEMA: dict = {
     },
 }
 
-# Exploration turns offer search/read/mark_ready but NOT submit_answer, so the
-# model signals readiness (mark_ready, no answer) instead of drafting an answer
-# at the exploration reasoning effort. The answer is then composed in a dedicated
+# Exploration turns offer search/mark_ready but NOT submit_answer, so the model
+# signals readiness (mark_ready, no answer) instead of drafting an answer at the
+# exploration reasoning effort. The answer is then composed in a dedicated
 # synthesis turn forced to submit_answer (SUBMIT_TOOLS).
-EXPLORE_TOOLS: list[dict] = [SEARCH_TRANSCRIPTS_SCHEMA, READ_VIDEO_SEGMENT_SCHEMA, MARK_READY_SCHEMA]
+EXPLORE_TOOLS: list[dict] = [SEARCH_TRANSCRIPTS_SCHEMA, MARK_READY_SCHEMA]
 SUBMIT_TOOLS: list[dict] = [SUBMIT_ANSWER_SCHEMA]
 
 
@@ -209,8 +193,6 @@ async def dispatch(function_call_item: dict, channel: str, mode: Mode) -> Dispat
         return await _handle_search(call_id, args, channel, mode)
     if name == "submit_answer":
         return await _handle_submit(call_id, args, channel)
-    if name == "read_video_segment":
-        return await _handle_read(call_id, args, channel)
     return _error_output(call_id, f"Unknown tool: {name}")
 
 
@@ -226,9 +208,9 @@ async def _handle_search(call_id: str, args: dict[str, Any], channel: str, mode:
         return _error_output(call_id, f"search failed: {e}")
 
     # Search returns the full chunk text (chunks are short: ~30s, ~390 chars on
-    # average), so the agent sees complete evidence at search time and never needs
-    # to escalate a retrieved chunk to a separate read. read_video_segment remains
-    # only for fetching chunks that were NOT retrieved (e.g. an adjacent chunk).
+    # average), so the agent sees complete evidence at search time. Adjacent
+    # context, when wanted, is appended here by _expand_neighbors (governed by
+    # settings.retrieval_neighbor_window), so there is no separate read step.
     results = [
         {
             "video_id": h["video_id"],
@@ -245,32 +227,6 @@ async def _handle_search(call_id: str, args: dict[str, Any], channel: str, mode:
         "type": "function_call_output",
         "call_id": call_id,
         "output": json.dumps({"hits": results}),
-    }
-    return DispatchResult(output_item=output, terminal=False)
-
-
-async def _handle_read(call_id: str, args: dict[str, Any], channel: str) -> DispatchResult:
-    video_id = args.get("video_id")
-    start_ts = args.get("start_ts")
-    if not video_id or not isinstance(video_id, str):
-        return _error_output(call_id, "read_video_segment requires a non-empty 'video_id' string.")
-    if not isinstance(start_ts, int):
-        return _error_output(call_id, "read_video_segment requires an integer 'start_ts'.")
-
-    try:
-        segment = await read_video_segment(video_id=video_id, start_ts=start_ts, channel=channel)
-    except Exception as e:
-        return _error_output(call_id, f"read_video_segment failed: {e}")
-
-    if segment is None:
-        return _error_output(
-            call_id, f"no chunk found for video_id={video_id} start_ts={start_ts}"
-        )
-
-    output = {
-        "type": "function_call_output",
-        "call_id": call_id,
-        "output": json.dumps(segment),
     }
     return DispatchResult(output_item=output, terminal=False)
 
