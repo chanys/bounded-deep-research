@@ -13,6 +13,7 @@ Usage:
   uv run python -m scripts.full_agent_smoke
 """
 import asyncio
+import sys
 
 # Import config first so Langfuse keys land in the environment before the SDK initializes.
 from core.config import settings  # noqa: F401
@@ -26,11 +27,15 @@ from app.retrieval import aclose
 QUERY = "How does the creator view RAG vs Harness?"
 CHANNEL = "code4AI"
 
+# Optional: pass a directory as argv[1] to also dump the full evidence JSON +
+# markdown trace there (used to eyeball provenance fields like corpus_id).
+DUMP_DIR = sys.argv[1] if len(sys.argv) > 1 else None
+
 
 async def main():
     print(f"running agent: {QUERY!r} (channel={CHANNEL})\n")
     try:
-        result = await run_agent(QUERY, CHANNEL, mode="hybrid")
+        result = await run_agent(QUERY, CHANNEL, mode="hybrid", dump_dir=DUMP_DIR)
     finally:
         await aclose()
 
