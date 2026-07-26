@@ -67,7 +67,7 @@ Tiers (anon / coded / owner) come from the access code and draw on separate budg
 **Agent loop** (`app/agent.py`).
 `run_agent` owns the conversation; the model is stateless (`store=False`).
 Each exploration turn the model calls `search_transcripts` (in parallel when it has several aspects), or `mark_ready` to signal done. Search returns each chunk's full text (there is no read tool); adjacent context, when configured via `retrieval_neighbor_window`, is appended to search results at retrieval time.
-Exploration runs at reasoning effort `none`; the final answer is a dedicated forced `submit_answer` turn at `synthesis_reasoning_effort` (low), and only that turn streams its text to the UI.
+Exploration runs at reasoning effort `reasoning_effort` (currently `low`, per `core/config.py`); the final answer is a dedicated forced `submit_answer` turn at `synthesis_reasoning_effort` (low), and only that turn streams its text to the UI.
 If the step budget runs out first, a final turn forces synthesis.
 The same event stream feeds both the SSE sink and an `EvidenceCollector` that folds it into a `RunEvidenceState` for the Run Audit panel (`GET /runs/{id}/evidence`); `RunEvidenceState` and `EvidenceCollector` live in `app/evidence.py`.
 
