@@ -68,8 +68,8 @@ class SearchComplete(BaseModel):
 
 
 class ReadStart(BaseModel):
-    """Sent when the agent begins reading one chunk's full text (escalating from a
-    search snippet to the whole chunk)."""
+    """Sent when the agent begins reading one chunk's full text via read_video_segment
+    (used to fetch a chunk that was not among the search results)."""
 
     type: Literal["read_start"] = "read_start"      # event tag
     read_id: int                # id used to pair this with its ReadComplete
