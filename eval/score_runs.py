@@ -416,19 +416,25 @@ async def amain(args: argparse.Namespace) -> None:
                          f"but current corpus is {current}; scoring would ground against a different corpus")
 
     SCORES.mkdir(parents=True, exist_ok=True)
-    sem = asyncio.Semaphore(args.concurrency)
+    sem = asyncio.Semaphore(args.concurrency)            # bounds concurrent judge/extract CALLS
+    run_sem = asyncio.Semaphore(args.run_concurrency)    # bounds concurrent RUNS, so runs finish
+    # steadily and checkpoint to disk (resumable mid-way) instead of all completing at the end.
     todo = [(q, i) for q in qids for i in range(args.runs) if not _cache_path(q, i).exists()]
-    print(f"scoring {len(todo)} (question, run) pairs (concurrency {args.concurrency}); "
+    done = 0
+    print(f"scoring {len(todo)} (question, run) pairs (calls<={args.concurrency}, runs<={args.run_concurrency}); "
           f"judge {JUDGE_PROMPT_SHA}, C1 {C1_SHA}", flush=True)
 
     async def one(qid, idx):
+        nonlocal done
         run = load_run(qid, idx)
         if not run:
             return
-        rec = await score_run(run, gold[qid], sem)
-        _cache_path(qid, idx).write_text(json.dumps(rec, indent=2))
+        async with run_sem:
+            rec = await score_run(run, gold[qid], sem)
+        _cache_path(qid, idx).write_text(json.dumps(rec, indent=2))   # checkpoint on completion
+        done += 1
         h, t = _stance_recall(rec)
-        print(f"  scored {qid} r{idx}: recall {h}/{t}, "
+        print(f"  [{done}/{len(todo)}] scored {qid} r{idx}: recall {h}/{t}, "
               f"grounded {sum(d['hit'] for d in rec['ground_details'])}/{len(rec['ground_details'])}", flush=True)
 
     await asyncio.gather(*(one(q, i) for q, i in todo))
@@ -444,7 +450,8 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Score the A2 runs (Phase D).")
     ap.add_argument("--only", default="", help="comma-separated question ids (default: full scored set)")
     ap.add_argument("--runs", type=int, default=3)
-    ap.add_argument("--concurrency", type=int, default=6)
+    ap.add_argument("--concurrency", type=int, default=6, help="max concurrent judge/extract calls")
+    ap.add_argument("--run-concurrency", type=int, default=6, help="max concurrent runs (steady checkpointing)")
     ap.add_argument("--report-only", action="store_true", help="re-aggregate from cached scores, no judging")
     asyncio.run(amain(ap.parse_args()))
 
