@@ -1,7 +1,8 @@
 """Phase 4 D: score the A2 runs with the frozen judge + extractors, attribute, and report.
 
 For each scored (question, run) the frozen judge (prompt_sha a7d71e4a, Sonnet 5) produces:
-- recall (dir 1): each gold nugget vs the answer -> recall = hits / stance-nuggets.
+- recall (dir 1): each gold nugget vs the answer -> recall = hits / total nuggets (shift INCLUDED per
+  design, and also logged separately as the shift-pass boolean; no_change excluded/segregated).
 - groundedness (dir 2): each C1-extracted answer-claim vs the run's retrieved chunk SET -> supported / extracted.
 - attribution (dir 3, for MISSED nuggets): missed nugget vs the run's surfaced chunk set -> HIT = supported-but-
   unused = SYNTHESIS failure; MISS = never-surfaced = RETRIEVAL failure. Semantic, judge-based - never
@@ -224,9 +225,13 @@ async def score_run(run: dict, nuggets: list[dict], sem: asyncio.Semaphore) -> d
 
 # ---- aggregation + report --------------------------------------------------
 
-def _stance_recall(rec: dict) -> tuple[int, int]:
-    """(hits, total) over stance/fact nuggets only (shift + no_change excluded)."""
-    ns = [d for d in rec["recall_details"] if d["type"] not in ("shift", "no_change")]
+def _recall_counts(rec: dict, include_shift: bool = True) -> tuple[int, int]:
+    """(hits, total) over gold nuggets. Per the design (plan D + worksheet), the shift nugget
+    IS in the recall denominator (and is also logged separately as the shift-pass boolean);
+    no_change is excluded because it exists only on the segregated lc-0130. include_shift=False
+    gives the stance-only decomposition."""
+    excluded = ("no_change",) if include_shift else ("shift", "no_change")
+    ns = [d for d in rec["recall_details"] if d["type"] not in excluded]
     return sum(d["hit"] for d in ns), len(ns)
 
 
@@ -277,7 +282,7 @@ def aggregate(scores: list[dict], miss_class: dict[str, str] | None = None) -> s
         rec_by_idx, grd_by_idx = {}, {}
         for idx in sorted({s["run_index"] for s in ts}):
             si = [s for s in ts if s["run_index"] == idx]
-            recs = [h / t for s in si for (h, t) in [_stance_recall(s)] if t]
+            recs = [h / t for s in si for (h, t) in [_recall_counts(s)] if t]
             grds = [sum(d["hit"] for d in s["ground_details"]) / len(s["ground_details"])
                     for s in si if s["ground_details"]]
             rec_by_idx[idx] = sum(recs) / len(recs) if recs else None
@@ -286,11 +291,19 @@ def aggregate(scores: list[dict], miss_class: dict[str, str] | None = None) -> s
         gv = [v for v in grd_by_idx.values() if v is not None]
         no_claims = sum(1 for s in ts if not s["ground_details"])
         n_runs = len(rec_by_idx)
+        # micro (ratio-of-totals) recall for comparability with ceiling/conversion, which are pooled.
+        rc_h = sum(h for s in ts for (h, _t) in [_recall_counts(s)])
+        rc_t = sum(t for s in ts for (_h, t) in [_recall_counts(s)])
+        st_h = sum(h for s in ts for (h, _t) in [_recall_counts(s, include_shift=False)])
+        st_t = sum(t for s in ts for (_h, t) in [_recall_counts(s, include_shift=False)])
         lines.append(f"## {tier} ({len({s['question_id'] for s in ts})} questions x {n_runs} runs)")
         lines.append("")
-        lines.append(f"- recall:       mean {sum(rv) / len(rv):.1%}   range [{min(rv):.1%}, {max(rv):.1%}] across runs"
-                     if rv else "- recall:       N/A")
-        gline = (f"- groundedness: mean {sum(gv) / len(gv):.1%}   range [{min(gv):.1%}, {max(gv):.1%}] across runs"
+        lines.append(f"- recall (incl shift, per design): macro {sum(rv) / len(rv):.1%} [range {min(rv):.1%}-{max(rv):.1%}]"
+                     f"  |  micro {rc_h / rc_t:.1%} ({rc_h}/{rc_t})"
+                     if rv else "- recall: N/A")
+        lines.append(f"    - stance-only recall (shift excluded): micro {st_h / st_t:.1%} ({st_h}/{st_t})")
+        lines.append("    - macro = mean of per-run per-question ratios; micro = pooled ratio-of-totals")
+        gline = (f"- groundedness: macro {sum(gv) / len(gv):.1%} [range {min(gv):.1%}-{max(gv):.1%}] (mean of per-run ratios)"
                  if gv else "- groundedness: N/A (no run had extracted claims)")
         if no_claims:
             gline += f"  [{no_claims} run(s) had 0 extracted claims -> N/A, excluded]"
@@ -317,8 +330,8 @@ def aggregate(scores: list[dict], miss_class: dict[str, str] | None = None) -> s
             syn = sum(1 for g in missed if g["supported_in_chunks"])
             violations = [g for g in grid if g["recall_hit"] and not g["supported_in_chunks"]]
             lines += [
-                f"- retrieval ceiling:    {ceiling:.1%}  ({len(supported)}/{len(grid)} gold nuggets had supporting evidence in the retrieved set)",
-                f"- synthesis conversion: {conversion:.1%}  (of retrieved-evidence nuggets, fraction expressed in the answer)",
+                f"- retrieval ceiling:    {ceiling:.1%}  ({len(supported)}/{len(grid)} gold nuggets had supporting evidence in the retrieved set) [pooled/ratio-of-totals]",
+                f"- synthesis conversion: {conversion:.1%}  (of retrieved-evidence nuggets, fraction expressed in the answer) [pooled/ratio-of-totals]",
                 f"- missed-nugget attribution: {syn}/{len(missed)} synthesis (surfaced-but-unused), "
                 f"{len(missed) - syn}/{len(missed)} retrieval (never-surfaced)",
                 f"- inequality violations (answer HIT, chunks MISS): {len(violations)} - each is parametric leakage or a judge artifact, listed below",
@@ -355,7 +368,7 @@ def aggregate(scores: list[dict], miss_class: dict[str, str] | None = None) -> s
         by_q[s["question_id"]].append(s)
     q_recall = {}
     for qid, ss in by_q.items():
-        vals = [h / t for s in ss for (h, t) in [_stance_recall(s)] if t]
+        vals = [h / t for s in ss for (h, t) in [_recall_counts(s)] if t]
         q_recall[qid] = sum(vals) / len(vals) if vals else 0.0
     worst = sorted(q_recall.items(), key=lambda kv: kv[1])[:10]
     lines += ["## 10 lowest-recall questions (for the human read)", ""]
@@ -437,7 +450,7 @@ async def amain(args: argparse.Namespace) -> None:
             rec = await score_run(run, gold[qid], sem)
         _cache_path(qid, idx).write_text(json.dumps(rec, indent=2))   # checkpoint on completion
         done += 1
-        h, t = _stance_recall(rec)
+        h, t = _recall_counts(rec)
         print(f"  [{done}/{len(todo)}] scored {qid} r{idx}: recall {h}/{t}, "
               f"grounded {sum(d['hit'] for d in rec['ground_details'])}/{len(rec['ground_details'])}", flush=True)
 

@@ -22,21 +22,25 @@ Score-time provenance:
 
 ## longitudinal (35 questions x 3 runs)
 
-- recall:       mean 31.3%   range [29.5%, 34.0%] across runs
-- groundedness: mean 97.9%   range [97.3%, 98.7%] across runs
+- recall (incl shift, per design): macro 32.2% [range 30.9%-33.2%]  |  micro 32.8% (135/411)
+    - stance-only recall (shift excluded): micro 31.7% (97/306)
+    - macro = mean of per-run per-question ratios; micro = pooled ratio-of-totals
+- groundedness: macro 97.9% [range 97.3%-98.7%] (mean of per-run ratios)
 - shift-nugget pass rate: 36.2% (38/105)
 - stance-miss breakdown: 11 timing (right stance, wrong/missing window), 198 stance (not conveyed) [un-calibrated reason-based diagnostic]
-- retrieval ceiling:    43.5%  (133/306 gold nuggets had supporting evidence in the retrieved set)
-- synthesis conversion: 63.9%  (of retrieved-evidence nuggets, fraction expressed in the answer)
+- retrieval ceiling:    43.5%  (133/306 gold nuggets had supporting evidence in the retrieved set) [pooled/ratio-of-totals]
+- synthesis conversion: 63.9%  (of retrieved-evidence nuggets, fraction expressed in the answer) [pooled/ratio-of-totals]
 - missed-nugget attribution: 48/209 synthesis (surfaced-but-unused), 161/209 retrieval (never-surfaced)
 - inequality violations (answer HIT, chunks MISS): 12 - each is parametric leakage or a judge artifact, listed below
 
 ## factual (25 questions x 3 runs)
 
-- recall:       mean 86.9%   range [85.3%, 88.0%] across runs
-- groundedness: mean 96.0%   range [93.9%, 97.1%] across runs
-- retrieval ceiling:    86.8%  (138/159 gold nuggets had supporting evidence in the retrieved set)
-- synthesis conversion: 97.1%  (of retrieved-evidence nuggets, fraction expressed in the answer)
+- recall (incl shift, per design): macro 86.9% [range 85.3%-88.0%]  |  micro 84.9% (135/159)
+    - stance-only recall (shift excluded): micro 84.9% (135/159)
+    - macro = mean of per-run per-question ratios; micro = pooled ratio-of-totals
+- groundedness: macro 96.0% [range 93.9%-97.1%] (mean of per-run ratios)
+- retrieval ceiling:    86.8%  (138/159 gold nuggets had supporting evidence in the retrieved set) [pooled/ratio-of-totals]
+- synthesis conversion: 97.1%  (of retrieved-evidence nuggets, fraction expressed in the answer) [pooled/ratio-of-totals]
 - missed-nugget attribution: 4/24 synthesis (surfaced-but-unused), 20/24 retrieval (never-surfaced)
 - inequality violations (answer HIT, chunks MISS): 1 - each is parametric leakage or a judge artifact, listed below
 
@@ -60,19 +64,19 @@ Each is either parametric leakage (agent stated gold content it did not retrieve
 
 ## lc-0130 (SEGREGATED - no_change trap, excluded from recall average)
 
-- r0: no_change MISS; stance 0/1
-- r1: no_change MISS; stance 0/1
 - r2: no_change MISS; stance 0/1
+- r1: no_change MISS; stance 0/1
+- r0: no_change MISS; stance 0/1
 
 ## 10 lowest-recall questions (for the human read)
 
-- fc-0004: recall 0%; missed nuggets ['fc-0004_n1', 'fc-0004_n2', 'fc-0004_n3']; attribution 0 synthesis / 9 retrieval
-- fc-0042: recall 0%; missed nuggets ['fc-0042_n1', 'fc-0042_n2']; attribution 3 synthesis / 3 retrieval
-- lc-0087: recall 0%; missed nuggets ['n1', 'n2', 'n3']; attribution 1 synthesis / 8 retrieval
 - lc-0127: recall 0%; missed nuggets ['n1', 'n2', 'n3']; attribution 4 synthesis / 5 retrieval
-- lc-0233: recall 0%; missed nuggets ['n1', 'n2', 'n3']; attribution 1 synthesis / 8 retrieval
-- lc-0388: recall 0%; missed nuggets ['n1', 'n2']; attribution 0 synthesis / 6 retrieval
-- lc-0418: recall 0%; missed nuggets ['n1', 'n2']; attribution 0 synthesis / 6 retrieval
+- lc-0087: recall 0%; missed nuggets ['n1', 'n2', 'n3']; attribution 1 synthesis / 8 retrieval
+- fc-0004: recall 0%; missed nuggets ['fc-0004_n1', 'fc-0004_n2', 'fc-0004_n3']; attribution 0 synthesis / 9 retrieval
 - lc-0481: recall 0%; missed nuggets ['n1', 'n2']; attribution 2 synthesis / 4 retrieval
-- lc-0497: recall 0%; missed nuggets ['n1', 'n2', 'n3', 'n4']; attribution 6 synthesis / 6 retrieval
-- lc-0070: recall 11%; missed nuggets ['n1', 'n2', 'n3']; attribution 1 synthesis / 7 retrieval
+- fc-0042: recall 0%; missed nuggets ['fc-0042_n1', 'fc-0042_n2']; attribution 3 synthesis / 3 retrieval
+- lc-0418: recall 0%; missed nuggets ['n1', 'n2']; attribution 0 synthesis / 6 retrieval
+- lc-0233: recall 0%; missed nuggets ['n1', 'n2', 'n3']; attribution 1 synthesis / 8 retrieval
+- lc-0497: recall 7%; missed nuggets ['n1', 'n2', 'n3', 'n4']; attribution 6 synthesis / 6 retrieval
+- lc-0251: recall 8%; missed nuggets ['n1', 'n2', 'n3']; attribution 2 synthesis / 6 retrieval
+- lc-0070: recall 8%; missed nuggets ['n1', 'n2', 'n3']; attribution 1 synthesis / 7 retrieval
