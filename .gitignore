@@ -45,3 +45,5 @@ corpus.dump
 !/eval/artifacts/factual_gold_*.jsonl
 # Bulk per-run agent outputs (answers, traces, evidence) from eval/run_batch.py.
 /eval/artifacts/runs/
+# Bulk per-run scoring outputs from eval/score_runs.py.
+/eval/artifacts/scores/

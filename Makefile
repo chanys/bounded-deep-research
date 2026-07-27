@@ -1,5 +1,5 @@
 # without the .PHONY, if a file named `up` existed, then `make up` would say "up is up to date" and do nothing
-.PHONY: up down logs reset api web smoke eval-runs corpus-dump corpus-restore
+.PHONY: up down logs reset api web smoke eval-runs eval-score corpus-dump corpus-restore
 
 up:
 	# starts Postgres + OpenSearch in the background, waits for healthy
@@ -39,6 +39,11 @@ smoke:
 # `make eval-runs ARGS="--only lc-0011 --runs 1"`.
 eval-runs:
 	RETRIEVAL_BACKEND=pgvector PYTHONUNBUFFERED=1 uv run python -m eval.run_batch $(ARGS)
+
+# eval-score drives Phase D: score the runs with the frozen judge + extractors. Pass ARGS to
+# restrict, e.g. `make eval-score ARGS="--only lc-0011,fc-0001"` or `ARGS=--report-only`.
+eval-score:
+	RETRIEVAL_BACKEND=pgvector PYTHONUNBUFFERED=1 uv run python -m eval.score_runs $(ARGS)
 
 # ----- corpus load (local -> RDS) -----
 # These move the embedded corpus from the local Postgres into RDS, so we never
