@@ -107,7 +107,7 @@ async def score_run(run: dict, nuggets: list[dict], sem: asyncio.Semaphore) -> d
               if n["type"] not in ("shift", "no_change") and not d["hit"]]
     attr = await asyncio.gather(*(j(n["text"], chunkset, n["type"], "chunks") for n, _ in missed))
     attribution = [{"nugget_id": n["nugget_id"], "supported_in_chunks": v.hit,
-                    "failure": "synthesis" if v.hit else "retrieval"}
+                    "failure": "synthesis" if v.hit else "retrieval", "reason": v.reason}
                    for (n, _), v in zip(missed, attr)]
 
     return {
