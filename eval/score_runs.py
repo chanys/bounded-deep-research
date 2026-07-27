@@ -38,13 +38,17 @@ from pydantic import BaseModel
 from app.corpus import corpus_id
 from core.claude_llm import call_structured, capture_calls, enable_usage_capture, usage_totals
 from eval.calibrate_judge import load_factual, load_longitudinal
-from eval.extract_answer_claims import MAX_TOKENS as C1_MAX
 from eval.extract_answer_claims import PROMPT_SHA as C1_SHA
 from eval.extract_answer_claims import ClaimsOut
 from eval.extract_answer_claims import SYSTEM as C1_SYSTEM
 from eval.judge import JUDGE_PROMPT_SHA, fetch_chunks, format_chunk_set, judge
 
 MODEL = "claude-sonnet-5"
+# C1 extraction budget for SCORING: long longitudinal answers yield many claims, and adaptive
+# thinking + the claims JSON overflowed the extractor's default 4000 (truncated -> invalid JSON).
+# Raised here; not a calibrated knob (C1 was frozen on prompt, not tokens), so this only turns
+# truncation-failures into complete extractions, changing no successful output.
+C1_MAX_TOKENS = 8000
 
 
 async def _retry(factory, what: str):
@@ -69,7 +73,7 @@ async def _extract_strict(answer: str, sem: asyncio.Semaphore, what: str) -> lis
     async with sem:
         out = await _retry(
             lambda: call_structured(C1_SYSTEM, user, ClaimsOut, model=MODEL,
-                                    max_tokens=C1_MAX, thinking={"type": "adaptive"}),
+                                    max_tokens=C1_MAX_TOKENS, thinking={"type": "adaptive"}),
             what)
     return [c.strip() for c in out.claims if c.strip()]
 
