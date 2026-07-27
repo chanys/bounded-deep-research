@@ -7,7 +7,7 @@ Retrieval is dense-only over Postgres/pgvector; the model is stateless and drive
 It is live in production on AWS at `answertrail.yeesengchan.com`.
 
 Phases 0 through 5 have shipped (local skeleton, ingestion, agent loop, frontend, AWS deployment).
-Phase 4, the evaluation instrument (gold set, calibrated LLM judges, eval runner), is the next phase and is **not built yet**; see "Not yet built" below before assuming any eval code, gold set, or `hypotheses.md` exists.
+Phase 4, the evaluation instrument, is **also built** and has produced its first scored results: a frozen agent scored over the factual + longitudinal gold with a calibrated cross-family judge (Cohen's kappa 0.879, 183/183 runs). See "Phase 4 (built)" below for the artifacts that exist.
 
 I drive planning; you handle execution.
 
@@ -18,7 +18,7 @@ They live in the sibling repo `../bounded-deep-research-notes` (its own git, git
 
 Start with its `README.md`, which indexes every file. The ones you will reach for most:
 
-- `master-plan-v4.4.md` is the current plan (research framing, phases, experimental design; includes the v4.5 delta).
+- `master-plan-v4.4.md` is the ORIGINAL research framing and phase plan (includes the v4.5 delta). Treat it as the record of *intent*, not shipped reality: the framing evolved (single corpus, dense-only pgvector in prod, a redesigned nugget-based Phase 4), so where it disagrees with the code or the eval build logs, the latter win.
 - `day-log.md` is the day-by-day build history through Phase 5; the clearest record of why things are the way they are.
 - `operations-cheatsheet.md` is the AWS deploy/debug runbook (ECS, RDS tunnel, secrets, teardown/rebuild).
 - `tech-debt.md` is the deferred-work ledger.
@@ -28,7 +28,7 @@ Start with its `README.md`, which indexes every file. The ones you will reach fo
 Concise. Prose over bullets unless 3+ parallel items genuinely need separating.
 Explain decisions briefly as you code; I want to understand, not just have it done.
 Don't run install/setup commands unsolicited, and don't ask permission for obvious things (web search, reading files, smoke tests); just do them.
-As Phase 4 is built, document each eval stage at methods grade in its notes build log (`../bounded-deep-research-notes/eval/phase4_*_build_log.md`): the exact inputs, prompts, hyperparameters, the rationale a reviewer would probe, and honest human-versus-AI attribution of decisions.
+When building eval stages (Phase 4 shipped; the discipline still governs any new arm), document each at methods grade in its notes build log (`../bounded-deep-research-notes/eval/phase4_*_build_log.md`): the exact inputs, prompts, hyperparameters, the rationale a reviewer would probe, and honest human-versus-AI attribution of decisions.
 Do this when a stage produces artifacts, not at write-up time; reconstructing it later is miserable and several items are paper methods.
 Gate expensive fan-outs on a cheap human content check. Every eval stage has the shape cheap-generation then expensive-downstream (grounding, judging, big batches); after a generation step, surface a small sample of the actual generated content and get a human look before launching the costly downstream pass, so a prompt-level quality problem is caught while it is still a prompt fix rather than after a full run. Smoke-testing the mechanics is not the same as reviewing the content.
 (Global style rules, uv/pnpm, and git conventions live in `~/.claude/CLAUDE.md` and are not repeated here.)
@@ -98,7 +98,7 @@ Read the relevant guide under `web/node_modules/next/dist/docs/` before writing 
 - Retrieval is forced to dense pgvector in production regardless of the requested mode. OpenSearch (bm25/hybrid) is local-only for the offline ablation and is never deployed.
 - The daily spend circuit-breaker lives in a Postgres table keyed by `(day, bucket)` with separate public and owner budgets. It must stay in Postgres so it survives task restarts and deploys; do not replace it with in-process state.
 - SSE streams need a `: keepalive` comment line every 15s, or the synthesis-turn pause trips the ALB's 150s idle timeout and drops the connection.
-- The agent runs on OpenAI (`gpt-5.4`). Eval judges, when Phase 4 builds them, are intended to run on the Claude family on purpose (cross-family, to avoid self-preference bias). Changing either forces recalibration.
+- The agent runs on OpenAI (`gpt-5.4`); the eval judge runs on the Claude family (Sonnet 5, frozen judge prompt `a7d71e4a`) on purpose (cross-family, to avoid self-preference bias). Changing either forces recalibration.
 - The corpus is multi-channel (code4AI, TransGlobalTV, and more on disk), but the agent answers over a single channel per query.
 - Video metadata `tags` are channel boilerplate, near-identical across videos and carry no signal; use titles and descriptions.
 - Known accepted issue: the share-link passcode travels in the URL (`?k=`), so it lands in browser history and server logs. It is scrubbed from the address bar client-side after capture and the spend breaker bounds the blast radius. Documented in the writeup; do not "fix" without discussion.
@@ -107,7 +107,7 @@ Read the relevant guide under `web/node_modules/next/dist/docs/` before writing 
 
 `prompts/research_recipe.md` is versioned (currently 0.8.0).
 Bump `version` on behavioral changes: minor for tweaks, major for a restructure.
-When Phase 4 lands, gold-set files and judge prompts get the same discipline: versioned artifacts, never edited in place without a commit.
+Gold-set files and judge prompts get the same discipline: versioned artifacts (`factual-gold-v1.0`, `gold-v0.2.2`, judge `a7d71e4a`, C1 extractor `c7cbc275`), never edited in place without a commit.
 
 Rule of thumb for eval artifacts: methodology and small reviewed outputs (the gold set, prompts, induced criteria, `hypotheses.md`, small human-readable outputs like the corpus inventory) go in git; bulk generated data (per-video summaries, run outputs, large intermediates) goes to S3 or a durable backup, not core git, provenance-stamped either way.
 
@@ -116,10 +116,12 @@ Rule of thumb for eval artifacts: methodology and small reviewed outputs (the go
 - Live AWS: don't run `terraform apply`/`destroy` or otherwise mutate deployed resources. Applying and other account actions are the user's trigger to pull. Editing the infra code under `infra/terraform/` in-repo is fine when asked.
 - The registered plan and (once it exists) the pre-registered hypotheses in the notes repo: amend by adding dated entries, don't rewrite committed text.
 
-## Not yet built (Phase 4)
+## Phase 4 (built)
 
-The evaluation instrument does not exist yet.
-There is no gold set, no calibrated judge, no calibration harness, no `hypotheses.md`, no stats code, and no `make` target for any of them.
-What exists is scaffolding only: `RunEvidenceState` and the `/system` page's eval placeholder.
-The design lives in `../bounded-deep-research-notes/eval/phase4_evaluation_proposal_v2.md` (the why) and `eval/phase4_execution_plan_v5.md` (the what, in what order, and who does it).
-Do not reference these artifacts as if they are present.
+The evaluation instrument is built and has produced scored results. What exists:
+- Gold: `factual-gold-v1.0` (25 questions / 53 nuggets) and longitudinal `gold-v0.2.2` (35 scored + segregated lc-0130). Comparative was composed but not scored.
+- Instrument (frozen): the three-direction alignment judge (`eval/judge.py`, Sonnet 5, prompt `a7d71e4a`, Cohen's kappa 0.879) and the answer-claim extractor (`eval/extract_answer_claims.py`, `c7cbc275`).
+- Harness: `eval/run_batch.py` and `eval/score_runs.py`, behind `make eval-runs` / `make eval-score`; results in `eval/artifacts/scoring_report.md` (183/183 runs).
+- Pre-registration: `hypotheses.md` in the notes repo.
+
+The design and methods-grade build logs live in the notes repo (`eval/phase4_*_build_log.md`, `phase4_evaluation_proposal_v2.md`, `phase4_execution_plan_v5.md`).
