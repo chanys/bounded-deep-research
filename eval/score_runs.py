@@ -36,7 +36,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from app.corpus import corpus_id
-from core.claude_llm import call_structured
+from core.claude_llm import call_structured, enable_usage_capture, usage_totals
 from eval.calibrate_judge import load_factual, load_longitudinal
 from eval.extract_answer_claims import PROMPT_SHA as C1_SHA
 from eval.extract_answer_claims import extract_claims
@@ -141,20 +141,21 @@ async def score_run(run: dict, nuggets: list[dict], sem: asyncio.Semaphore) -> d
     ground = await asyncio.gather(*(j(c, chunkset, "fact", "chunks") for c in claims))
     ground_details = [{"claim": c, "hit": v.hit, "reason": v.reason} for c, v in zip(claims, ground)]
 
-    # attribution (dir 3): each MISSED stance/fact nugget vs the surfaced chunk set
-    missed = [(n, d) for n, d in zip(nuggets, recall_details)
-              if n["type"] not in ("shift", "no_change") and not d["hit"]]
-    attr = await asyncio.gather(*(j(n["text"], chunkset, n["type"], "chunks") for n, _ in missed))
-    attribution = [{"nugget_id": n["nugget_id"], "supported_in_chunks": v.hit,
-                    "failure": "synthesis" if v.hit else "retrieval", "reason": v.reason}
-                   for (n, _), v in zip(missed, attr)]
+    # dir 3 on ALL stance/fact nuggets (not just missed): gives the full recall x supported 2x2,
+    # so one pass yields the retrieval ceiling, synthesis conversion, inequality violations, and
+    # the missed-nugget attribution split. shift/no_change are connections, not grounded here.
+    gradeable = [(n, d) for n, d in zip(nuggets, recall_details) if n["type"] not in ("shift", "no_change")]
+    dir3 = await asyncio.gather(*(j(n["text"], chunkset, n["type"], "chunks") for n, _ in gradeable))
+    nugget_grid = [{"nugget_id": n["nugget_id"], "type": n["type"], "recall_hit": d["hit"],
+                    "supported_in_chunks": v.hit, "dir3_reason": v.reason}
+                   for (n, d), v in zip(gradeable, dir3)]
 
     return {
         "question_id": qid, "run_index": idx, "tier": tier,
         "segregated": qid in SEGREGATED,
         "recall_details": recall_details,
         "ground_details": ground_details,
-        "attribution": attribution,
+        "nugget_grid": nugget_grid,
         "corpus_id": run["evidence"]["provenance"]["corpus_id"],
     }
 
@@ -234,12 +235,36 @@ def aggregate(scores: list[dict], miss_class: dict[str, str] | None = None) -> s
                 ns = cats.count("stance")
                 lines.append(f"- stance-miss breakdown: {nt} timing (right stance, wrong/missing window), "
                              f"{ns} stance (not conveyed) [un-calibrated reason-based diagnostic]")
-        attr = [a for s in ts for a in s["attribution"]]
-        if attr:
-            syn = sum(1 for a in attr if a["failure"] == "synthesis")
-            lines.append(f"- misses attributed: {syn}/{len(attr)} synthesis (surfaced-but-unused), "
-                         f"{len(attr) - syn}/{len(attr)} retrieval (never-surfaced)")
+        # dir-3-on-all-nuggets: the recall x supported 2x2 across every stance/fact nugget-run
+        grid = [g for s in ts for g in s["nugget_grid"]]
+        if grid:
+            supported = [g for g in grid if g["supported_in_chunks"]]
+            ceiling = len(supported) / len(grid)
+            conversion = (sum(1 for g in supported if g["recall_hit"]) / len(supported)) if supported else 0.0
+            missed = [g for g in grid if not g["recall_hit"]]
+            syn = sum(1 for g in missed if g["supported_in_chunks"])
+            violations = [g for g in grid if g["recall_hit"] and not g["supported_in_chunks"]]
+            lines += [
+                f"- retrieval ceiling:    {ceiling:.1%}  ({len(supported)}/{len(grid)} gold nuggets had supporting evidence in the retrieved set)",
+                f"- synthesis conversion: {conversion:.1%}  (of retrieved-evidence nuggets, fraction expressed in the answer)",
+                f"- missed-nugget attribution: {syn}/{len(missed)} synthesis (surfaced-but-unused), "
+                f"{len(missed) - syn}/{len(missed)} retrieval (never-surfaced)",
+                f"- inequality violations (answer HIT, chunks MISS): {len(violations)} - each is parametric leakage or a judge artifact, listed below",
+            ]
         lines.append("")
+
+    # Inequality violations listed individually (they need reading, not counting)
+    viols = [(s["question_id"], s["run_index"], g) for s in scored for g in s["nugget_grid"]
+             if g["recall_hit"] and not g["supported_in_chunks"]]
+    lines += ["## Inequality violations (answer states it, retrieved chunks do not support it)", "",
+              "Each is either parametric leakage (agent stated gold content it did not retrieve) or a "
+              "judge artifact (clean answer prose easier to confirm than garbled ASR). Read each.", ""]
+    if viols:
+        for qid, idx, g in sorted(viols):
+            lines.append(f"- {qid} r{idx} {g['nugget_id']} ({g['type']}): dir-3 said no support :: {g['dir3_reason']}")
+    else:
+        lines.append("- (none)")
+    lines.append("")
 
     # lc-0130 reported separately
     seg = [s for s in scores if s["segregated"]]
@@ -266,10 +291,10 @@ def aggregate(scores: list[dict], miss_class: dict[str, str] | None = None) -> s
         ss = by_q[qid]
         missed_ids = sorted({d["nugget_id"] for s in ss for d in s["recall_details"]
                              if not d["hit"] and d["type"] not in ("shift", "no_change")})
-        attr = [a for s in ss for a in s["attribution"]]
-        syn = sum(1 for a in attr if a["failure"] == "synthesis")
+        missed = [g for s in ss for g in s["nugget_grid"] if not g["recall_hit"]]
+        syn = sum(1 for g in missed if g["supported_in_chunks"])
         lines.append(f"- {qid}: recall {r:.0%}; missed nuggets {missed_ids or '-'}; "
-                     f"attribution {syn} synthesis / {len(attr) - syn} retrieval")
+                     f"attribution {syn} synthesis / {len(missed) - syn} retrieval")
     return "\n".join(lines)
 
 
@@ -283,8 +308,26 @@ def _read_cached() -> list[dict]:
     return [json.loads(p.read_text()) for p in sorted(SCORES.glob("*.json"))]
 
 
+# Sonnet 5 standard rate (assumption; token counts are measured, rate is the only estimate).
+_SONNET_IN_PER_TOK = 3.0 / 1_000_000
+_SONNET_OUT_PER_TOK = 15.0 / 1_000_000
+
+
+def _report_cost(n_scored_runs: int) -> None:
+    u = usage_totals()
+    if not u:
+        return
+    cost = u["input_tokens"] * _SONNET_IN_PER_TOK + u["output_tokens"] * _SONNET_OUT_PER_TOK
+    print(f"\ntoken usage over {n_scored_runs} scored runs: {u}", flush=True)
+    print(f"est cost: ${cost:.2f} at Sonnet $3/$15 per M (output incl. thinking)", flush=True)
+    if n_scored_runs:
+        print(f"per-run: ${cost / n_scored_runs:.3f}  ->  extrapolated to 183 scored runs: "
+              f"${cost / n_scored_runs * 183:.2f}", flush=True)
+
+
 async def amain(args: argparse.Namespace) -> None:
     _assert_frozen()
+    enable_usage_capture()
     if args.report_only:
         cached = _read_cached()
         mc = await classify_longitudinal_misses(cached, load_gold(), args.concurrency)
@@ -321,6 +364,7 @@ async def amain(args: argparse.Namespace) -> None:
               f"grounded {sum(d['hit'] for d in rec['ground_details'])}/{len(rec['ground_details'])}", flush=True)
 
     await asyncio.gather(*(one(q, i) for q, i in todo))
+    _report_cost(len(todo))
     cached = _read_cached()
     mc = await classify_longitudinal_misses(cached, gold, args.concurrency)
     report = aggregate(cached, mc)
