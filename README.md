@@ -9,5 +9,6 @@ The offline evaluation instrument lives in `eval/`: a calibrated, nugget-based h
 
 - `make eval-runs` — run the frozen agent over the gold questions, 3 runs each, resumable (`eval/run_batch.py`).
 - `make eval-score` — score the runs with the frozen judge + extractors and write `eval/artifacts/scoring_report.md` (`eval/score_runs.py`): recall, groundedness, and a retrieval-ceiling / synthesis-conversion / attribution breakdown, plus the shift and no-change longitudinal checks.
+- `python -m eval.make_read_bundle --read-sets` — assemble self-contained per-question read files (`eval/artifacts/read/<qid>.md`: question, gold nuggets, answer, verdicts + reasons, retrieved chunk text) for the human audit of results.
 
-The scoring instrument is versioned by prompt hash and calibrated against human labels (Cohen's kappa); every scored run and score file carries its provenance. Method and results are written up per phase in the notes repo (`eval/phase4_phase{A,B,C,D}_*_build_log.md`).
+The scoring instrument is versioned by prompt hash and calibrated against human labels (Cohen's kappa 0.879); every scored run and score file carries its provenance. The full set has been scored (`eval/artifacts/scoring_report.md`); method and results are written up per phase in the notes repo (`eval/phase4_phase{A,B,C,D}_*_build_log.md`, plus `eval/session_handoff_2026-07-27.md` for the session-level summary).
