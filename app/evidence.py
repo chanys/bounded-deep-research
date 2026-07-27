@@ -45,6 +45,7 @@ class RunProvenance(BaseModel):
     git_sha: str                    # commit SHA, or a build-time env / "unknown" fallback
     git_dirty: bool                 # True if the working tree had uncommitted changes
     recipe_version: str             # human-friendly label from the recipe frontmatter
+    corpus_id: str                  # fingerprint of the retrievable corpus the run searched (app/corpus.py)
 
 
 class AgentConfig(BaseModel):
@@ -59,6 +60,7 @@ class AgentConfig(BaseModel):
     retrieval_backend: str          # settings.retrieval_backend (pgvector | opensearch)
     retrieval_mode: str             # effective mode (pgvector forces dense)
     retrieval_k: int                # settings.retrieval_k default; model may override per search
+    retrieval_neighbor_window: int  # settings.retrieval_neighbor_window (adjacent chunks appended; 0 = off)
     embedding_model: str            # settings.embedding_model
     embedding_dimensions: int       # settings.embedding_dimensions (1536 Matryoshka)
     output_directive: str | None    # channel's appended directive, or None

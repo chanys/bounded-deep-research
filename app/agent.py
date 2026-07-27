@@ -16,6 +16,7 @@ from langfuse import observe, get_client
 
 from core.config import settings
 from app.evidence import EvidenceCollector, put_run, RunProvenance, AgentConfig
+from app.corpus import corpus_id
 from core.provenance import PROVENANCE
 from app.events import (
     RunStarted, TurnStart, TurnComplete,
@@ -220,6 +221,7 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
         git_sha=PROVENANCE.git_sha,
         git_dirty=PROVENANCE.git_dirty,
         recipe_version=_RECIPE_METADATA.version,
+        corpus_id=corpus_id(channel),
     )
     agent_config = AgentConfig(
         model=settings.agent_model,
@@ -229,6 +231,7 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
         retrieval_backend=settings.retrieval_backend,
         retrieval_mode=effective_mode,
         retrieval_k=settings.retrieval_k,
+        retrieval_neighbor_window=settings.retrieval_neighbor_window,
         embedding_model=settings.embedding_model,
         embedding_dimensions=settings.embedding_dimensions,
         output_directive=channel_cfg.output_directive if channel_cfg else None,
@@ -271,7 +274,7 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
 
         Parameters:
           tools:  which tools the model may call this turn. Exploration turns pass
-                  EXPLORE_TOOLS (search / read / mark_ready); synthesis passes
+                  EXPLORE_TOOLS (search / mark_ready); synthesis passes
                   SUBMIT_TOOLS (submit_answer only, forced via tool_choice).
           effort: reasoning-effort override for this call. Exploration runs at the
                   global `none`; synthesis runs at `synthesis_reasoning_effort`.
