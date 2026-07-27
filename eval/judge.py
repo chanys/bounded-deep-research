@@ -62,6 +62,9 @@ CLAIM TYPE:
 - "shift": the claim asserts the creator's view CHANGED across a period (a trajectory). HIT only if the TEXT conveys a CHANGE over time with a compatible direction and timing - not merely descriptions of separate periods sitting side by side. If the TEXT describes each period but never conveys that the view moved, a shift claim is a MISS.
 - "no_change": the claim asserts the creator's view stayed CONSISTENT across a period (no evolution). This is the shift rule inverted. HIT only if the TEXT conveys that the view stayed the same across the period. If the TEXT describes an evolution, or invents a change, it is a MISS - even though it is on the same topic.
 
+MULTIPLE-FACT (COMPOUND) CLAIMS:
+- If a claim asserts more than one fact - an "X and Y" claim, or two figures / findings / stances - it is HIT only if the TEXT supports EVERY part. If any part is unsupported or contradicted, the whole claim is a MISS. There is no partial credit.
+
 TIME WINDOWS (dated claims):
 - A time window in the claim (e.g. "in early 2026", "by mid-2025") is PART of the claim.
 - For "answer" text: a date in the answer inside the window is HIT; a vaguer but compatible timeframe is HIT; a date that contradicts the window is MISS.
@@ -159,6 +162,16 @@ _SELFTEST = [
     ("ground_miss_offtopic",
      "Gemini 3 Deep Think scored 45% on ARC-AGI-2.",
      "[vidY | published 2025-11-01] The video discusses multi-agent consensus time scaling with population size.",
+     "fact", "chunks", False),
+    ("compound_hit_all_parts",
+     "Deep-DxSearch beats DeepSeek R1 by ~20 points on common disease and ~30 points on rare disease.",
+     "[vidA | published 2025-09-01] Deep-DxSearch beat R1 by about twenty points on common disease diagnosis "
+     "and by about thirty points on rare disease diagnosis.",
+     "fact", "chunks", True),
+    ("compound_miss_one_part",
+     "Deep-DxSearch beats DeepSeek R1 by ~20 points on common disease and ~30 points on rare disease.",
+     "[vidA | published 2025-09-01] Deep-DxSearch beat R1 by about twenty points on common disease diagnosis. "
+     "Its rare-disease performance was not discussed.",
      "fact", "chunks", False),
 ]
 

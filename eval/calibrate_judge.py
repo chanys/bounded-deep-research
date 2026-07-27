@@ -374,14 +374,19 @@ def write_sheet(pairs: list[dict]) -> None:
              "(a claim paired with an unrelated chunk set or answer) - label them on their merits.", "",
              "TEXT KIND answer = the assistant's answer; chunks = retrieved transcript chunks (each labeled "
              "[video | published date]). CLAIM TYPE shift = must convey a change over time; no_change = must "
-             "convey the view stayed consistent; fact/stance = a single assertion.", "", "---", ""]
+             "convey the view stayed consistent; fact/stance = a single assertion. A compound claim ('X and Y', "
+             "or two figures) is HIT only if the text supports EVERY part.", "",
+             "CONFIDENCE: write HIT or MISS when confident; add a ? (HIT? or MISS?) when you are genuinely torn. "
+             "The ? is not scored differently (HIT? counts as HIT for kappa) but is recorded: at triage, a "
+             "disagreement on a confident label is likely a judge error, while a disagreement on a ? label is "
+             "likely an ambiguous nugget (a gold defect). It makes the post-kappa triage much faster.", "", "---", ""]
     for p in pairs:
         lines += [f"## {p['pair_id']}", "",
                   f"- direction: **{p['direction']}**   text kind: **{p['text_kind']}**   "
                   f"claim type: **{p['claim_type']}**   ({len(p['text']):,} chars)", "",
                   f"**CLAIM:** {p['claim']}", "",
                   "**TEXT:**", "", p["text"], "",
-                  "**your verdict (HIT / MISS):** [    ]", "", "---", ""]
+                  "**your verdict (HIT / MISS, add ? if torn):** [    ]", "", "---", ""]
     SHEET.write_text("\n".join(lines), encoding="utf-8")
 
 
@@ -456,26 +461,32 @@ def score(labels_path: Path) -> None:
     key = json.loads(KEY.read_text())
     text = labels_path.read_text()
     labels: dict[str, bool] = {}
+    uncertain: dict[str, bool] = {}
     for pid, block in re.findall(r"## (p\d+)\b(.*?)(?=\n## p\d|\Z)", text, re.S):
-        m = re.search(r"your verdict \(HIT / MISS\):\*\*\s*\[\s*(HIT|MISS)\s*\]", block, re.I)
+        m = re.search(r"your verdict[^\[]*\[\s*(HIT|MISS)\s*(\??)\s*\]", block, re.I)
         if m:
-            labels[pid] = (m.group(1).upper() == "HIT")
+            labels[pid] = (m.group(1).upper() == "HIT")   # HIT? counts as HIT for kappa
+            uncertain[pid] = (m.group(2) == "?")
     common = [pid for pid in key if pid in labels]
     if not common:
-        raise SystemExit("no filled verdicts parsed; write HIT or MISS inside the [ ] blanks")
+        raise SystemExit("no filled verdicts parsed; write HIT / MISS (optionally with ?) inside the [ ] blanks")
     human = [labels[pid] for pid in common]
     machine = [key[pid]["judge_hit"] for pid in common]
     agree = sum(1 for h, m in zip(human, machine) if h == m)
-    print(f"labeled {len(common)}/{len(key)} pairs", flush=True)
+    n_unc = sum(uncertain[pid] for pid in common)
+    print(f"labeled {len(common)}/{len(key)} pairs ({n_unc} marked uncertain)", flush=True)
     print(f"raw agreement: {agree}/{len(common)} = {agree / len(common):.1%}", flush=True)
     print(f"Cohen's kappa: {cohen_kappa(human, machine):.3f}  (HEADLINE)", flush=True)
+    # Confident disagreements likely = judge error; uncertain disagreements likely = gold defect.
     print("\ndisagreements (read every one -> judge-error / my-error / gold-defect):", flush=True)
     for pid in common:
         if labels[pid] != key[pid]["judge_hit"]:
             k = key[pid]
-            print(f"  {pid} [{k['direction']}/{k['tier']}/{k['claim_type']}] "
-                  f"human={'HIT' if labels[pid] else 'MISS'} judge={'HIT' if k['judge_hit'] else 'MISS'}"
-                  f" :: {k['judge_reason']}", flush=True)
+            tag = "UNCERTAIN->likely gold-defect" if uncertain[pid] else "CONFIDENT->likely judge-error"
+            nc = " [neg-control]" if k.get("negative_control") else ""
+            print(f"  {pid} [{k['direction']}/{k['tier']}/{k['claim_type']}]{nc} "
+                  f"human={'HIT' if labels[pid] else 'MISS'} judge={'HIT' if k['judge_hit'] else 'MISS'} "
+                  f"({tag}) :: {k['judge_reason']}", flush=True)
 
 
 def main() -> None:
