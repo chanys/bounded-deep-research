@@ -36,13 +36,13 @@ from typing import Literal
 from pydantic import BaseModel
 
 from app.corpus import corpus_id
-from core.claude_llm import call_structured, enable_usage_capture, usage_totals
+from core.claude_llm import call_structured, capture_calls, enable_usage_capture, usage_totals
 from eval.calibrate_judge import load_factual, load_longitudinal
 from eval.extract_answer_claims import MAX_TOKENS as C1_MAX
 from eval.extract_answer_claims import PROMPT_SHA as C1_SHA
 from eval.extract_answer_claims import ClaimsOut
 from eval.extract_answer_claims import SYSTEM as C1_SYSTEM
-from eval.judge import JUDGE_PROMPT_SHA, format_chunk_set, judge
+from eval.judge import JUDGE_PROMPT_SHA, fetch_chunks, format_chunk_set, judge
 
 MODEL = "claude-sonnet-5"
 
@@ -152,8 +152,17 @@ async def score_run(run: dict, nuggets: list[dict], sem: asyncio.Semaphore) -> d
     qid, idx = run["question_id"], run["run_index"]
     tier = "longitudinal" if qid.startswith("lc") else "factual"
     answer = run["answer"]
-    seen = list(run["evidence"]["seen_chunks"])
-    chunkset = format_chunk_set(seen)   # one DB fetch + render per run
+    seen = sorted(run["evidence"]["seen_chunks"])
+    chunks_map = fetch_chunks(seen)             # one DB fetch per run
+    chunkset = format_chunk_set(seen, chunks_map)
+    # Chunk text stored INLINE (not just ids): the corpus grows as the creator publishes, so an
+    # id-only record is auditable only until the next ingest; text-inline survives it, making each
+    # score file a self-contained audit artifact.
+    chunk_records = [{"chunk_id": c, "video_id": chunks_map[c]["video_id"],
+                      "published_at": (chunks_map[c]["published_at"].date().isoformat()
+                                       if chunks_map[c]["published_at"] else None),
+                      "text": chunks_map[c]["text"]}
+                     for c in seen if c in chunks_map]
 
     async def j(claim, text, ct, tk):
         # Retry once on any failure (a truncation parses to None and RAISES; max_tokens=6000 is
@@ -163,34 +172,48 @@ async def score_run(run: dict, nuggets: list[dict], sem: asyncio.Semaphore) -> d
             return await _retry(lambda: judge(claim, text=text, claim_type=ct, text_kind=tk),
                                 f"judge {qid} r{idx}")
 
-    # recall (dir 1): every nugget vs the answer
-    recall = await asyncio.gather(*(j(n["text"], answer, n["type"], "answer") for n in nuggets))
-    recall_details = [{"nugget_id": n["nugget_id"], "type": n["type"], "hit": v.hit, "reason": v.reason}
-                      for n, v in zip(nuggets, recall)]
+    with capture_calls() as calls:   # per-call token usage for this run only (contextvar-scoped)
+        # recall (dir 1): every nugget vs the answer
+        recall = await asyncio.gather(*(j(n["text"], answer, n["type"], "answer") for n in nuggets))
+        recall_details = [{"nugget_id": n["nugget_id"], "type": n["type"], "hit": v.hit, "reason": v.reason}
+                          for n, v in zip(nuggets, recall)]
 
-    # groundedness (dir 2): C1 answer-claims vs the retrieved chunk set. Strict extraction: a
-    # failed C1 call (truncation/timeout) must NOT be swallowed into [] (which would misreport
-    # groundedness as 0/0); retry then halt. A successful call returning [] is a genuine empty
-    # (groundedness N/A for this run), distinct from a failure.
-    claims = await _extract_strict(answer, sem, f"C1 {qid} r{idx}")
-    ground = await asyncio.gather(*(j(c, chunkset, "fact", "chunks") for c in claims))
-    ground_details = [{"claim": c, "hit": v.hit, "reason": v.reason} for c, v in zip(claims, ground)]
+        # groundedness (dir 2): C1 answer-claims vs the retrieved chunk set. Strict extraction: a
+        # failed C1 call (truncation/timeout) must NOT be swallowed into [] (which would misreport
+        # groundedness as 0/0); retry then halt. A successful call returning [] is a genuine empty
+        # (groundedness N/A for this run), distinct from a failure.
+        claims = await _extract_strict(answer, sem, f"C1 {qid} r{idx}")
+        ground = await asyncio.gather(*(j(c, chunkset, "fact", "chunks") for c in claims))
+        ground_details = [{"claim": c, "hit": v.hit, "reason": v.reason} for c, v in zip(claims, ground)]
 
-    # dir 3 on ALL stance/fact nuggets (not just missed): gives the full recall x supported 2x2,
-    # so one pass yields the retrieval ceiling, synthesis conversion, inequality violations, and
-    # the missed-nugget attribution split. shift/no_change are connections, not grounded here.
-    gradeable = [(n, d) for n, d in zip(nuggets, recall_details) if n["type"] not in ("shift", "no_change")]
-    dir3 = await asyncio.gather(*(j(n["text"], chunkset, n["type"], "chunks") for n, _ in gradeable))
-    nugget_grid = [{"nugget_id": n["nugget_id"], "type": n["type"], "recall_hit": d["hit"],
-                    "supported_in_chunks": v.hit, "dir3_reason": v.reason}
-                   for (n, d), v in zip(gradeable, dir3)]
+        # dir 3 on ALL stance/fact nuggets (not just missed): gives the full recall x supported 2x2,
+        # so one pass yields the retrieval ceiling, synthesis conversion, inequality violations, and
+        # the missed-nugget attribution split. shift/no_change are connections, not grounded here.
+        gradeable = [(n, d) for n, d in zip(nuggets, recall_details) if n["type"] not in ("shift", "no_change")]
+        dir3 = await asyncio.gather(*(j(n["text"], chunkset, n["type"], "chunks") for n, _ in gradeable))
+        nugget_grid = [{"nugget_id": n["nugget_id"], "type": n["type"], "recall_hit": d["hit"],
+                        "supported_in_chunks": v.hit, "dir3_reason": v.reason}
+                       for (n, d), v in zip(gradeable, dir3)]
 
+    token_usage = {
+        "calls": len(calls),
+        "input_tokens": sum(c["input"] for c in calls),
+        "output_tokens": sum(c["output"] for c in calls),
+        "cache_read_input_tokens": sum(c["cache_read"] for c in calls),
+        "cache_creation_input_tokens": sum(c["cache_creation"] for c in calls),
+        "per_call": calls,
+    }
     return {
         "question_id": qid, "run_index": idx, "tier": tier,
         "segregated": qid in SEGREGATED,
+        "judge_prompt_sha": JUDGE_PROMPT_SHA,
+        "answer_claim_extractor_sha": C1_SHA,
         "recall_details": recall_details,
         "ground_details": ground_details,
         "nugget_grid": nugget_grid,
+        "seen_chunk_ids": seen,
+        "chunks": chunk_records,
+        "token_usage": token_usage,
         "corpus_id": run["evidence"]["provenance"]["corpus_id"],
     }
 

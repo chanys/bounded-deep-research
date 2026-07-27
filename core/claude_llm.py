@@ -9,6 +9,8 @@ almost no surface, so there is nothing to unify.
 Cross-family on purpose: the agent runs on OpenAI, the eval judges run on the
 Claude family, so a model never grades its own family's output.
 """
+from contextlib import contextmanager
+from contextvars import ContextVar
 from typing import TypeVar
 
 from anthropic import AsyncAnthropic
@@ -24,6 +26,23 @@ _client: AsyncAnthropic | None = None
 # unaffected. A caller enables it once, then reads usage_totals() to report actual token spend
 # (the pre-spend cost print is only an estimate; this is the ground truth).
 _usage: list[dict] | None = None
+
+# Context-scoped per-call usage capture. A contextvar so concurrent callers each accumulate only
+# their OWN calls: a task sets a fresh list, and calls made in it (and in child tasks spawned via
+# gather, which copy the context) append to that same list. Used to attribute token cost per run.
+_call_capture: ContextVar[list | None] = ContextVar("_call_capture", default=None)
+
+
+@contextmanager
+def capture_calls():
+    """Within this block, per-call usage dicts are collected into the yielded list (scoped to the
+    current task's context, so concurrent blocks don't mix)."""
+    lst: list[dict] = []
+    token = _call_capture.set(lst)
+    try:
+        yield lst
+    finally:
+        _call_capture.reset(token)
 
 
 def enable_usage_capture() -> None:
@@ -102,14 +121,19 @@ async def call_structured(
     if thinking is not None:
         kwargs["thinking"] = thinking
     response = await _get_client().messages.parse(**kwargs)
-    if _usage is not None:   # capture before the truncation guard: a truncated call still spends
+    cap = _call_capture.get()
+    if _usage is not None or cap is not None:   # capture before the truncation guard: a truncated call still spends
         u = response.usage
-        _usage.append({
+        rec = {
             "input": getattr(u, "input_tokens", 0) or 0,
             "output": getattr(u, "output_tokens", 0) or 0,   # includes thinking tokens
             "cache_read": getattr(u, "cache_read_input_tokens", 0) or 0,
             "cache_creation": getattr(u, "cache_creation_input_tokens", 0) or 0,
-        })
+        }
+        if _usage is not None:
+            _usage.append(rec)
+        if cap is not None:
+            cap.append(rec)
     parsed = response.parsed_output
     if parsed is None:
         raise ValueError(
