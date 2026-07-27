@@ -38,11 +38,40 @@ from pydantic import BaseModel
 from app.corpus import corpus_id
 from core.claude_llm import call_structured, enable_usage_capture, usage_totals
 from eval.calibrate_judge import load_factual, load_longitudinal
+from eval.extract_answer_claims import MAX_TOKENS as C1_MAX
 from eval.extract_answer_claims import PROMPT_SHA as C1_SHA
-from eval.extract_answer_claims import extract_claims
+from eval.extract_answer_claims import ClaimsOut
+from eval.extract_answer_claims import SYSTEM as C1_SYSTEM
 from eval.judge import JUDGE_PROMPT_SHA, format_chunk_set, judge
 
 MODEL = "claude-sonnet-5"
+
+
+async def _retry(factory, what: str):
+    """Await factory(); on any exception (e.g. a truncation that parsed to None and raised),
+    retry once; if it fails again, HALT loudly - never silently score a failed call."""
+    try:
+        return await factory()
+    except Exception as e1:  # noqa: BLE001 - deliberate: any failure gets one retry then halts
+        print(f"  retry {what} after {type(e1).__name__}: {e1}", flush=True)
+        try:
+            return await factory()
+        except Exception as e2:  # noqa: BLE001
+            raise RuntimeError(
+                f"HALT: {what} failed twice ({type(e2).__name__}: {e2}); refusing to score silently"
+            ) from e2
+
+
+async def _extract_strict(answer: str, sem: asyncio.Semaphore, what: str) -> list[str]:
+    """C1 answer-claim extraction with retry+halt on failure (bypasses the eyeball wrapper's
+    silent []-on-error). A successful call returning [] is a genuine empty, not a failure."""
+    user = f"Answer:\n\n{answer}\n\nExtract the groundable assertions, following the rules."
+    async with sem:
+        out = await _retry(
+            lambda: call_structured(C1_SYSTEM, user, ClaimsOut, model=MODEL,
+                                    max_tokens=C1_MAX, thinking={"type": "adaptive"}),
+            what)
+    return [c.strip() for c in out.claims if c.strip()]
 
 CHANNEL = "code4AI"
 RUNS = Path("eval/artifacts/runs")
@@ -127,17 +156,23 @@ async def score_run(run: dict, nuggets: list[dict], sem: asyncio.Semaphore) -> d
     chunkset = format_chunk_set(seen)   # one DB fetch + render per run
 
     async def j(claim, text, ct, tk):
+        # Retry once on any failure (a truncation parses to None and RAISES; max_tokens=6000 is
+        # headroom, not a guarantee on a big chunk set), then HALT loudly rather than let a failed
+        # verdict be silently scored as MISS.
         async with sem:
-            v = await judge(claim, text=text, claim_type=ct, text_kind=tk)
-        return v
+            return await _retry(lambda: judge(claim, text=text, claim_type=ct, text_kind=tk),
+                                f"judge {qid} r{idx}")
 
     # recall (dir 1): every nugget vs the answer
     recall = await asyncio.gather(*(j(n["text"], answer, n["type"], "answer") for n in nuggets))
     recall_details = [{"nugget_id": n["nugget_id"], "type": n["type"], "hit": v.hit, "reason": v.reason}
                       for n, v in zip(nuggets, recall)]
 
-    # groundedness (dir 2): C1 answer-claims vs the retrieved chunk set
-    claims = await extract_claims(answer, sem)
+    # groundedness (dir 2): C1 answer-claims vs the retrieved chunk set. Strict extraction: a
+    # failed C1 call (truncation/timeout) must NOT be swallowed into [] (which would misreport
+    # groundedness as 0/0); retry then halt. A successful call returning [] is a genuine empty
+    # (groundedness N/A for this run), distinct from a failure.
+    claims = await _extract_strict(answer, sem, f"C1 {qid} r{idx}")
     ground = await asyncio.gather(*(j(c, chunkset, "fact", "chunks") for c in claims))
     ground_details = [{"claim": c, "hit": v.hit, "reason": v.reason} for c, v in zip(claims, ground)]
 
@@ -210,19 +245,29 @@ def aggregate(scores: list[dict], miss_class: dict[str, str] | None = None) -> s
         ts = [s for s in scored if s["tier"] == tier]
         if not ts:
             continue
-        # per run_index: macro-average recall / groundedness over that index's questions
+        # per run_index: macro-average recall / groundedness over that index's questions.
+        # A run with 0 extracted claims has undefined groundedness -> N/A (excluded), never 0%.
         rec_by_idx, grd_by_idx = {}, {}
         for idx in sorted({s["run_index"] for s in ts}):
             si = [s for s in ts if s["run_index"] == idx]
             recs = [h / t for s in si for (h, t) in [_stance_recall(s)] if t]
             grds = [sum(d["hit"] for d in s["ground_details"]) / len(s["ground_details"])
                     for s in si if s["ground_details"]]
-            rec_by_idx[idx] = sum(recs) / len(recs) if recs else 0.0
-            grd_by_idx[idx] = sum(grds) / len(grds) if grds else 0.0
-        rv, gv = list(rec_by_idx.values()), list(grd_by_idx.values())
-        lines += [f"## {tier} ({len({s['question_id'] for s in ts})} questions x {len(rv)} runs)", "",
-                  f"- recall:       mean {sum(rv) / len(rv):.1%}   range [{min(rv):.1%}, {max(rv):.1%}] across runs",
-                  f"- groundedness: mean {sum(gv) / len(gv):.1%}   range [{min(gv):.1%}, {max(gv):.1%}] across runs"]
+            rec_by_idx[idx] = sum(recs) / len(recs) if recs else None
+            grd_by_idx[idx] = sum(grds) / len(grds) if grds else None
+        rv = [v for v in rec_by_idx.values() if v is not None]
+        gv = [v for v in grd_by_idx.values() if v is not None]
+        no_claims = sum(1 for s in ts if not s["ground_details"])
+        n_runs = len(rec_by_idx)
+        lines.append(f"## {tier} ({len({s['question_id'] for s in ts})} questions x {n_runs} runs)")
+        lines.append("")
+        lines.append(f"- recall:       mean {sum(rv) / len(rv):.1%}   range [{min(rv):.1%}, {max(rv):.1%}] across runs"
+                     if rv else "- recall:       N/A")
+        gline = (f"- groundedness: mean {sum(gv) / len(gv):.1%}   range [{min(gv):.1%}, {max(gv):.1%}] across runs"
+                 if gv else "- groundedness: N/A (no run had extracted claims)")
+        if no_claims:
+            gline += f"  [{no_claims} run(s) had 0 extracted claims -> N/A, excluded]"
+        lines.append(gline)
         if tier == "longitudinal":
             shifts = [d["hit"] for s in ts for d in s["recall_details"] if d["type"] == "shift"]
             if shifts:
