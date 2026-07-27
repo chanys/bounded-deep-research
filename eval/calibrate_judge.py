@@ -155,12 +155,15 @@ def build_pool(claims_by_q: dict[str, list[str]], lon_q: list[str], fac_q: list[
             chunkset_cache[qid] = format_chunk_set(list(run["evidence"]["seen_chunks"]))
         return chunkset_cache[qid]
 
-    # dir 1 recall: nugget x answer
+    # dir 1 recall: STANCE/FACT nugget x answer. shift and no_change get dedicated builders
+    # below (their judge rule needs two-sided pairs and the window tag would dilute them here).
     for qid in lon_q + fac_q:
         run = load_run(qid)
         if not run:
             continue
         for n in nuggets_by_q.get(qid, []):
+            if n["type"] in ("shift", "no_change"):
+                continue
             pool.append({"direction": "recall", "tier": n["tier"], "claim": n["text"],
                          "text": run["answer"], "text_kind": "answer", "claim_type": n["type"],
                          "question_id": qid, "ref": n["nugget_id"],
@@ -214,6 +217,46 @@ def build_pool(claims_by_q: dict[str, list[str]], lon_q: list[str], fac_q: list[
                          "compound": is_compound(claim), "not_refound": False, "window": False,
                          "negative_control": True})
 
+    # shift (dir 1): every longitudinal score depends on the shift rule, so draw a dedicated
+    # two-sided pool - shift nugget x its own answers across runs r0/r1/r2 (natural HIT, and
+    # weaker/budget-exhausted runs give natural MISS), plus cross-question controls (shift nugget
+    # x a DIFFERENT question's answer = a clean MISS the judge must reject).
+    shift_by_q = {n["question_id"]: n for n in load_longitudinal() if n["type"] == "shift"}
+    shift_qs = [q for q in lon_q if q in shift_by_q]
+    for q in shift_qs:
+        n = shift_by_q[q]
+        for idx in (0, 1, 2):
+            r = load_run(q, idx)
+            if not r:
+                continue
+            pool.append({"direction": "recall", "tier": "longitudinal", "claim": n["text"],
+                         "text": r["answer"], "text_kind": "answer", "claim_type": "shift",
+                         "question_id": q, "ref": f"{n['nugget_id']}:r{idx}",
+                         "compound": False, "not_refound": n["has_not_refound"],
+                         "window": n["has_window"], "negative_control": False})
+    for q in rng.sample(shift_qs, min(6, len(shift_qs))):
+        n = shift_by_q[q]
+        others = [o for o in shift_qs if o != q]
+        if not others:
+            continue
+        tgt = rng.choice(others)
+        r = load_run(tgt, 0)
+        if r:
+            pool.append({"direction": "recall", "tier": "longitudinal", "claim": n["text"],
+                         "text": r["answer"], "text_kind": "answer", "claim_type": "shift",
+                         "question_id": q, "ref": f"{n['nugget_id']}->ctl:{tgt}",
+                         "compound": False, "not_refound": False, "window": n["has_window"],
+                         "negative_control": True})
+
+    # no_change (dir 1): only lc-0130 n2 exists in the gold, so exactly one real pair is drawable.
+    nc = next((n for n in load_longitudinal() if n["type"] == "no_change"), None)
+    if nc and (r := load_run(nc["question_id"], 0)):
+        pool.append({"direction": "recall", "tier": "longitudinal", "claim": nc["text"],
+                     "text": r["answer"], "text_kind": "answer", "claim_type": "no_change",
+                     "question_id": nc["question_id"], "ref": nc["nugget_id"],
+                     "compound": False, "not_refound": nc["has_not_refound"],
+                     "window": nc["has_window"], "negative_control": False})
+
     for i, p in enumerate(pool):
         p["pair_id"] = f"p{i + 1:03d}"
     return pool
@@ -221,12 +264,14 @@ def build_pool(claims_by_q: dict[str, list[str]], lon_q: list[str], fac_q: list[
 
 # ---- selection -------------------------------------------------------------
 
-# (direction, tier) -> target count; dir-3 longitudinal oversampled (hard cell). Sums to 60.
+# (direction, tier) -> target count for STANCE/FACT nuggets and claims; dir-3 longitudinal
+# oversampled (hard cell). shift (~9) and no_change (1) are drawn separately below.
 CELL_TARGETS = {
-    ("recall", "longitudinal"): 12, ("recall", "factual"): 8,
+    ("recall", "longitudinal"): 10, ("recall", "factual"): 8,
     ("groundedness", "longitudinal"): 10, ("groundedness", "factual"): 8,
-    ("attribution", "longitudinal"): 14, ("attribution", "factual"): 8,
+    ("attribution", "longitudinal"): 12, ("attribution", "factual"): 8,
 }
+SHIFT_TARGET = 9
 
 
 def select(pool: list[dict], rng: random.Random) -> list[dict]:
@@ -235,7 +280,8 @@ def select(pool: list[dict], rng: random.Random) -> list[dict]:
     tags (compound / not_refound / shift / no_change / window)."""
     chosen: list[dict] = []
     for cell, target in CELL_TARGETS.items():
-        cands = [p for p in pool if (p["direction"], p["tier"]) == cell]
+        cands = [p for p in pool if (p["direction"], p["tier"]) == cell
+                 and p["claim_type"] not in ("shift", "no_change")]
         hits = [p for p in cands if p["judge_hit"]]
         misses = [p for p in cands if not p["judge_hit"]]
 
@@ -254,22 +300,38 @@ def select(pool: list[dict], rng: random.Random) -> list[dict]:
                 mi += 1
         chosen.extend(picked)
 
-    # Guarantee minimums for the connection claim-types, which the window tag otherwise dilutes:
-    # the no_change trap (lc-0130 n2) and several shift nuggets (their judge rule needs real pairs).
-    chosen_ids = {p["pair_id"] for p in chosen}
+    # Dedicated two-sided shift draw (SHIFT_TARGET): interleave judge-HIT and judge-MISS shift
+    # pairs; de-dup on (question_id, judge_hit) so we do not pick the same nugget's 3 runs when
+    # they all agree, but keep both a HIT run and a MISS run of the same nugget when they differ.
+    shift = [p for p in pool if p["claim_type"] == "shift"]
+    s_hits = [p for p in shift if p["judge_hit"]]
+    s_miss = [p for p in shift if not p["judge_hit"]]
+    rng.shuffle(s_hits)
+    rng.shuffle(s_miss)
 
-    def ensure(pred, minimum):
-        have = [p for p in chosen if pred(p)]
-        if len(have) >= minimum:
-            return
-        extra = [p for p in pool if pred(p) and p["pair_id"] not in chosen_ids]
-        rng.shuffle(extra)
-        for p in extra[:minimum - len(have)]:
-            chosen.append(p)
-            chosen_ids.add(p["pair_id"])
+    def dedup(ps):
+        seen, out = set(), []
+        for p in ps:
+            k = (p["question_id"], p["negative_control"])
+            if k not in seen:
+                seen.add(k)
+                out.append(p)
+        return out
+    s_hits, s_miss = dedup(s_hits), dedup(s_miss)
+    picked, hi, mi = [], 0, 0
+    while len(picked) < SHIFT_TARGET and (hi < len(s_hits) or mi < len(s_miss)):
+        if hi < len(s_hits) and (len(picked) % 2 == 0 or mi >= len(s_miss)):
+            picked.append(s_hits[hi])
+            hi += 1
+        elif mi < len(s_miss):
+            picked.append(s_miss[mi])
+            mi += 1
+    chosen.extend(picked)
 
-    ensure(lambda p: p["claim_type"] == "no_change", 1)
-    ensure(lambda p: p["claim_type"] == "shift", 4)
+    # no_change: the single lc-0130 n2 pair (only one exists in the gold).
+    nc = next((p for p in pool if p["claim_type"] == "no_change"), None)
+    if nc:
+        chosen.append(nc)
     return chosen
 
 
@@ -278,10 +340,16 @@ def select(pool: list[dict], rng: random.Random) -> list[dict]:
 def cell_counts(pairs: list[dict]) -> str:
     from collections import Counter
     lines = []
-    c = Counter((p["direction"], p["tier"]) for p in pairs)
+    stance = [p for p in pairs if p["claim_type"] not in ("shift", "no_change")]
+    c = Counter((p["direction"], p["tier"]) for p in stance)
     for (d, t), n in sorted(c.items()):
-        nhit = sum(1 for p in pairs if (p["direction"], p["tier"]) == (d, t) and p.get("judge_hit"))
+        nhit = sum(1 for p in stance if (p["direction"], p["tier"]) == (d, t) and p.get("judge_hit"))
         lines.append(f"  {d:13s} {t:12s}: {n:2d}  (judge HIT {nhit}, MISS {n - nhit})")
+    for ct in ("shift", "no_change"):
+        ps = [p for p in pairs if p["claim_type"] == ct]
+        if ps:
+            nhit = sum(1 for p in ps if p.get("judge_hit"))
+            lines.append(f"  {ct:13s} {'(recall)':12s}: {len(ps):2d}  (judge HIT {nhit}, MISS {len(ps) - nhit})")
     tags = {"compound": sum(p["compound"] for p in pairs),
             "not_refound": sum(p["not_refound"] for p in pairs),
             "window": sum(p["window"] for p in pairs),
@@ -293,16 +361,24 @@ def cell_counts(pairs: list[dict]) -> str:
 
 
 def write_sheet(pairs: list[dict]) -> None:
+    pairs = sorted(pairs, key=lambda p: len(p["text"]))   # shortest-text-first: quick pairs early, long chunk sets batched at the end
     lines = [f"# Judge calibration - blind labeling sheet ({len(pairs)} pairs)", "",
              "For each pair decide HIT or MISS and write it in the blank. HIT = the TEXT supports/states "
              "the CLAIM under the stated CLAIM TYPE and TEXT KIND (same rules the judge uses). "
-             "The judge's own verdict is withheld until you finish.", "",
-             "Reference: TEXT KIND answer = the assistant's answer; chunks = retrieved transcript chunks "
-             "(each labeled [video | published date]). CLAIM TYPE shift = must convey a change over time; "
-             "no_change = must convey the view stayed consistent; fact/stance = a single assertion.", "", "---", ""]
+             "The judge's own verdict is withheld until you finish. Pairs are ordered shortest-text-first, "
+             "so the long chunk-set pairs are batched at the end.", "",
+             "DIRECTION: recall = gold nugget vs the answer; groundedness (dir 2) = an answer-claim vs the "
+             "retrieved chunk set; attribution (dir 3) = a gold nugget vs the retrieved chunk set. "
+             "The HIT/MISS rule is the same for groundedness and attribution (does the chunk set support "
+             "the claim); the label distinguishes them for the record. Some pairs are constructed mismatches "
+             "(a claim paired with an unrelated chunk set or answer) - label them on their merits.", "",
+             "TEXT KIND answer = the assistant's answer; chunks = retrieved transcript chunks (each labeled "
+             "[video | published date]). CLAIM TYPE shift = must convey a change over time; no_change = must "
+             "convey the view stayed consistent; fact/stance = a single assertion.", "", "---", ""]
     for p in pairs:
         lines += [f"## {p['pair_id']}", "",
-                  f"- text kind: **{p['text_kind']}**   claim type: **{p['claim_type']}**", "",
+                  f"- direction: **{p['direction']}**   text kind: **{p['text_kind']}**   "
+                  f"claim type: **{p['claim_type']}**   ({len(p['text']):,} chars)", "",
                   f"**CLAIM:** {p['claim']}", "",
                   "**TEXT:**", "", p["text"], "",
                   "**your verdict (HIT / MISS):** [    ]", "", "---", ""]
@@ -362,12 +438,17 @@ async def draw(dry_run: bool, concurrency: int) -> None:
         print(f"  ({n_fail} pairs dropped on judge failure)", flush=True)
 
     chosen = select(pool, rng)
-    rng.shuffle(chosen)   # randomize sheet order so cell structure isn't visible
-    write_sheet(chosen)
+    write_sheet(chosen)   # sorts shortest-text-first internally
     write_key(chosen)
     print(f"\nselected {len(chosen)} pairs -> {SHEET} (+ hidden key {KEY})", flush=True)
     print("per-cell counts (what you are labeling):", flush=True)
     print(cell_counts(chosen), flush=True)
+    chars = sorted(len(p["text"]) for p in chosen)
+    total = sum(chars)
+    longest = sorted(chosen, key=lambda p: -len(p["text"]))[:5]
+    print(f"text size: total {total:,} chars; median {chars[len(chars) // 2]:,}; "
+          f"min {chars[0]:,}; max {chars[-1]:,}", flush=True)
+    print("  longest 5:", [(p["pair_id"], len(p["text"])) for p in longest], flush=True)
 
 
 def score(labels_path: Path) -> None:
