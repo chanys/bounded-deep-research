@@ -47,3 +47,5 @@ corpus.dump
 /eval/artifacts/runs/
 # Bulk per-run scoring outputs from eval/score_runs.py.
 /eval/artifacts/scores/
+# Bulk human-read bundles from eval/make_read_bundle.py (regenerable join of scores+runs+gold).
+/eval/artifacts/read/
