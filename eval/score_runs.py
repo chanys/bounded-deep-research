@@ -332,7 +332,7 @@ def aggregate(scores: list[dict], miss_class: dict[str, str] | None = None) -> s
               "Each is either parametric leakage (agent stated gold content it did not retrieve) or a "
               "judge artifact (clean answer prose easier to confirm than garbled ASR). Read each.", ""]
     if viols:
-        for qid, idx, g in sorted(viols):
+        for qid, idx, g in sorted(viols, key=lambda v: (v[0], v[1], v[2]["nugget_id"])):
             lines.append(f"- {qid} r{idx} {g['nugget_id']} ({g['type']}): dir-3 said no support :: {g['dir3_reason']}")
     else:
         lines.append("- (none)")
