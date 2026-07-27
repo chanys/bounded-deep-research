@@ -79,9 +79,13 @@ async def _extract_strict(answer: str, sem: asyncio.Semaphore, what: str) -> lis
     return [c.strip() for c in out.claims if c.strip()]
 
 CHANNEL = "code4AI"
+# Default (baseline) I/O paths. The hybrid-retrieval ablation overrides all three via CLI
+# so it reads runs_hybrid/ and writes scores_hybrid/ + its own miss_class, never touching the
+# frozen baseline. amain() reassigns these module globals from args before any helper reads them.
 RUNS = Path("eval/artifacts/runs")
 SCORES = Path("eval/artifacts/scores")
 MISS_CLASS = Path("eval/artifacts/miss_class.json")
+REPORT = Path("eval/artifacts/scoring_report.md")
 SEGREGATED = {"lc-0130"}   # no_change presupposition trap: reported apart from the recall average
 
 
@@ -412,12 +416,21 @@ def _report_cost(n_scored_runs: int) -> None:
 
 async def amain(args: argparse.Namespace) -> None:
     _assert_frozen()
+    # Rebind the I/O paths from args (baseline defaults unchanged). Done before any helper
+    # reads them so the ablation reads/writes its isolated tree; the frozen instrument guards
+    # (_assert_frozen above, corpus-drift below) stay identical regardless of path.
+    global RUNS, SCORES, MISS_CLASS, REPORT
+    RUNS = Path(args.runs_dir)
+    SCORES = Path(args.scores_dir)
+    MISS_CLASS = Path(args.miss_class)
+    REPORT = Path(args.report)
+    print(f"scoring I/O: runs={RUNS}, scores={SCORES}, report={REPORT}", flush=True)
     enable_usage_capture()
     if args.report_only:
         cached = _read_cached()
         mc = await classify_longitudinal_misses(cached, load_gold(), args.concurrency)
         report = aggregate(cached, mc)
-        Path("eval/artifacts/scoring_report.md").write_text(report, encoding="utf-8")
+        REPORT.write_text(report, encoding="utf-8")
         print(report)
         return
 
@@ -459,7 +472,7 @@ async def amain(args: argparse.Namespace) -> None:
     cached = _read_cached()
     mc = await classify_longitudinal_misses(cached, gold, args.concurrency)
     report = aggregate(cached, mc)
-    Path("eval/artifacts/scoring_report.md").write_text(report, encoding="utf-8")
+    REPORT.write_text(report, encoding="utf-8")
     print("\n" + report, flush=True)
 
 
@@ -470,6 +483,11 @@ def main() -> None:
     ap.add_argument("--concurrency", type=int, default=6, help="max concurrent judge/extract calls")
     ap.add_argument("--run-concurrency", type=int, default=6, help="max concurrent runs (steady checkpointing)")
     ap.add_argument("--report-only", action="store_true", help="re-aggregate from cached scores, no judging")
+    # I/O isolation for the hybrid-retrieval ablation (baseline defaults leave every path untouched).
+    ap.add_argument("--runs-dir", default=str(RUNS), help="run artifacts to score (default eval/artifacts/runs)")
+    ap.add_argument("--scores-dir", default=str(SCORES), help="score cache dir (default eval/artifacts/scores)")
+    ap.add_argument("--miss-class", default=str(MISS_CLASS), help="miss-classifier cache (default eval/artifacts/miss_class.json)")
+    ap.add_argument("--report", default=str(REPORT), help="report output path (default eval/artifacts/scoring_report.md)")
     asyncio.run(amain(ap.parse_args()))
 
 

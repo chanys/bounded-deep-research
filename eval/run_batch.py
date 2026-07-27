@@ -12,18 +12,24 @@ Each run lands in `eval/artifacts/runs/<question_id>/r<idx>/`:
   - `run.json` - the self-contained scoring record: question, answer, citations, and the
     evidence dict inlined, plus run metadata. Written last as the done-marker.
 
-Retrieval is the production dense pgvector path (RETRIEVAL_BACKEND=pgvector; mode forced
-to dense). This does not touch the /query spend breaker or per-IP quota (those live in
-app/main.py); concurrency is bounded only by OpenAI rate limits, so keep it modest.
+Retrieval defaults to the production dense pgvector path (RETRIEVAL_BACKEND=pgvector;
+mode forced to dense). The hybrid-retrieval ablation arm overrides both: it sets
+RETRIEVAL_BACKEND=opensearch and passes --mode hybrid, writing to a separate --out-dir
+(runs_hybrid/) so the frozen baseline runs/ are never touched. This does not touch the
+/query spend breaker or per-IP quota (those live in app/main.py); concurrency is bounded
+only by OpenAI rate limits, so keep it modest.
 
 Integrity halt: if any run reports a non-empty cited_not_retrieved (the agent cited a
 chunk no search returned), the batch stops immediately. A provenance defect replicated
 across 186 runs is worse than a halted fan-out.
 
 Usage:
-  RETRIEVAL_BACKEND=pgvector uv run python -m eval.run_batch                 # all 62 x 3
+  RETRIEVAL_BACKEND=pgvector uv run python -m eval.run_batch                 # all 62 x 3 (baseline)
   RETRIEVAL_BACKEND=pgvector uv run python -m eval.run_batch --only lc-0011,lc-0014 --runs 3
   RETRIEVAL_BACKEND=pgvector uv run python -m eval.run_batch --concurrency 4
+  # hybrid ablation (longitudinal only, isolated output dir):
+  RETRIEVAL_BACKEND=opensearch uv run python -m eval.run_batch --mode hybrid \
+      --out-dir eval/artifacts/runs_hybrid --runs 1
 """
 from __future__ import annotations
 
@@ -38,7 +44,7 @@ from core.config import settings  # noqa: F401
 from langfuse import get_client
 
 from app.agent import run_agent
-from app.retrieval import aclose
+from app.retrieval import Mode, aclose
 
 CHANNEL = "code4AI"
 ARTIFACTS = Path("eval/artifacts")
@@ -85,21 +91,26 @@ class IntegrityError(RuntimeError):
     """A run cited a chunk no search returned; the fan-out must halt to investigate."""
 
 
-async def run_one(qid: str, idx: int, question: str, sem: asyncio.Semaphore) -> str:
+async def run_one(qid: str, idx: int, question: str, sem: asyncio.Semaphore,
+                  runs_dir: Path, mode: Mode) -> str:
     """Run one (question, run_index), persist it, and return a one-line status.
 
     Skips (returns "skip") when run.json already exists. On success writes the
     self-contained run.json last. Raises IntegrityError on non-empty
     cited_not_retrieved so the caller can stop the whole batch.
+
+    `runs_dir` isolates the output tree (baseline runs/ vs ablation runs_hybrid/);
+    `mode` is the requested retrieval mode, honored only under a non-pgvector backend
+    (pgvector forces dense regardless - see app/agent.effective_mode).
     """
-    out_dir = RUNS_DIR / qid / f"r{idx}"
+    out_dir = runs_dir / qid / f"r{idx}"
     done_marker = out_dir / "run.json"
     if done_marker.exists():
         return f"skip {qid} r{idx}"
 
     async with sem:
         out_dir.mkdir(parents=True, exist_ok=True)
-        result = await run_agent(question, CHANNEL, mode="dense", dump_dir=str(out_dir))
+        result = await run_agent(question, CHANNEL, mode=mode, dump_dir=str(out_dir))
 
     # Read back the evidence run_agent dumped (named by run_id; exactly one per dir).
     evidence_files = list(out_dir.glob("evidence_*.json"))
@@ -135,7 +146,14 @@ async def main() -> None:
     ap.add_argument("--only", default="", help="comma-separated question ids to restrict to (default: all)")
     ap.add_argument("--runs", type=int, default=3, help="runs per question (default 3)")
     ap.add_argument("--concurrency", type=int, default=4, help="max concurrent runs (default 4)")
+    ap.add_argument("--mode", default="dense", choices=["dense", "bm25", "hybrid"],
+                    help="requested retrieval mode; honored only under a non-pgvector backend (default dense)")
+    ap.add_argument("--out-dir", default=str(RUNS_DIR),
+                    help="output tree for run artifacts (default eval/artifacts/runs; use runs_hybrid for the ablation)")
     args = ap.parse_args()
+
+    runs_dir = Path(args.out_dir)
+    mode: Mode = args.mode
 
     questions = load_all_questions()
     if args.only:
@@ -147,11 +165,12 @@ async def main() -> None:
 
     total = len(questions) * args.runs
     print(f"batch: {len(questions)} questions x {args.runs} runs = {total} runs "
-          f"(concurrency={args.concurrency}, backend={settings.retrieval_backend})", flush=True)
+          f"(concurrency={args.concurrency}, backend={settings.retrieval_backend}, "
+          f"mode={mode}, out-dir={runs_dir})", flush=True)
 
     sem = asyncio.Semaphore(args.concurrency)
     tasks = [
-        asyncio.create_task(run_one(qid, idx, txt, sem))
+        asyncio.create_task(run_one(qid, idx, txt, sem, runs_dir, mode))
         for qid, txt in questions
         for idx in range(args.runs)
     ]
