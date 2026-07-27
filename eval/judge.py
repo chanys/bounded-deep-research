@@ -39,8 +39,8 @@ from core.claude_llm import call_structured
 from core.db import transaction
 
 MODEL = "claude-sonnet-5"
-MAX_TOKENS = 1500
-CALL_TIMEOUT = 120
+MAX_TOKENS = 6000    # verdict is tiny, but adaptive thinking over a ~25-chunk set needs room (1500 truncated)
+CALL_TIMEOUT = 180
 
 
 class Verdict(BaseModel):
