@@ -27,20 +27,58 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 from collections import defaultdict
 from pathlib import Path
+from typing import Literal
+
+from pydantic import BaseModel
 
 from app.corpus import corpus_id
+from core.claude_llm import call_structured
 from eval.calibrate_judge import load_factual, load_longitudinal
 from eval.extract_answer_claims import PROMPT_SHA as C1_SHA
 from eval.extract_answer_claims import extract_claims
 from eval.judge import JUDGE_PROMPT_SHA, format_chunk_set, judge
 
+MODEL = "claude-sonnet-5"
+
 CHANNEL = "code4AI"
 RUNS = Path("eval/artifacts/runs")
 SCORES = Path("eval/artifacts/scores")
+MISS_CLASS = Path("eval/artifacts/miss_class.json")
 SEGREGATED = {"lc-0130"}   # no_change presupposition trap: reported apart from the recall average
+
+
+# ---- longitudinal stance-miss classifier (post-hoc, reason-based diagnostic) ----
+# Splits longitudinal stance-nugget MISSes into timing vs stance, so a system that finds the
+# right stance but misplaces it in time is distinguished from one that never finds it (a
+# plausible pattern given the recency-skewed corpus). Post-hoc over misses only, reusing the
+# judge's own reason - no new judge calls. This is an un-calibrated diagnostic split, NOT a
+# scored metric, so it is labeled as such in the report and hashed for provenance.
+
+class MissClass(BaseModel):
+    category: Literal["timing", "stance"]
+    why: str
+
+
+MISS_CLASS_SYSTEM = """\
+A recall MISS on a dated longitudinal stance nugget (a position the creator held, with a time window) can fail two ways. Classify which, given the gold NUGGET, the ANSWER, and the judge's MISS REASON.
+
+- "timing": the answer DOES convey the stance's substance (the position/finding itself), but places it in an incompatible time window, or gives timing the judge found insufficient - right stance, wrong or missing time.
+- "stance": the answer does NOT convey the stance's substance at all, or conveys a materially different position - the failure is the stance itself, not its timing.
+
+If both are arguably wrong, pick the more fundamental: if the substance is absent or different, that is "stance"; only call it "timing" when the substance is clearly present and just mis-dated."""
+
+MISS_CLASS_SHA = hashlib.sha1(MISS_CLASS_SYSTEM.encode()).hexdigest()[:8]
+
+
+async def classify_miss(nugget_text: str, answer: str, reason: str) -> MissClass:
+    user = (f"NUGGET (gold stance + time window):\n{nugget_text}\n\nANSWER:\n{answer}\n\n"
+            f"JUDGE'S MISS REASON:\n{reason}\n\nClassify this miss: timing or stance.")
+    return await call_structured(MISS_CLASS_SYSTEM, user, MissClass, model=MODEL,
+                                 max_tokens=1500, thinking={"type": "adaptive"})
 
 # Frozen instruments (must match the calibrated/frozen values or the numbers are not comparable).
 FROZEN_JUDGE_SHA = "a7d71e4a"
@@ -52,6 +90,7 @@ SCORE_PROVENANCE = {
     "answer_claim_extractor_sha": C1_SHA,
     "factual_nugget_extractor_sha": "910a6696",
     "entailment_audit_sha": "ddfc49a9",
+    "miss_classifier_sha": MISS_CLASS_SHA,   # un-calibrated diagnostic split, not a scored metric
     "factual_gold": "factual-gold-v1.0",
     "longitudinal_gold": "gold-v0.2.2",
 }
@@ -128,7 +167,40 @@ def _stance_recall(rec: dict) -> tuple[int, int]:
     return sum(d["hit"] for d in ns), len(ns)
 
 
-def aggregate(scores: list[dict]) -> str:
+def _miss_key(qid: str, idx: int, nugget_id: str) -> str:
+    return f"{qid}|r{idx}|{nugget_id}"
+
+
+async def classify_longitudinal_misses(scores: list[dict], gold: dict[str, list[dict]],
+                                       concurrency: int) -> dict[str, str]:
+    """timing/stance category for every longitudinal stance MISS. Resumable via MISS_CLASS cache."""
+    cache: dict[str, str] = json.loads(MISS_CLASS.read_text()) if MISS_CLASS.exists() else {}
+    gold_text = {(qid, n["nugget_id"]): n["text"] for qid in gold for n in gold[qid]}
+    todo = []
+    for s in scores:
+        if s["tier"] != "longitudinal":
+            continue
+        for d in s["recall_details"]:
+            if d["type"] == "stance" and not d["hit"]:
+                k = _miss_key(s["question_id"], s["run_index"], d["nugget_id"])
+                if k not in cache:
+                    todo.append((k, s["question_id"], s["run_index"], d["nugget_id"], d["reason"]))
+    if todo:
+        sem = asyncio.Semaphore(concurrency)
+
+        async def one(k, qid, idx, nid, reason):
+            run = load_run(qid, idx)
+            async with sem:
+                mc = await classify_miss(gold_text[(qid, nid)], run["answer"], reason)
+            return k, mc.category
+        for k, cat in await asyncio.gather(*(one(*t) for t in todo)):
+            cache[k] = cat
+        MISS_CLASS.write_text(json.dumps(cache, indent=2))
+    return cache
+
+
+def aggregate(scores: list[dict], miss_class: dict[str, str] | None = None) -> str:
+    miss_class = miss_class or {}
     lines = ["# Phase 4 scoring report", "", "Score-time provenance:", "```",
              json.dumps(SCORE_PROVENANCE, indent=2), "```", ""]
 
@@ -154,6 +226,14 @@ def aggregate(scores: list[dict]) -> str:
             shifts = [d["hit"] for s in ts for d in s["recall_details"] if d["type"] == "shift"]
             if shifts:
                 lines.append(f"- shift-nugget pass rate: {sum(shifts) / len(shifts):.1%} ({sum(shifts)}/{len(shifts)})")
+            # stance-miss breakdown: timing (right stance, wrong window) vs stance (not conveyed)
+            cats = [miss_class.get(_miss_key(s["question_id"], s["run_index"], d["nugget_id"]))
+                    for s in ts for d in s["recall_details"] if d["type"] == "stance" and not d["hit"]]
+            if cats:
+                nt = cats.count("timing")
+                ns = cats.count("stance")
+                lines.append(f"- stance-miss breakdown: {nt} timing (right stance, wrong/missing window), "
+                             f"{ns} stance (not conveyed) [un-calibrated reason-based diagnostic]")
         attr = [a for s in ts for a in s["attribution"]]
         if attr:
             syn = sum(1 for a in attr if a["failure"] == "synthesis")
@@ -206,7 +286,9 @@ def _read_cached() -> list[dict]:
 async def amain(args: argparse.Namespace) -> None:
     _assert_frozen()
     if args.report_only:
-        report = aggregate(_read_cached())
+        cached = _read_cached()
+        mc = await classify_longitudinal_misses(cached, load_gold(), args.concurrency)
+        report = aggregate(cached, mc)
         Path("eval/artifacts/scoring_report.md").write_text(report, encoding="utf-8")
         print(report)
         return
@@ -239,7 +321,9 @@ async def amain(args: argparse.Namespace) -> None:
               f"grounded {sum(d['hit'] for d in rec['ground_details'])}/{len(rec['ground_details'])}", flush=True)
 
     await asyncio.gather(*(one(q, i) for q, i in todo))
-    report = aggregate(_read_cached())
+    cached = _read_cached()
+    mc = await classify_longitudinal_misses(cached, gold, args.concurrency)
+    report = aggregate(cached, mc)
     Path("eval/artifacts/scoring_report.md").write_text(report, encoding="utf-8")
     print("\n" + report, flush=True)
 
