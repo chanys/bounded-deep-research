@@ -12,3 +12,5 @@ The offline evaluation instrument lives in `eval/`: a calibrated, nugget-based h
 - `python -m eval.make_read_bundle --read-sets` — assemble self-contained per-question read files (`eval/artifacts/read/<qid>.md`: question, gold nuggets, answer, verdicts + reasons, retrieved chunk text) for the human audit of results.
 
 The scoring instrument is versioned by prompt hash and calibrated against human labels (Cohen's kappa 0.879); every scored run and score file carries its provenance. The full set has been scored (`eval/artifacts/scoring_report.md`); method and results are written up per phase in the notes repo (`eval/phase4_phase{A,B,C,D}_*_build_log.md`, plus `eval/session_handoff_2026-07-27.md` for the session-level summary).
+
+For a self-contained narrative of the evaluation (readable without the code), see the two reference docs in the notes repo: `eval/gold_construction_reference.md` (how the gold is built) and `eval/experiments_reference.md` (the experiments, metrics, ablations, and judge calibration).
