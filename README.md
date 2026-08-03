@@ -407,14 +407,20 @@ A factual run took about 5 reasoning loops and about 4 searches in all (some loo
 
 | Metric | Factual | Longitudinal |
 |--------|---------|--------------|
-| Recall | 86.9% | 32.2% |
-| Groundedness | 96.0% | 97.9% |
+| Recall | 84.9% | 32.8% |
+| Groundedness | 96.4% | 98.0% |
 | Retrieval ceiling | 86.8% | 43.5% |
 
-![Grouped bar chart of recall, groundedness, and retrieval ceiling for factual versus longitudinal questions](docs/eval_results.png)
+Every figure is pooled over runs (a ratio of totals), so all three sit on one basis.
+Recall and groundedness cover all nuggets, so the longitudinal recall of 32.8% counts the shift nuggets; the figure below covers stance nuggets only and shows 97 of 306, or 31.7%.
+The retrieval ceiling likewise covers stance nuggets only, since the shift nugget is graded as a connection and has no chunk-level evidence to check.
+
+![Stacked bars showing, for factual and for longitudinal questions, how many gold nuggets the answer expressed, how many were retrieved but left unused, and how many were never retrieved at all](docs/recall_decomposition.png)
+
+*ReAct agent. Expressed does not imply retrieved: in 12 longitudinal cases (out of 97) and 1 factual case (out of 135) the answer stated a gold nugget its own retrieved chunks do not support. So the first two segments do not add up to the retrieval ceiling: 97 + 48 = 145 of 306 would be 47.4%, while the ceiling is 133 of 306, or 43.5%.*
 
 Longitudinal questions are inherently harder than factual ones: a factual answer needs a single fact from usually one place, whereas a longitudinal answer must gather and connect evidence scattered across many videos and many months.
-That difficulty shows in the scores: the agent answers single-fact questions well (87%) but change-over-time questions poorly (32%).
+That difficulty shows in the scores: the agent answers single-fact questions well (85%) but change-over-time questions poorly (33%).
 The gap is dominantly retrieval, not reasoning: the retrieval ceiling, the fraction of gold nuggets whose evidence was retrieved at all, is only 43.5% for longitudinal against 86.8% for factual.
 On the other side, groundedness is high on both tiers (96 to 98%): almost everything the agent asserts is backed by the chunks it actually retrieved, so it rarely states a claim its own evidence does not support.
 

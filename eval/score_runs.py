@@ -300,6 +300,10 @@ def aggregate(scores: list[dict], miss_class: dict[str, str] | None = None) -> s
         rc_t = sum(t for s in ts for (_h, t) in [_recall_counts(s)])
         st_h = sum(h for s in ts for (h, _t) in [_recall_counts(s, include_shift=False)])
         st_t = sum(t for s in ts for (_h, t) in [_recall_counts(s, include_shift=False)])
+        # micro groundedness: pooled over every extracted answer-claim, so it sits on the same
+        # basis as recall-micro and the ceiling rather than averaging per-run ratios.
+        gd_h = sum(d["hit"] for s in ts for d in s["ground_details"])
+        gd_t = sum(len(s["ground_details"]) for s in ts)
         lines.append(f"## {tier} ({len({s['question_id'] for s in ts})} questions x {n_runs} runs)")
         lines.append("")
         lines.append(f"- recall (incl shift, per design): macro {sum(rv) / len(rv):.1%} [range {min(rv):.1%}-{max(rv):.1%}]"
@@ -308,7 +312,8 @@ def aggregate(scores: list[dict], miss_class: dict[str, str] | None = None) -> s
         lines.append(f"    - stance-only recall (shift excluded): micro {st_h / st_t:.1%} ({st_h}/{st_t})")
         lines.append("    - macro = mean of per-run per-question ratios; micro = pooled ratio-of-totals")
         gline = (f"- groundedness: macro {sum(gv) / len(gv):.1%} [range {min(gv):.1%}-{max(gv):.1%}] (mean of per-run ratios)"
-                 if gv else "- groundedness: N/A (no run had extracted claims)")
+                 f"  |  micro {gd_h / gd_t:.1%} ({gd_h}/{gd_t} answer claims)"
+                 if gv and gd_t else "- groundedness: N/A (no run had extracted claims)")
         if no_claims:
             gline += f"  [{no_claims} run(s) had 0 extracted claims -> N/A, excluded]"
         lines.append(gline)

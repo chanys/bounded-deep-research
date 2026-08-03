@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Recall decomposition by question type</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --page:           #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --rule:           #e1e0d9;
+    --seg-expressed:  #1c5cab;
+    --seg-unused:     #3987e5;
+    --seg-never:      #86b6ef;
+    --ink-on-fill:    #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --page:           #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --rule:           #2c2c2a;
+      --seg-expressed:  #86b6ef;
+      --seg-unused:     #3987e5;
+      --seg-never:      #184f95;
+      --ink-on-fill:    #ffffff;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --page:           #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --rule:           #2c2c2a;
+    --seg-expressed:  #86b6ef;
+    --seg-unused:     #3987e5;
+    --seg-never:      #184f95;
+    --ink-on-fill:    #ffffff;
+  }
+
+  /* transparent margin: the exported PNG is a light card that reads on a light or
+     a dark page, instead of a page-coloured block that only matches one theme */
+  body {
+    margin: 0;
+    padding: 16px;
+    background: transparent;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .viz-root {
+    background: var(--surface-1);
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px 28px 20px;
+    border-radius: 6px;
+    color: var(--text-primary);
+  }
+
+  .viz-title {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+    color: var(--text-primary);
+  }
+  .viz-sub {
+    font-size: 13.5px;
+    line-height: 1.5;
+    margin: 0 0 20px;
+    color: var(--text-secondary);
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13.5px;
+    color: var(--text-secondary);
+  }
+  .swatch {
+    width: 11px;
+    height: 11px;
+    border-radius: 2px;
+    flex: none;
+  }
+  .sw-expressed { background: var(--seg-expressed); }
+  .sw-unused    { background: var(--seg-unused); }
+  .sw-never     { background: var(--seg-never); }
+
+  .row { margin-bottom: 16px; }
+  .row-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .row-label {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .row-n {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bar {
+    display: flex;
+    gap: 2px;
+    height: 22px;
+    background: var(--surface-1);
+  }
+  .seg {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-on-fill);
+    cursor: default;
+    min-width: 0;
+  }
+  .seg:first-child { border-radius: 0; }
+  .seg:last-child  { border-radius: 0 4px 4px 0; }
+  .s-expressed { background: var(--seg-expressed); }
+  .s-unused    { background: var(--seg-unused); }
+  .s-never     { background: var(--seg-never); }
+  /* label ink is chosen per fill luminance: ink clears 5.8:1 on the mid step and
+     9.9:1 on the light step; white clears 6.2:1 only on the darkest step */
+  .s-never { color: #0b0b0b; }
+  .s-unused { color: #0b0b0b; }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .s-never { color: #ffffff; }
+    :root:where(:not([data-theme="light"])) .s-expressed { color: #0b0b0b; }
+  }
+  :root[data-theme="dark"] .s-never { color: #ffffff; }
+  :root[data-theme="dark"] .s-expressed { color: #0b0b0b; }
+
+
+  table.viz-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+    font-size: 13.5px;
+    color: var(--text-secondary);
+  }
+  .viz-table caption {
+    text-align: left;
+    font-size: 11px;
+    color: var(--text-muted);
+    padding-bottom: 6px;
+  }
+  .viz-table th, .viz-table td {
+    text-align: right;
+    padding: 5px 8px;
+    border-bottom: 1px solid var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
+  .viz-table th:first-child, .viz-table td:first-child {
+    text-align: left;
+    font-variant-numeric: normal;
+  }
+  .viz-table th {
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+
+  .tip {
+    position: fixed;
+    pointer-events: none;
+    background: var(--surface-1);
+    color: var(--text-primary);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 7px 10px;
+    font-size: 13.5px;
+    line-height: 1.45;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+    opacity: 0;
+    transition: opacity 90ms ease;
+    z-index: 10;
+    white-space: nowrap;
+  }
+  .tip.on { opacity: 1; }
+  .tip-k { color: var(--text-secondary); }
+</style>
+</head>
+<body>
+<div class="viz-root">
+  <p class="viz-sub">
+    Every gold nugget, by what happened to it. The leftmost segment is the agent&rsquo;s recall;
+    the rest are the ways a nugget is missed.
+  </p>
+
+  <div class="legend">
+    <span class="legend-item"><span class="swatch sw-expressed"></span>Expressed in the answer</span>
+    <span class="legend-item"><span class="swatch sw-unused"></span>Retrieved, not used</span>
+    <span class="legend-item"><span class="swatch sw-never"></span>Never retrieved</span>
+  </div>
+
+  <div class="row">
+    <div class="row-head">
+      <span class="row-label">Factual questions</span>
+      <span class="row-n">53 nuggets &times; 3 runs = 159</span>
+    </div>
+    <div class="bar" data-kind="Factual">
+      <div class="seg s-expressed" style="width:84.906%" data-name="Expressed in the answer" data-count="135" data-pct="84.9">135</div>
+      <div class="seg s-unused"    style="width:2.516%"  data-name="Retrieved, not used"     data-count="4"   data-pct="2.5">4</div>
+      <div class="seg s-never"     style="width:12.579%" data-name="Never retrieved"         data-count="20"  data-pct="12.6">20</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="row-head">
+      <span class="row-label">Longitudinal questions</span>
+      <span class="row-n">102 nuggets &times; 3 runs = 306</span>
+    </div>
+    <div class="bar" data-kind="Longitudinal">
+      <div class="seg s-expressed" style="width:31.699%" data-name="Expressed in the answer" data-count="97"  data-pct="31.7">97</div>
+      <div class="seg s-unused"    style="width:15.686%" data-name="Retrieved, not used"     data-count="48"  data-pct="15.7">48</div>
+      <div class="seg s-never"     style="width:52.614%" data-name="Never retrieved"         data-count="161" data-pct="52.6">161</div>
+    </div>
+  </div>
+
+  <table class="viz-table">
+    <caption>Counts of gold nuggets, pooled over runs. Bars are scaled to each row&rsquo;s total.</caption>
+    <thead>
+      <tr>
+        <th scope="col">Question type</th>
+        <th scope="col">Expressed</th>
+        <th scope="col">Retrieved, not used</th>
+        <th scope="col">Never retrieved</th>
+        <th scope="col">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th scope="row">Factual</th>
+        <td>135 (84.9%)</td>
+        <td>4 (2.5%)</td>
+        <td>20 (12.6%)</td>
+        <td>159</td>
+      </tr>
+      <tr>
+        <th scope="row">Longitudinal</th>
+        <td>97 (31.7%)</td>
+        <td>48 (15.7%)</td>
+        <td>161 (52.6%)</td>
+        <td>306</td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+
+<div class="tip" id="tip" role="status" aria-live="polite"></div>
+
+<script>
+  const tip = document.getElementById('tip');
+  document.querySelectorAll('.seg').forEach(seg => {
+    const show = (ev) => {
+      const kind = seg.closest('.bar').dataset.kind;
+      tip.innerHTML = '<strong>' + kind + '</strong><br>' +
+        '<span class="tip-k">' + seg.dataset.name + '</span><br>' +
+        seg.dataset.count + ' nuggets (' + seg.dataset.pct + '%)';
+      tip.classList.add('on');
+      const x = (ev.clientX ?? seg.getBoundingClientRect().left) + 14;
+      const y = (ev.clientY ?? seg.getBoundingClientRect().top) + 14;
+      tip.style.left = Math.min(x, window.innerWidth - tip.offsetWidth - 12) + 'px';
+      tip.style.top = y + 'px';
+    };
+    seg.addEventListener('mouseenter', show);
+    seg.addEventListener('mousemove', show);
+    seg.addEventListener('mouseleave', () => tip.classList.remove('on'));
+    seg.tabIndex = 0;
+    seg.addEventListener('focus', show);
+    seg.addEventListener('blur', () => tip.classList.remove('on'));
+  });
+</script>
+</body>
+</html>
