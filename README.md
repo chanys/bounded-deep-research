@@ -412,11 +412,12 @@ A factual run took about 5 reasoning loops and about 4 searches in all (some loo
 | Retrieval ceiling | 86.8% | 43.5% |
 
 Every figure is pooled over runs (a ratio of totals), so all three sit on one basis.
-Recall and groundedness cover all nuggets; the retrieval ceiling covers stance nuggets only, since the shift nugget is graded as a connection and has no chunk-level evidence to check.
+Recall and groundedness cover all nuggets, so the longitudinal recall of 32.8% counts the shift nuggets; the figure below covers stance nuggets only and shows 97 of 306, or 31.7%.
+The retrieval ceiling likewise covers stance nuggets only, since the shift nugget is graded as a connection and has no chunk-level evidence to check.
 
 ![Stacked bars showing, for factual and for longitudinal questions, how many gold nuggets the answer expressed, how many were retrieved but left unused, and how many were never retrieved at all](docs/recall_decomposition.png)
 
-*ReAct agent. Expressed does not imply retrieved: in 12 longitudinal cases (out of 97) and 1 factual case (out of 135) the answer stated a gold nugget its own retrieved chunks do not support.*
+*ReAct agent. Expressed does not imply retrieved: in 12 longitudinal cases (out of 97) and 1 factual case (out of 135) the answer stated a gold nugget its own retrieved chunks do not support. So the first two segments do not add up to the retrieval ceiling: 97 + 48 = 145 of 306 would be 47.4%, while the ceiling is 133 of 306, or 43.5%.*
 
 Longitudinal questions are inherently harder than factual ones: a factual answer needs a single fact from usually one place, whereas a longitudinal answer must gather and connect evidence scattered across many videos and many months.
 That difficulty shows in the scores: the agent answers single-fact questions well (85%) but change-over-time questions poorly (33%).
