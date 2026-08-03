@@ -265,7 +265,7 @@ The factual tier asks for a single specific fact, so its gold is a small set of 
 
 1. **Sample over time, not topic.** Order the 475 videos by date, divide them into 5 equal-count bins of about 95 videos each, and take a seeded draw of 10 videos from each, so the 50 source videos span the whole 16-month range rather than clustering on prolific months.
 
-2. **Select and compose (two calls per video).** We aim to derive one factual question from each of the 50 videos. First, a cheap thinking-off Sonnet 5 call picks the video's 2 most question-worthy high-confidence claims, and the script keeps one as primary and one as fallback ([`SELECT_SYSTEM`](https://github.com/chanys/bounded-deep-research/blob/bfc57c2/eval/compose_factual_claims.py#L45)):
+2. **Select and compose (two calls per video).** We aim to derive one factual question from each of the 50 videos. First, a cheap thinking-off Sonnet 5 call picks the video's 2 most question-worthy high-confidence claims, and the script keeps one as primary and one as fallback ([`SELECT_SYSTEM`](https://github.com/chanys/bounded-deep-research/blob/main/eval/compose_factual_claims.py#L45)):
 
    ```
    Return the ids of the 2 claims a practitioner who never saw the video would most
@@ -273,7 +273,7 @@ The factual tier asks for a single specific fact, so its gold is a small set of 
    references ("the paper", "the study") that only sibling claims resolve.
    ```
 
-   An adaptive-thinking call then writes one natural question from the primary claim ([`COMPOSE_SYSTEM`](https://github.com/chanys/bounded-deep-research/blob/bfc57c2/eval/compose_factual_claims.py#L48)):
+   An adaptive-thinking call then writes one natural question from the primary claim ([`COMPOSE_SYSTEM`](https://github.com/chanys/bounded-deep-research/blob/main/eval/compose_factual_claims.py#L48)):
 
    ```
    Anchor it: include at least one identifying specific from the claim (a named system,
