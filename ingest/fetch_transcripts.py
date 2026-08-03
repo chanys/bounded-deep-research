@@ -10,8 +10,32 @@ import json
 import time
 from pathlib import Path
 
+from requests.exceptions import RequestException
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
+
+
+def fetch_one(api, video_id, lang, attempts):
+    """Fetch one transcript, retrying transient network errors with exponential backoff.
+
+    Returns (transcript, segments); raises if every attempt fails. YouTube
+    intermittently drops the connection during a long batch, and without this a
+    single RemoteDisconnected killed the whole run. Note the two error classes
+    are handled differently on purpose: TranscriptsDisabled/NoTranscriptFound
+    mean this video will never work (caller skips it), while a RequestException
+    usually clears on its own, so retrying here is what keeps the batch alive.
+    """
+    for attempt in range(attempts):
+        try:
+            t = api.list(video_id).find_transcript([lang])
+            return t, t.fetch().to_raw_data()
+        except RequestException as e:
+            if attempt == attempts - 1:
+                raise
+            backoff = 30 * 2 ** attempt + random.uniform(0, 10)
+            print(f"  retry {video_id}: {type(e).__name__} "
+                  f"(attempt {attempt + 1}/{attempts}, sleeping {backoff:.0f}s)")
+            time.sleep(backoff)
 
 
 def main():
@@ -21,6 +45,8 @@ def main():
     p.add_argument("--lang", default="en")
     p.add_argument("--delay", type=float, default=90)
     p.add_argument("--jitter", type=float, default=15)
+    p.add_argument("--attempts", type=int, default=5,
+                   help="tries per video before giving up on transient network errors")
     args = p.parse_args()
 
     manifest = Path(f"data/channel_manifests/{args.channel}.jsonl")
@@ -47,19 +73,19 @@ def main():
             #   .is_generated (bool, auto vs manual),
             #   .video_id,
             #   .language (human name).
-            # It hasn't fetched the actual text yet — it's a pointer.
-            t = api.list(v["id"]).find_transcript([args.lang])
-            fetched = t.fetch()
-
-            # segments — a list of dicts, one per caption line, after .fetch() actually pulls the transcript. Shape:
+            #
+            # segments — a list of dicts, one per caption line, once .fetch() actually pulls the transcript. Shape:
             # [
             #   {"text": "hello everyone welcome back", "start": 0.0,  "duration": 3.2},
             #   {"text": "today we're talking about",    "start": 3.2,  "duration": 2.8},
             #   ...
             # ]
-            segments = fetched.to_raw_data()  # list of {"text", "start", "duration"} dicts
+            t, segments = fetch_one(api, v["id"], args.lang, args.attempts)
         except (TranscriptsDisabled, NoTranscriptFound) as e:
             print(f"  FAIL {v['id']}: {type(e).__name__}")
+            continue
+        except RequestException as e:
+            print(f"  FAIL {v['id']}: {type(e).__name__} after {args.attempts} attempts")
             continue
 
         meta = {**v, "language": t.language_code, "is_generated": t.is_generated}
