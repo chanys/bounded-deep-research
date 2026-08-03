@@ -1,0 +1,13 @@
+%% Source for docs/agent_loop.png. Regenerate with:
+%%   npx -y @mermaid-js/mermaid-cli -i docs/agent_loop.mmd -o docs/agent_loop.png -s 3 -b white
+flowchart LR
+    Q([Question]) --> L{{"Agent loop<br/>stateless model"}}
+    L -->|search_transcripts| R["Dense pgvector retrieval<br/>top-10 chunks"]
+    R --> L
+    L -->|mark_ready| G{"explored<br/>enough?"}
+    G -->|no| L
+    G -->|yes| S["submit_answer<br/>final turn"]
+    L -.->|step budget reached| S
+    S --> V{"citations<br/>valid?"}
+    V -->|"no, fix (≤2 retries)"| S
+    V -->|yes| A([Answer + citations])
