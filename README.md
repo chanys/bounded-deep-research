@@ -6,7 +6,7 @@ Retrieval is dense-only over Postgres with pgvector, the model is stateless, and
 It is live in production on AWS at `answertrail.yeesengchan.com`, though the live site may be taken down from time to time to avoid running costs; a short demonstration video is planned (TBD).
 
 The project is also its own measuring instrument.
-A nugget-based evaluation scores a frozen agent on two kinds of question, factual and longitudinal, with a calibrated cross-family judge (Cohen's kappa 0.879).
+A nugget-based evaluation scores a frozen agent on two kinds of question, factual and longitudinal, with a calibrated cross-family judge (Cohen's kappa 0.88).
 
 This README walks the system in the order it is built: the corpus and how it is ingested, the ReAct agent that answers over it, how that agent is deployed on AWS, and the evaluation, both how its gold data is built and what the agent scores against it.
 
@@ -458,16 +458,16 @@ Each pair is just a claim and a piece of text, and the task is to say HIT or MIS
 - **The pairs cover the three checks above**: recall (a gold nugget against the agent's answer), groundedness (an agent claim against the retrieved chunks), and retrieval (a gold nugget against the retrieved chunks).
 - **Each check needs both clear hits and clear misses.** Most misses arise naturally, but groundedness is almost always a hit, so we add a few constructed misses: one of the agent's own claims paired with the chunks retrieved for a different, unrelated question, which cannot support it.
 - **The human labels all 66 blind**, seeing only each claim and its text exactly as the judge did, with the judge's verdict and reasoning hidden.
-- **The counts:** across the 66 pairs the judge determined 36 to be hits and 30 misses, while the human labeled 32 hits and 34 misses.
+- **The counts:** across the 66 pairs the judge determined 37 to be hits and 29 misses, while the human labeled 33 of each. All four disagreements fall in one cell, the judge saying HIT where the human said MISS and never the reverse, so where the judge errs it errs lenient.
 - **The calibration score** is how often the human and the judge agree, corrected for chance.
 
 That chance-corrected measure is Cohen's kappa, where $p_o$ is the observed agreement and $p_e$ the agreement expected if each labeled at its own hit/miss rate:
 
 $$\kappa = \frac{p_o - p_e}{1 - p_e}$$
 
-The observed agreement is $p_o = 62/66 = 0.9394$, and the chance agreement from the two distributions above is $p_e = \frac{36}{66}\cdot\frac{32}{66} + \frac{30}{66}\cdot\frac{34}{66} = 0.4986$, giving:
+The observed agreement is $p_o = 62/66 = 0.9394$, and the chance agreement from the two distributions above is $p_e = \frac{37}{66}\cdot\frac{33}{66} + \frac{29}{66}\cdot\frac{33}{66} = 0.5000$, giving:
 
-$$\kappa = \frac{0.9394 - 0.4986}{1 - 0.4986} = 0.879$$
+$$\kappa = \frac{0.9394 - 0.5000}{1 - 0.5000} = 0.88$$
 
 ### Ablations
 
@@ -476,19 +476,19 @@ Two ablations probe the two obvious levers: a better retriever, and no agent loo
 
 **Hybrid retrieval.**
 We ran a pre-registered ablation on the longitudinal questions that swaps dense retrieval for hybrid (dense plus BM25, fused by reciprocal rank fusion), to test whether a better ranker raises the retrieval ceiling.
-This was a single run, and its scores came out essentially identical to the three-run dense baseline (ceiling 40.2% against 43.5%, recall 31.1% against 32.2%): hybrid is no better than dense-only.
+This was a single run, and its scores came out close to the three-run dense baseline (ceiling 40.2% against 43.5%, recall 31.4% against 32.8%). A paired bootstrap over the 35 questions puts the recall difference at [-5, +9], so this run cannot separate hybrid from dense-only.
 
 If a better ranker does not help, the other lever is the agent loop itself.
 
 **Plain single-shot RAG.**
 This ablation removes the ReAct loop entirely, one dense retrieval on the raw question then one synthesis call with no exploration, to price what the loop buys:
 
-- Factual: plain RAG recall 82.0% against agent recall 86.9% (the loop adds +4.9 points).
-- Longitudinal: plain RAG recall 22.6% against agent recall 32.2% (the loop adds +9.6 points).
+- Factual: plain RAG recall 79.2% against agent recall 84.9% (the loop adds +5.7 points, paired interval [-3, +17]).
+- Longitudinal: plain RAG recall 23.4% against agent recall 32.8% (the loop adds +9.5 points, paired interval [+2, +17], which excludes zero).
 
 The loop's gain is coverage, not reasoning: it lifts the retrieval ceiling, most on longitudinal, but longitudinal still caps around 44%.
 
 ### In short
 
-Putting the main study and both ablations together: the factual-versus-longitudinal gap (87% against 32%) is dominantly a retrieval problem, since evidence for barely 44% of what a trajectory answer must say is ever retrieved.
-The ReAct loop and repeated querying lift that ceiling from about 28% to about 44%, but neither a better ranker (hybrid) nor a wider context window gets past it.
+Putting the main study and both ablations together: the factual-versus-longitudinal gap (85% against 33%) is dominantly a retrieval problem, since evidence for barely 44% of what a trajectory answer must say is ever retrieved.
+The ReAct loop and repeated querying lift that ceiling from about 28% to about 44%, and hybrid retrieval did not get past it.
