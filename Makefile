@@ -1,5 +1,5 @@
 # without the .PHONY, if a file named `up` existed, then `make up` would say "up is up to date" and do nothing
-.PHONY: up down logs reset api web smoke eval-runs eval-score corpus-dump corpus-restore
+.PHONY: up down logs reset api web smoke eval-runs eval-score corpus-dump corpus-restore corpus-verify corpus-verify-local
 
 up:
 	# starts Postgres + OpenSearch in the background, waits for healthy
@@ -66,6 +66,15 @@ corpus-dump:
 	# Dump with the CONTAINER's PG16 pg_dump, written to a host file via stdout redirect.
 	@docker exec -e PGPASSWORD=bdr_dev $(LOCAL_PG_CONTAINER) pg_dump -Fc -U bdr -d bdr > corpus.dump
 	@echo "wrote corpus.dump ($$(du -h corpus.dump | cut -f1))"
+
+# Per-channel row counts, so a rebuild can be checked against local before deploying.
+# corpus-verify targets RDS through the SSM tunnel (needs the tunnel open + PGPASSWORD);
+# corpus-verify-local reads the container. The two must agree after a restore.
+corpus-verify:
+	@psql -h $(PGHOST) -p $(PGPORT) -U $(PGUSER) -d $(PGDATABASE) -c "select v.channel, count(distinct v.video_id) filter (where v.chunked_at is not null) as chunked_videos, count(c.*) as chunks from videos v left join video_chunks c on c.video_id = v.video_id group by 1 order by 1;"
+
+corpus-verify-local:
+	@docker exec -e PGPASSWORD=bdr_dev $(LOCAL_PG_CONTAINER) psql -U $(PGUSER) -d $(PGDATABASE) -c "select v.channel, count(distinct v.video_id) filter (where v.chunked_at is not null) as chunked_videos, count(c.*) as chunks from videos v left join video_chunks c on c.video_id = v.video_id group by 1 order by 1;"
 
 corpus-restore:
 	# Convert the dump to SQL with the container's PG16 pg_restore, then load via the host
