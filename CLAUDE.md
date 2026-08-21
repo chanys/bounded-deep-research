@@ -42,7 +42,9 @@ Backend: `make api` (uvicorn on :8000, reload).
 Frontend: `make web` (Next dev on :3000).
 
 Verify the stack: `make smoke` checks Postgres, OpenSearch, and `/health` are all serving.
-There is no Python test suite yet (pytest is a dev dep, `eval/` is a stub), so `make smoke` plus `scripts/full_agent_smoke.py` are how you confirm a change works end to end.
+Python tests: `uv run pytest`. They live in `tests/`, which mirrors the package layout, and `testpaths` in `pyproject.toml` keeps collection inside it.
+The suite is small and unit-level, so `make smoke` plus `scripts/full_agent_smoke.py` are still how you confirm a change works end to end.
+The root `conftest.py` seeds a dummy `OPENAI_API_KEY` because `core/config.py` builds `Settings()` at import time with that field required; without it, collection fails wherever there is no `.env`.
 
 Lint: `uv run ruff check` (Python), `cd web && pnpm lint` (frontend).
 Web build check: `cd web && pnpm build`.

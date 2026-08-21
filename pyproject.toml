@@ -32,3 +32,13 @@ dev = [
     "pytest-asyncio>=1.3.0",
     "ruff>=0.15.11",
 ]
+
+[tool.pytest.ini_options]
+# Collect only from tests/. Without this, pytest walks the whole repository, which
+# means web/, data/, and eval/artifacts/ get stat-ed on every run for nothing.
+testpaths = ["tests"]
+# Run bare `async def` tests without a per-test marker. Most of the interesting
+# surface here (the agent loop, retrieval, tool dispatch) is async, and under the
+# default strict mode an unmarked async test fails with "async def functions are
+# not natively supported" rather than running.
+asyncio_mode = "auto"
