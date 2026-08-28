@@ -3,12 +3,18 @@
 AnswerTrail is a deep-research agent over a bounded corpus: the transcripts of a single YouTube creator.
 Given a question, it runs a roll-your-own ReAct loop, searching the transcripts, reasoning about what it finds, and writing an answer whose every citation is checked against the corpus before the answer is accepted.
 Retrieval is dense-only over Postgres with pgvector, the model is stateless, and the agent drives its own exploration until it decides it is ready to answer.
-It is live in production on AWS at `answertrail.yeesengchan.com`, though the live site may be taken down from time to time to avoid running costs; a short demonstration video is planned (TBD).
+It is live in production on AWS at `answertrail.yeesengchan.com`, though the live site may be taken down from time to time to avoid running costs. The [demo](#demo) below shows a full run and does not depend on the site being up.
 
 The project is also its own measuring instrument.
 A nugget-based evaluation scores a frozen agent on two kinds of question, factual and longitudinal, with a calibrated cross-family judge (Cohen's kappa 0.88).
 
 This README walks the system in the order it is built: the corpus and how it is ingested, the ReAct agent that answers over it, how that agent is deployed on AWS, and the evaluation, both how its gold data is built and what the agent scores against it.
+
+## Demo
+
+[![Watch the AnswerTrail demo](docs/answertrail-demo-thumbnail.png)](https://youtu.be/yY83UsH2xXY)
+
+One question, answered end to end. The agent searches, decides for itself when it has enough evidence, and writes an answer in which every citation has been checked against the passages actually retrieved. Clicking a citation opens the source video at the exact moment it came from.
 
 ## The corpus and its ingestion
 
