@@ -49,3 +49,7 @@ corpus.dump
 /eval/artifacts/scores/
 # Bulk human-read bundles from eval/make_read_bundle.py (regenerable join of scores+runs+gold).
 /eval/artifacts/read/
+
+# video masters live in ~/projects/answertrail-media
+*.mp4
+*.mov
