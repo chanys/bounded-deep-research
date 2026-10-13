@@ -1,5 +1,5 @@
 # without the .PHONY, if a file named `up` existed, then `make up` would say "up is up to date" and do nothing
-.PHONY: up down logs reset api web smoke eval-runs eval-score corpus-dump corpus-restore corpus-verify corpus-verify-local
+.PHONY: up down logs reset api web smoke eval-runs eval-score corpus-dump corpus-restore corpus-verify corpus-verify-local corpus-add-channel
 
 up:
 	# starts Postgres + OpenSearch in the background, waits for healthy
@@ -82,3 +82,21 @@ corpus-restore:
 	@docker exec -i $(LOCAL_PG_CONTAINER) pg_restore --no-owner --no-acl -f - < corpus.dump \
 		| psql -h $(PGHOST) -p $(PGPORT) -U $(PGUSER) -d $(PGDATABASE)
 	@echo "restored corpus into $(PGHOST):$(PGPORT)/$(PGDATABASE)"
+
+# Add ONE channel to a live RDS without touching anything else on it. corpus-restore is
+# for an empty RDS (a rebuild): on a live one it collides with existing tables and would
+# overwrite prod's daily_spend/ip_usage with local's. This exports just CHANNEL's videos
+# and chunks (with embeddings) from local, then loads both tables in one transaction
+# through the tunnel, so a failure or an accidental re-run (duplicate key) leaves nothing
+# half-loaded. Usage: make corpus-add-channel CHANNEL=xiao_lin_shuo
+corpus-add-channel:
+	@test -n "$(CHANNEL)" || { echo "usage: make corpus-add-channel CHANNEL=<slug>"; exit 1; }
+	@mkdir -p data/deploy
+	@docker exec -e PGPASSWORD=bdr_dev $(LOCAL_PG_CONTAINER) psql -U bdr -d bdr -c "\copy (select * from videos where channel='$(CHANNEL)') to stdout" > data/deploy/$(CHANNEL)_videos.tsv
+	@docker exec -e PGPASSWORD=bdr_dev $(LOCAL_PG_CONTAINER) psql -U bdr -d bdr -c "\copy (select c.* from video_chunks c join videos v on v.video_id = c.video_id where v.channel='$(CHANNEL)') to stdout" > data/deploy/$(CHANNEL)_chunks.tsv
+	@test -s data/deploy/$(CHANNEL)_chunks.tsv || { echo "no local chunks for channel '$(CHANNEL)'; nothing loaded"; exit 1; }
+	@echo "exported $$(wc -l < data/deploy/$(CHANNEL)_videos.tsv) videos, $$(wc -l < data/deploy/$(CHANNEL)_chunks.tsv) chunks"
+	@psql -h $(PGHOST) -p $(PGPORT) -U $(PGUSER) -d $(PGDATABASE) -1 -v ON_ERROR_STOP=1 \
+		-c "\copy videos from 'data/deploy/$(CHANNEL)_videos.tsv'" \
+		-c "\copy video_chunks from 'data/deploy/$(CHANNEL)_chunks.tsv'"
+	@echo "added $(CHANNEL) to $(PGHOST):$(PGPORT)/$(PGDATABASE); now run make corpus-verify"
