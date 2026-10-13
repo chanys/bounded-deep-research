@@ -51,6 +51,7 @@ Web build check: `cd web && pnpm build`.
 
 Corpus move (local -> RDS, never re-ingest): `make corpus-dump` then `PGPASSWORD=... make corpus-restore`.
 It deliberately uses the container's PG16 tools, not the host's PG18; see the Makefile comments and `operations-cheatsheet.md`.
+That pair is for an empty RDS (a rebuild); to add one new channel to the live RDS, use `make corpus-add-channel CHANNEL=<slug>` through the tunnel instead.
 
 Ingest pipeline (offline, per channel, in order): `list_channel_videos` -> `fetch_transcripts` -> `clean_transcripts` (ASR fix via gpt-5.4-mini; skip with `register_channel --manual-clean` for human captions) -> `chunk_transcripts` (fixed 30s windows) -> `embed_chunks` -> `index_chunks` (OpenSearch, local eval only).
 Each runs as `uv run python -m ingest.<name>`.

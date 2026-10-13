@@ -52,5 +52,21 @@ CHANNELS: dict[str, Channel] = {
                 "How has the creator's view of LLM reasoning evolved over 2025-2026?",
             ],
         ),
+        Channel(
+            id="xiao_lin_shuo",
+            display_name="小Lin说",
+            title="Ask 小Lin说",
+            placeholder="问一个关于全球经济、金融、公司或投资的问题…",
+            language="zh",
+            example_prompts=[
+                "硅谷银行为什么会倒闭？",
+                "从2025年到2026年，特朗普的关税政策是怎么一步步演变的？",
+            ],
+            output_directive=(
+                "The transcripts in this corpus are in Simplified Chinese. Phrase your "
+                "`search_transcripts` queries in Chinese to match the corpus. Write the final "
+                "answer and every citation `reason` in Simplified Chinese (简体中文)."
+            ),
+        ),
     ]
 }

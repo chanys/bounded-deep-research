@@ -3,6 +3,9 @@
 Usage:
   uv run python -m ingest.fetch_transcripts --channel code4AI
   uv run python -m ingest.fetch_transcripts --channel code4AI --month 2026-04
+  uv run python -m ingest.fetch_transcripts --channel xiao_lin_shuo --lang zh zh-Hans zh-CN
+
+--lang takes one or more codes in priority order; each video gets the first one it has.
 """
 import random
 import argparse
@@ -15,7 +18,7 @@ from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
 
 
-def fetch_one(api, video_id, lang, attempts):
+def fetch_one(api, video_id, langs, attempts):
     """Fetch one transcript, retrying transient network errors with exponential backoff.
 
     Returns (transcript, segments); raises if every attempt fails. YouTube
@@ -27,7 +30,7 @@ def fetch_one(api, video_id, lang, attempts):
     """
     for attempt in range(attempts):
         try:
-            t = api.list(video_id).find_transcript([lang])
+            t = api.list(video_id).find_transcript(langs)
             return t, t.fetch().to_raw_data()
         except RequestException as e:
             if attempt == attempts - 1:
@@ -42,7 +45,8 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--channel", help="channel slug, e.g. code4AI")
     p.add_argument("--month", help="filter by YYYY-MM prefix on publishedAt")
-    p.add_argument("--lang", default="en")
+    p.add_argument("--lang", nargs="+", default=["en"],
+                   help="caption language codes in priority order, e.g. zh zh-Hans zh-CN")
     p.add_argument("--delay", type=float, default=90)
     p.add_argument("--jitter", type=float, default=15)
     p.add_argument("--attempts", type=int, default=5,
