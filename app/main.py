@@ -1,14 +1,15 @@
 from contextlib import asynccontextmanager
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 import json
+import secrets
 from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
 
-from app import limits
+from app import limits, query_log
 from app.agent import run_agent
 from app.channels import CHANNELS
 from core.config import settings
@@ -63,6 +64,7 @@ async def lifespan(app: FastAPI):
     container. We close the OpenSearch client here; it's a no-op under the pgvector
     backend, where no client was ever opened."""
     limits.ensure_tables()  # make sure the daily_spend table exists before serving
+    query_log.ensure_table()
     yield
     await aclose()
 
@@ -149,6 +151,20 @@ def hydrate_citations(req: HydrateRequest) -> dict[str, str]:
     return {r["video_id"]: r["title"] for r in rows}
 
 
+@app.get("/admin/queries")
+def admin_queries(limit: int = 100, x_owner_code: str | None = Header(default=None)) -> list[dict]:
+    """The most recent /query requests (IP, tier, channel, question, outcome, cost),
+    newest first. Owner only: send the owner code in an X-Owner-Code header, not the
+    URL, so it stays out of access logs. 404 otherwise, so the route isn't advertised.
+
+        curl -H "X-Owner-Code: $OWNER_CODE" "https://api.answertrail.yeesengchan.com/admin/queries?limit=50"
+    """
+    if not (settings.owner_code and x_owner_code
+            and secrets.compare_digest(x_owner_code, settings.owner_code)):
+        raise HTTPException(status_code=404)
+    return query_log.recent(min(limit, 1000))
+
+
 class QueryRequest(BaseModel):
     """JSON body of a POST /query request."""
 
@@ -196,17 +212,23 @@ async def query(req: QueryRequest, request: Request):   # FastAPI parses the JSO
     else:
         tier, bucket, cap = "anon", "public", settings.daily_spend_cap_usd
 
+    # Behind the load balancer the real client IP is the first entry of X-Forwarded-For.
+    xff = request.headers.get("x-forwarded-for")
+    client_ip = xff.split(",")[0].strip() if xff else (request.client.host if request.client else "unknown")
+
+    def log(outcome: str, run_id: str | None = None, usd_cost: float | None = None) -> None:
+        query_log.record(client_ip, tier, req.channel, req.query, outcome, run_id, usd_cost)
+
     # Gate 1 - spend breaker for this tier's budget, before any paid work.
     if await asyncio.to_thread(limits.over_cap, bucket, cap):
+        await asyncio.to_thread(log, "over_cap")
         return error_stream("The demo's daily usage limit has been reached. Please try again tomorrow.")
 
-    # Gate 2 - per-IP daily quota (the owner code is exempt). Behind the load balancer the
-    # real client IP is the first entry of X-Forwarded-For.
+    # Gate 2 - per-IP daily quota (the owner code is exempt).
     if tier != "owner":
         limit = settings.coded_daily_quota if tier == "coded" else settings.anon_daily_quota
-        xff = request.headers.get("x-forwarded-for")
-        client_ip = xff.split(",")[0].strip() if xff else (request.client.host if request.client else "unknown")
         if not await asyncio.to_thread(limits.check_and_count, client_ip, limit):
+            await asyncio.to_thread(log, "over_quota")
             hint = "" if tier == "coded" else " Enter the access code for a higher limit."
             return error_stream(f"You've reached today's query limit.{hint}")
 
@@ -241,16 +263,17 @@ async def query(req: QueryRequest, request: Request):   # FastAPI parses the JSO
             evidence = get_run(run_id) if run_id else latest_run()
             if evidence is not None:
                 await asyncio.to_thread(limits.add_spend, bucket, evidence.usd_cost)
+            await asyncio.to_thread(log, "answered", run_id, evidence.usd_cost if evidence else None)
         except Exception as e:
             queue.put_nowait(ErrorEvent(message=f"{type(e).__name__}: {e}").model_dump())
             # A run that raised never recorded its cost, so charge whatever it spent
             # before dying against today's budget; without this the breaker undercounts
             # exactly the failed runs that burned tokens. Zero if it died before any
             # model call. run_id is None only if run_started never fired.
-            if run_id:
-                partial = take_partial_cost(run_id)
-                if partial > 0:
-                    await asyncio.to_thread(limits.add_spend, bucket, partial)
+            partial = take_partial_cost(run_id) if run_id else 0.0
+            if partial > 0:
+                await asyncio.to_thread(limits.add_spend, bucket, partial)
+            await asyncio.to_thread(log, "error", run_id, partial)
         finally:
             queue.put_nowait(None)
 

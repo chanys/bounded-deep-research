@@ -48,6 +48,10 @@ function withCitationChips(text: string, citations: Citation[]): string {
     });
 }
 
+// Temporarily hides the right-hand audit rail (research steps + run details) for
+// public visitors. Flip back to true to restore it; the layout adapts either way.
+const SHOW_AUDIT_RAIL = false;
+
 // Shown until GET /channels responds (and kept if it never does), so the page
 // works even when the registry fetch fails. Mirrors the default (first) entry
 // of app/channels.py; its id seeds the channel selection.
@@ -271,7 +275,7 @@ export default function QueryPage() {
           or writes (ask box, examples, answer, sources) shares the left column's
           width; the audit rail owns the right column from the start, so nothing
           changes width or jumps when a run starts. */}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className={`grid gap-6 ${SHOW_AUDIT_RAIL ? "lg:grid-cols-[minmax(0,1fr)_320px]" : ""}`}>
       <div className="min-w-0">
       {/* Ask box: auto-sizing textarea with a round submit button. */}
       <div className="relative rounded-2xl border border-border bg-card shadow-sm">
@@ -352,6 +356,7 @@ export default function QueryPage() {
       {/* The audit rail. Before the first run it's a placeholder (desktop only:
           on small screens the rail stacks below the content, where an empty box
           would just be clutter); during/after a run, the real panel. */}
+      {SHOW_AUDIT_RAIL && (
       <div className="lg:sticky lg:top-6 lg:self-start">
         {started ? (
           <TracePanel
@@ -369,6 +374,7 @@ export default function QueryPage() {
           </div>
         )}
       </div>
+      )}
       </div>
       </div>
     </main>
