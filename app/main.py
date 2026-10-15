@@ -9,7 +9,7 @@ import secrets
 from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
 
-from app import limits, query_log
+from app import answer_cache, limits, query_log
 from app.agent import run_agent
 from app.channels import CHANNELS
 from core.config import settings
@@ -219,6 +219,18 @@ async def query(req: QueryRequest, request: Request):   # FastAPI parses the JSO
     def log(outcome: str, run_id: str | None = None, usd_cost: float | None = None) -> None:
         query_log.record(client_ip, tier, req.channel, req.query, outcome, run_id, usd_cost)
 
+    # A question already answered recently on this channel replays that run's events.
+    # It costs nothing, so it is served ahead of the spend cap and the per-IP quota.
+    cached = answer_cache.get(req.channel, req.query)
+    if cached is not None:
+        await asyncio.to_thread(log, "cached", cached[0].get("run_id"), 0.0)
+
+        async def replay():
+            for event in cached:
+                yield sse(event)
+        return StreamingResponse(replay(), media_type="text/event-stream",
+                                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
     # Gate 1 - spend breaker for this tier's budget, before any paid work.
     if await asyncio.to_thread(limits.over_cap, bucket, cap):
         await asyncio.to_thread(log, "over_cap")
@@ -234,6 +246,7 @@ async def query(req: QueryRequest, request: Request):   # FastAPI parses the JSO
 
     queue: asyncio.Queue = asyncio.Queue()
     run_id: str | None = None  # captured from run_started, used to record this run's cost
+    recorded: list[dict] = []  # every event sent, kept for the answer cache
 
     def event_sink(event: dict) -> None:
         """Hand one agent event to the stream. run_agent is awaited on this same
@@ -242,6 +255,7 @@ async def query(req: QueryRequest, request: Request):   # FastAPI parses the JSO
         nonlocal run_id
         if event.get("type") == "run_started":
             run_id = event.get("run_id")
+        recorded.append(event)
         queue.put_nowait(event)
 
     async def run_and_signal():
@@ -255,10 +269,12 @@ async def query(req: QueryRequest, request: Request):   # FastAPI parses the JSO
         """
         try:
             result = await run_agent(req.query, req.channel, req.mode, event_sink)
-            queue.put_nowait(AnswerComplete(
+            done = AnswerComplete(
                 answer=result.answer,
                 citations=[c.model_dump() for c in result.citations],
-            ).model_dump())
+            ).model_dump()
+            queue.put_nowait(done)
+            answer_cache.put(req.channel, req.query, recorded + [done])
             # Record this run's cost against today's spend for the right budget bucket.
             evidence = get_run(run_id) if run_id else latest_run()
             if evidence is not None:
