@@ -331,7 +331,18 @@ export default function QueryPage() {
       {started && (
         <div className="mt-8 space-y-6">
           <section>
-            <div className="mb-3 text-sm font-semibold text-foreground">Answer</div>
+            <div className="mb-3 flex items-baseline justify-between gap-4">
+              <div className="text-sm font-semibold text-foreground">Answer</div>
+              {/* With the audit rail hidden, this elapsed timer is the only sign the run
+                  is still alive during the long quiet stretches. */}
+              {!SHOW_AUDIT_RAIL && (isRunning || elapsedMs > 0) && (
+                <div className="font-mono text-xs text-muted-foreground tabular-nums">
+                  {isRunning
+                    ? `${Math.floor(elapsedMs / 1000)}s elapsed`
+                    : `Done in ${Math.floor(elapsedMs / 1000)}s`}
+                </div>
+              )}
+            </div>
             <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
               {answerText ? (
                 <div className="markdown-answer">
