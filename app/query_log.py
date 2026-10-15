@@ -21,7 +21,7 @@ def ensure_table() -> None:
                 tier     TEXT NOT NULL,      -- 'anon' | 'coded' | 'owner'
                 channel  TEXT NOT NULL,
                 query    TEXT NOT NULL,
-                outcome  TEXT NOT NULL,      -- 'answered' | 'error' | 'over_cap' | 'over_quota'
+                outcome  TEXT NOT NULL,      -- 'answered' | 'cached' | 'error' | 'over_cap' | 'over_quota'
                 run_id   TEXT,
                 usd_cost NUMERIC
             )
