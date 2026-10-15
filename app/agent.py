@@ -26,7 +26,7 @@ from core.llm import respond, to_input_item
 from app.channels import CHANNELS
 from app.prompts import load_recipe
 from app.retrieval import Mode
-from app.tools import EXPLORE_TOOLS, SUBMIT_TOOLS, dispatch, SubmittedAnswer
+from app.tools import ALL_TOOLS, EXPLORE_CHOICE, SUBMIT_CHOICE, dispatch, SubmittedAnswer
 
 
 _RECIPE_METADATA, SYSTEM_PROMPT = load_recipe()
@@ -267,15 +267,16 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
     # Bounds the no-tool-call retry: raise only on the second consecutive empty turn.
     no_tool_failures = 0
 
-    async def _respond_turn(step, tools, tool_choice, effort=None, stream_answer=True):
+    async def _respond_turn(step, tool_choice, effort=None, stream_answer=True):
         """Run one model call (one "turn") and bracket it with two events:
         turn_start just before, and turn_complete just after (the latter carries
         this call's token usage, for the UI counter and the cost fold).
 
         Parameters:
-          tools:  which tools the model may call this turn. Exploration turns pass
-                  EXPLORE_TOOLS (search / mark_ready); synthesis passes
-                  SUBMIT_TOOLS (submit_answer only, forced via tool_choice).
+          tool_choice: which tools the model may call this turn. Every turn sends
+                  ALL_TOOLS (keeps the prompt-cache prefix stable); exploration
+                  passes EXPLORE_CHOICE (search / mark_ready), synthesis passes
+                  SUBMIT_CHOICE (forces submit_answer).
           effort: reasoning-effort override for this call. Exploration runs at the
                   global `none`; synthesis runs at `synthesis_reasoning_effort`.
           stream_answer: whether to stream the submit_answer text to the UI as it
@@ -314,7 +315,7 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
                         if piece:
                             emit(AnswerDelta(text=piece).model_dump())
 
-        response = await respond(input_items, tools=tools, tool_choice=tool_choice,
+        response = await respond(input_items, tools=ALL_TOOLS, tool_choice=tool_choice,
                                  on_event=on_event, effort=effort)
         emit(TurnComplete(step=step, usage=usage_dict(response)).model_dump())
         return response
@@ -396,8 +397,7 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
         for _ in range(3):   # one initial attempt plus up to two retries
             response = await _respond_turn(
                 steps_used,
-                tools=SUBMIT_TOOLS,
-                tool_choice={"type": "function", "name": "submit_answer"},
+                tool_choice=SUBMIT_CHOICE,
                 effort=settings.synthesis_reasoning_effort,
                 stream_answer=True,
             )
@@ -414,7 +414,7 @@ async def run_agent(query: str, channel: str, mode: Mode, event_sink=_noop, dump
     for step in range(settings.agent_max_steps):
         # Exploration turn: search/read/mark_ready at the global effort (no answer
         # is generated here, and nothing is streamed).
-        response = await _respond_turn(step, tools=EXPLORE_TOOLS, tool_choice="required",
+        response = await _respond_turn(step, tool_choice=EXPLORE_CHOICE,
                                        stream_answer=False)
 
         # Append reasoning/messages and every function call, including mark_ready.

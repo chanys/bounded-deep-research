@@ -132,12 +132,22 @@ MARK_READY_SCHEMA: dict = {
     },
 }
 
-# Exploration turns offer search/mark_ready but NOT submit_answer, so the model
+# Every turn sends the SAME tool list; tool_choice decides which tools are callable.
+# The tool definitions sit at the start of the prompt, so swapping the list between
+# turns would break OpenAI's prompt-cache prefix match and bill the largest prompt
+# of the run (the synthesis turn) at the full uncached rate.
+# Exploration turns may call search/mark_ready but NOT submit_answer, so the model
 # signals readiness (mark_ready, no answer) instead of drafting an answer at the
 # exploration reasoning effort. The answer is then composed in a dedicated
-# synthesis turn forced to submit_answer (SUBMIT_TOOLS).
-EXPLORE_TOOLS: list[dict] = [SEARCH_TRANSCRIPTS_SCHEMA, MARK_READY_SCHEMA]
-SUBMIT_TOOLS: list[dict] = [SUBMIT_ANSWER_SCHEMA]
+# synthesis turn forced to submit_answer.
+ALL_TOOLS: list[dict] = [SEARCH_TRANSCRIPTS_SCHEMA, MARK_READY_SCHEMA, SUBMIT_ANSWER_SCHEMA]
+EXPLORE_CHOICE: dict = {
+    "type": "allowed_tools",
+    "mode": "required",
+    "tools": [{"type": "function", "name": "search_transcripts"},
+              {"type": "function", "name": "mark_ready"}],
+}
+SUBMIT_CHOICE: dict = {"type": "function", "name": "submit_answer"}
 
 
 # ---------------------------------------------------------------------------
