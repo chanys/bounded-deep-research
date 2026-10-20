@@ -89,7 +89,7 @@ class Settings(BaseSettings):
     #                your demo is never blocked by public traffic and vice versa.
     access_code: str | None = None
     owner_code: str | None = None
-    anon_daily_quota: int = 5    # queries per IP per day without a code
+    anon_daily_quota: int = 10   # queries per IP per day without a code
     coded_daily_quota: int = 50  # queries per IP per day with the access code
 
     @model_validator(mode="after")
